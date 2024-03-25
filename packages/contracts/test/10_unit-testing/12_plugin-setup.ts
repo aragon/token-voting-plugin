@@ -1,4 +1,4 @@
-import metadata from '../../../src/build-metadata.json';
+import metadata from '../../src/build-metadata.json';
 import {
   ERC20,
   ERC20__factory,
@@ -9,10 +9,10 @@ import {
   TokenVotingSetup,
   TokenVotingSetup__factory,
   TokenVoting__factory,
-} from '../../../typechain';
-import {createDaoProxy, EMPTY_DATA} from '../../test-utils/dao';
-import {TOKEN_VOTING_INTERFACE} from '../../test-utils/token-voting-constants';
-import {VotingMode, VotingSettings} from '../../test-utils/voting-helpers';
+} from '../../typechain';
+import {createDaoProxy, EMPTY_DATA} from '../test-utils/dao';
+import {TOKEN_VOTING_INTERFACE} from '../test-utils/token-voting-constants';
+import {VotingMode, VotingSettings} from '../test-utils/voting-helpers';
 import {Operation} from '@aragon/osx-commons-sdk';
 import {getNamedTypesFromMetadata} from '@aragon/osx-commons-sdk';
 import {TIME} from '@aragon/osx-commons-sdk';

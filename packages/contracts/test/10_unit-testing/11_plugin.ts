@@ -7,33 +7,33 @@ import {
   IPlugin__factory,
   IProposal__factory,
   IProtocolVersion__factory,
-} from '../../../typechain';
+} from '../../typechain';
 import {
   ProposalCreatedEvent,
   ProposalExecutedEvent,
-} from '../../../typechain/src/TokenVoting';
-import {ExecutedEvent} from '../../../typechain/src/mocks/DAOMock';
-import {VITALIK} from '../../test-utils/address';
-import {EMPTY_DATA, createDaoProxy} from '../../test-utils/dao';
+} from '../../typechain/src/TokenVoting';
+import {ExecutedEvent} from '../../typechain/src/mocks/DAOMock';
+import {VITALIK} from '../test-utils/address';
+import {EMPTY_DATA, createDaoProxy} from '../test-utils/dao';
 import {
   MAJORITY_VOTING_BASE_INTERFACE,
   VOTING_EVENTS,
-} from '../../test-utils/majority-voting-constants';
-import {deployWithProxy} from '../../test-utils/proxy';
+} from '../test-utils/majority-voting-constants';
+import {deployWithProxy} from '../test-utils/proxy';
 import {
   TOKEN_VOTING_INTERFACE,
   TOKEN_VOTING_INTERFACE_ID,
-} from '../../test-utils/token-voting-constants';
+} from '../test-utils/token-voting-constants';
 import {
   TokenVoting__factory,
   TokenVoting,
-} from '../../test-utils/typechain-versions';
+} from '../test-utils/typechain-versions';
 import {
   VoteOption,
   VotingMode,
   VotingSettings,
   voteWithSigners,
-} from '../../test-utils/voting-helpers';
+} from '../test-utils/voting-helpers';
 import {
   IDAO_EVENTS,
   IMEMBERSHIP_EVENTS,
