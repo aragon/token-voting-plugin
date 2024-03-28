@@ -1,9 +1,6 @@
-import {createDaoProxy} from '../test-utils/dao';
-import {
-  DEFAULT_VOTING_SETTINGS,
-  TokenVotingSettings,
-  spreadSettings,
-} from '../test-utils/token-voting-constants';
+import {createDaoProxy} from '../20_integration-testing/test-helpers';
+import {TestGovernanceERC20} from '../../typechain';
+import {MajorityVotingBase} from '../../typechain/src';
 import {
   TokenVoting_V1_0_0__factory,
   TokenVoting_V1_3_0__factory,
@@ -14,7 +11,12 @@ import {
   deployAndUpgradeSelfCheck,
   getProtocolVersion,
 } from '../test-utils/uups-upgradeable';
-import {PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS} from '@aragon/osx-commons-sdk';
+import {VotingMode} from '../test-utils/voting-helpers';
+import {
+  PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS,
+  TIME,
+  pctToRatio,
+} from '@aragon/osx-commons-sdk';
 import {DAO, TestGovernanceERC20__factory} from '@aragon/osx-ethers';
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
@@ -29,7 +31,11 @@ describe('Upgrades', () => {
     await deployAndUpgradeSelfCheck(
       deployer,
       alice,
-      spreadSettings(defaultInitData),
+      [
+        dao.address,
+        defaultInitData.votingSettings,
+        defaultInitData.token.address,
+      ],
       'initialize',
       currentContractFactory,
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
@@ -46,7 +52,11 @@ describe('Upgrades', () => {
       await deployAndUpgradeFromToCheck(
         deployer,
         alice,
-        spreadSettings(defaultInitData),
+        [
+          dao.address,
+          defaultInitData.votingSettings,
+          defaultInitData.token.address,
+        ],
         'initialize',
         legacyContractFactory,
         currentContractFactory,
@@ -77,7 +87,11 @@ describe('Upgrades', () => {
       await deployAndUpgradeFromToCheck(
         deployer,
         alice,
-        spreadSettings(defaultInitData),
+        [
+          dao.address,
+          defaultInitData.votingSettings,
+          defaultInitData.token.address,
+        ],
         'initialize',
         legacyContractFactory,
         currentContractFactory,
@@ -105,8 +119,12 @@ type FixtureResult = {
   alice: SignerWithAddress;
   bob: SignerWithAddress;
   carol: SignerWithAddress;
-  defaultInitData: TokenVotingSettings;
+
   dao: DAO;
+  defaultInitData: {
+    votingSettings: MajorityVotingBase.VotingSettingsStruct;
+    token: TestGovernanceERC20;
+  };
 };
 
 async function fixture(): Promise<FixtureResult> {
@@ -117,8 +135,8 @@ async function fixture(): Promise<FixtureResult> {
   );
 
   const dao = await createDaoProxy(deployer, dummyMetadata);
-  const TestGovernanceERC20 = new TestGovernanceERC20__factory(deployer);
-  const governanceErc20Mock = await TestGovernanceERC20.deploy(
+
+  const token = await new TestGovernanceERC20__factory(deployer).deploy(
     dao.address,
     'GOV',
     'GOV',
@@ -128,11 +146,18 @@ async function fixture(): Promise<FixtureResult> {
     }
   );
 
+  const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
+    votingMode: VotingMode.EarlyExecution,
+    supportThreshold: pctToRatio(50),
+    minParticipation: pctToRatio(20),
+    minDuration: TIME.HOUR,
+    minProposerVotingPower: 0,
+  };
+
   // Create an initialized plugin clone
   const defaultInitData = {
-    dao: dao.address,
-    votingSettings: DEFAULT_VOTING_SETTINGS,
-    token: governanceErc20Mock.address,
+    votingSettings,
+    token: token,
   };
 
   return {

@@ -1,4 +1,5 @@
-import metadata from '../../src/build-metadata.json';
+import {createDaoProxy} from '../20_integration-testing/test-helpers';
+import {METADATA, VERSION} from '../../plugin-settings';
 import {
   ERC20,
   ERC20__factory,
@@ -6,179 +7,213 @@ import {
   GovernanceERC20__factory,
   GovernanceWrappedERC20,
   GovernanceWrappedERC20__factory,
+} from '../../typechain';
+import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
+import {
+  MINT_PERMISSION_ID,
+  UPDATE_VOTING_SETTINGS_PERMISSION_ID,
+} from '../test-utils/token-voting-constants';
+import {
+  TokenVoting__factory,
   TokenVotingSetup,
   TokenVotingSetup__factory,
-  TokenVoting__factory,
-} from '../../typechain';
-import {createDaoProxy, EMPTY_DATA} from '../test-utils/dao';
-import {TOKEN_VOTING_INTERFACE} from '../test-utils/token-voting-constants';
-import {VotingMode, VotingSettings} from '../test-utils/voting-helpers';
-import {Operation} from '@aragon/osx-commons-sdk';
+} from '../test-utils/typechain-versions';
+import {VotingMode} from '../test-utils/voting-helpers';
+import {
+  DAO_PERMISSIONS,
+  Operation,
+  PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS,
+} from '@aragon/osx-commons-sdk';
 import {getNamedTypesFromMetadata} from '@aragon/osx-commons-sdk';
 import {TIME} from '@aragon/osx-commons-sdk';
-import {getInterfaceId} from '@aragon/osx-commons-sdk';
 import {pctToRatio} from '@aragon/osx-commons-sdk';
+import {DAO} from '@aragon/osx-ethers';
+import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {ethers} from 'hardhat';
 
-let defaultData: any;
-let defaultVotingSettings: VotingSettings;
-let defaultTokenSettings: {addr: string; name: string; symbol: string};
-let defaultMintSettings: {receivers: string[]; amounts: number[]};
-
 const abiCoder = ethers.utils.defaultAbiCoder;
 const AddressZero = ethers.constants.AddressZero;
 
-const prepareInstallationDataTypes = getNamedTypesFromMetadata(
-  metadata.pluginSetup.prepareInstallation.inputs
-);
+type FixtureResult = {
+  deployer: SignerWithAddress;
+  alice: SignerWithAddress;
+  bob: SignerWithAddress;
+  carol: SignerWithAddress;
+  pluginSetup: TokenVotingSetup;
+  defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct;
+  defaultTokenSettings: {
+    addr: string;
+    name: string;
+    symbol: string;
+  };
+  defaultMintSettings: GovernanceERC20.MintSettingsStruct;
+  prepareInstallationInputs: string;
+  prepareUninstallationInputs: string;
+  dao: DAO;
+  governanceERC20Base: GovernanceERC20;
+  governanceWrappedERC20Base: GovernanceWrappedERC20;
+  erc20: ERC20;
+};
 
-const tokenName = 'name';
-const tokenSymbol = 'symbol';
-const merkleMintToAddressArray = [ethers.Wallet.createRandom().address];
-const merkleMintToAmountArray = [1];
+async function fixture(): Promise<FixtureResult> {
+  const [deployer, alice, bob, carol] = await ethers.getSigners();
 
-// Permissions
-const UPDATE_VOTING_SETTINGS_PERMISSION_ID = ethers.utils.id(
-  'UPDATE_VOTING_SETTINGS_PERMISSION'
-);
-const UPGRADE_PERMISSION_ID = ethers.utils.id('UPGRADE_PLUGIN_PERMISSION');
-const EXECUTE_PERMISSION_ID = ethers.utils.id('EXECUTE_PERMISSION');
-const MINT_PERMISSION_ID = ethers.utils.id('MINT_PERMISSION');
+  // Deploy a DAO proxy.
+  const dummyMetadata = ethers.utils.hexlify(
+    ethers.utils.toUtf8Bytes('0x123456789')
+  );
+  const dao = await createDaoProxy(deployer, dummyMetadata);
 
-describe('TokenVotingSetup', function () {
-  let signers: SignerWithAddress[];
-  let tokenVotingSetup: TokenVotingSetup;
-  let governanceERC20Base: GovernanceERC20;
-  let governanceWrappedERC20Base: GovernanceWrappedERC20;
-  let implementationAddress: string;
-  let targetDao: any;
-  let erc20Token: ERC20;
+  const defaultTokenSettings = {
+    addr: AddressZero,
+    name: 'defaultName',
+    symbol: 'SYMB',
+  };
+  const defaultMintSettings = {receivers: [], amounts: []};
 
-  before(async () => {
-    signers = await ethers.getSigners();
-    targetDao = await createDaoProxy(signers[0], EMPTY_DATA);
+  const erc20 = await new ERC20__factory(deployer).deploy('erc20', 'ERC20');
 
-    defaultVotingSettings = {
-      votingMode: VotingMode.EarlyExecution,
-      supportThreshold: pctToRatio(50),
-      minParticipation: pctToRatio(20),
-      minDuration: TIME.HOUR,
-      minProposerVotingPower: 0,
-    };
+  // Deploy the GovernanceERC20 token base class
+  const governanceERC20Base = await new GovernanceERC20__factory(
+    deployer
+  ).deploy(AddressZero, 'gov', 'GOV', defaultMintSettings);
 
-    const emptyName = '';
-    const emptySymbol = '';
+  // Deploy the GovernanceWrappedERC20 token base class
+  const governanceWrappedERC20Base = await new GovernanceWrappedERC20__factory(
+    deployer
+  ).deploy(AddressZero, 'wrappedGov', 'wGOV');
 
-    defaultTokenSettings = {
-      addr: AddressZero,
-      name: emptyName,
-      symbol: emptySymbol,
-    };
-    defaultMintSettings = {receivers: [], amounts: []};
+  // Deploy a plugin setup contract
+  const pluginSetup = await new TokenVotingSetup__factory(deployer).deploy(
+    governanceERC20Base.address,
+    governanceWrappedERC20Base.address
+  );
 
-    const GovernanceERC20Factory = new GovernanceERC20__factory(signers[0]);
-    governanceERC20Base = await GovernanceERC20Factory.deploy(
-      AddressZero,
-      emptyName,
-      emptySymbol,
-      defaultMintSettings
-    );
+  const defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
+    votingMode: VotingMode.EarlyExecution,
+    supportThreshold: pctToRatio(50),
+    minParticipation: pctToRatio(20),
+    minDuration: TIME.HOUR,
+    minProposerVotingPower: 0,
+  };
 
-    const GovernanceWrappedERC20Factory = new GovernanceWrappedERC20__factory(
-      signers[0]
-    );
-    governanceWrappedERC20Base = await GovernanceWrappedERC20Factory.deploy(
-      AddressZero,
-      emptyName,
-      emptySymbol
-    );
-
-    const TokenVotingSetup = new TokenVotingSetup__factory(signers[0]);
-    tokenVotingSetup = await TokenVotingSetup.deploy(
-      governanceERC20Base.address,
-      governanceWrappedERC20Base.address
-    );
-
-    implementationAddress = await tokenVotingSetup.implementation();
-
-    const ERC20Token = new ERC20__factory(signers[0]);
-    erc20Token = await ERC20Token.deploy(tokenName, tokenSymbol);
-
-    defaultData = abiCoder.encode(prepareInstallationDataTypes, [
+  // Provide installation inputs
+  const prepareInstallationInputs = ethers.utils.defaultAbiCoder.encode(
+    getNamedTypesFromMetadata(
+      METADATA.build.pluginSetup.prepareInstallation.inputs
+    ),
+    [
       Object.values(defaultVotingSettings),
       Object.values(defaultTokenSettings),
       Object.values(defaultMintSettings),
-    ]);
-  });
+    ]
+  );
 
+  // Provide uninstallation inputs
+  const prepareUninstallationInputs = ethers.utils.defaultAbiCoder.encode(
+    getNamedTypesFromMetadata(
+      METADATA.build.pluginSetup.prepareUninstallation.inputs
+    ),
+    []
+  );
+
+  return {
+    deployer,
+    alice,
+    bob,
+    carol,
+    pluginSetup,
+    defaultVotingSettings,
+    defaultTokenSettings,
+    defaultMintSettings,
+    prepareInstallationInputs,
+    prepareUninstallationInputs,
+    dao,
+    governanceERC20Base,
+    governanceWrappedERC20Base,
+    erc20,
+  };
+}
+
+describe('TokenVotingSetup', function () {
   it('does not support the empty interface', async () => {
-    expect(await tokenVotingSetup.supportsInterface('0xffffffff')).to.be.false;
+    const {pluginSetup} = await loadFixture(fixture);
+    expect(await pluginSetup.supportsInterface('0xffffffff')).to.be.false;
   });
 
   it('stores the bases provided through the constructor', async () => {
-    expect(await tokenVotingSetup.governanceERC20Base()).to.be.eq(
+    const {pluginSetup, governanceERC20Base, governanceWrappedERC20Base} =
+      await loadFixture(fixture);
+
+    expect(await pluginSetup.governanceERC20Base()).to.be.eq(
       governanceERC20Base.address
     );
-    expect(await tokenVotingSetup.governanceWrappedERC20Base()).to.be.eq(
+    expect(await pluginSetup.governanceWrappedERC20Base()).to.be.eq(
       governanceWrappedERC20Base.address
     );
-  });
-
-  it('creates token voting base with the correct interface', async () => {
-    const factory = new TokenVoting__factory(signers[0]);
-    const tokenVoting = factory.attach(implementationAddress);
-
-    expect(
-      await tokenVoting.supportsInterface(
-        getInterfaceId(TOKEN_VOTING_INTERFACE)
-      )
-    ).to.be.eq(true);
   });
 
   describe('prepareInstallation', async () => {
     it('fails if data is empty, or not of minimum length', async () => {
-      await expect(
-        tokenVotingSetup.prepareInstallation(targetDao.address, EMPTY_DATA)
-      ).to.be.reverted;
+      const {pluginSetup, dao, prepareInstallationInputs} = await loadFixture(
+        fixture
+      );
 
-      await expect(
-        tokenVotingSetup.prepareInstallation(
-          targetDao.address,
-          defaultData.substring(0, defaultData.length - 2)
-        )
-      ).to.be.reverted;
+      // Try calling `prepareInstallation` without input data.
+      await expect(pluginSetup.prepareInstallation(dao.address, [])).to.be
+        .reverted;
 
+      // Try calling `prepareInstallation` without input data of wrong length.
+      const trimmedData = prepareInstallationInputs.substring(
+        0,
+        prepareInstallationInputs.length - 2
+      );
+      await expect(pluginSetup.prepareInstallation(dao.address, trimmedData)).to
+        .be.reverted;
+
+      // Check that `prepareInstallation` can be called with the correct input data.
       await expect(
-        tokenVotingSetup.prepareInstallation(targetDao.address, defaultData)
+        pluginSetup.prepareInstallation(dao.address, prepareInstallationInputs)
       ).not.to.be.reverted;
     });
 
     it('fails if `MintSettings` arrays do not have the same length', async () => {
+      const {
+        alice,
+        pluginSetup,
+        dao,
+        defaultVotingSettings,
+        defaultTokenSettings,
+      } = await loadFixture(fixture);
+
       const receivers: string[] = [AddressZero];
       const amounts: number[] = [];
-      const data = abiCoder.encode(prepareInstallationDataTypes, [
-        Object.values(defaultVotingSettings),
-        Object.values(defaultTokenSettings),
-        {receivers: receivers, amounts: amounts},
-      ]);
+      const data = abiCoder.encode(
+        getNamedTypesFromMetadata(
+          METADATA.build.pluginSetup.prepareInstallation.inputs
+        ),
+        [
+          Object.values(defaultVotingSettings),
+          Object.values(defaultTokenSettings),
+          {receivers, amounts},
+        ]
+      );
 
       const nonce = await ethers.provider.getTransactionCount(
-        tokenVotingSetup.address
+        pluginSetup.address
       );
       const anticipatedPluginAddress = ethers.utils.getContractAddress({
-        from: tokenVotingSetup.address,
+        from: pluginSetup.address,
         nonce,
       });
 
-      const GovernanceERC20 = new GovernanceERC20__factory(signers[0]);
+      const GovernanceERC20 = new GovernanceERC20__factory(alice);
 
       const govToken = GovernanceERC20.attach(anticipatedPluginAddress);
 
-      await expect(
-        tokenVotingSetup.prepareInstallation(targetDao.address, data)
-      )
+      await expect(pluginSetup.prepareInstallation(dao.address, data))
         .to.be.revertedWithCustomError(
           govToken,
           'MintSettingsArrayLengthMismatch'
@@ -187,61 +222,92 @@ describe('TokenVotingSetup', function () {
     });
 
     it('fails if passed token address is not a contract', async () => {
-      const tokenAddress = signers[0].address;
-      const data = abiCoder.encode(prepareInstallationDataTypes, [
-        Object.values(defaultVotingSettings),
-        [tokenAddress, '', ''],
-        Object.values(defaultMintSettings),
-      ]);
+      const {
+        alice,
+        pluginSetup,
+        dao,
+        defaultVotingSettings,
+        defaultMintSettings,
+      } = await loadFixture(fixture);
 
-      await expect(
-        tokenVotingSetup.prepareInstallation(targetDao.address, data)
-      )
-        .to.be.revertedWithCustomError(tokenVotingSetup, 'TokenNotContract')
-        .withArgs(tokenAddress);
+      const data = abiCoder.encode(
+        getNamedTypesFromMetadata(
+          METADATA.build.pluginSetup.prepareInstallation.inputs
+        ),
+        [
+          Object.values(defaultVotingSettings),
+          [alice.address, '', ''],
+          Object.values(defaultMintSettings),
+        ]
+      );
+
+      await expect(pluginSetup.prepareInstallation(dao.address, data))
+        .to.be.revertedWithCustomError(pluginSetup, 'TokenNotContract')
+        .withArgs(alice.address);
     });
 
     it('fails if passed token address is not ERC20', async () => {
-      const tokenAddress = implementationAddress;
-      const data = abiCoder.encode(prepareInstallationDataTypes, [
-        Object.values(defaultVotingSettings),
-        [tokenAddress, '', ''],
-        Object.values(defaultMintSettings),
-      ]);
+      const {pluginSetup, dao, defaultVotingSettings, defaultMintSettings} =
+        await loadFixture(fixture);
 
-      await expect(
-        tokenVotingSetup.prepareInstallation(targetDao.address, data)
-      )
-        .to.be.revertedWithCustomError(tokenVotingSetup, 'TokenNotERC20')
-        .withArgs(tokenAddress);
+      const data = abiCoder.encode(
+        getNamedTypesFromMetadata(
+          METADATA.build.pluginSetup.prepareInstallation.inputs
+        ),
+        [
+          Object.values(defaultVotingSettings),
+          [dao.address, '', ''],
+          Object.values(defaultMintSettings),
+        ]
+      );
+
+      await expect(pluginSetup.prepareInstallation(dao.address, data))
+        .to.be.revertedWithCustomError(pluginSetup, 'TokenNotERC20')
+        .withArgs(dao.address);
     });
 
     it('correctly returns plugin, helpers and permissions, when an ERC20 token address is supplied', async () => {
+      const {
+        pluginSetup,
+        dao,
+        defaultVotingSettings,
+        defaultTokenSettings,
+        defaultMintSettings,
+        erc20,
+      } = await loadFixture(fixture);
+
       const nonce = await ethers.provider.getTransactionCount(
-        tokenVotingSetup.address
+        pluginSetup.address
       );
       const anticipatedWrappedTokenAddress = ethers.utils.getContractAddress({
-        from: tokenVotingSetup.address,
+        from: pluginSetup.address,
         nonce: nonce,
       });
       const anticipatedPluginAddress = ethers.utils.getContractAddress({
-        from: tokenVotingSetup.address,
+        from: pluginSetup.address,
         nonce: nonce + 1,
       });
 
-      const data = abiCoder.encode(prepareInstallationDataTypes, [
-        Object.values(defaultVotingSettings),
-        [erc20Token.address, tokenName, tokenSymbol],
-        Object.values(defaultMintSettings),
-      ]);
+      const data = abiCoder.encode(
+        getNamedTypesFromMetadata(
+          METADATA.build.pluginSetup.prepareInstallation.inputs
+        ),
+        [
+          Object.values(defaultVotingSettings),
+
+          [
+            erc20.address,
+            defaultTokenSettings.name,
+            defaultTokenSettings.symbol,
+          ],
+          Object.values(defaultMintSettings),
+        ]
+      );
 
       const {
         plugin,
         preparedSetupData: {helpers, permissions},
-      } = await tokenVotingSetup.callStatic.prepareInstallation(
-        targetDao.address,
-        data
-      );
+      } = await pluginSetup.callStatic.prepareInstallation(dao.address, data);
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(1);
@@ -251,93 +317,110 @@ describe('TokenVotingSetup', function () {
         [
           Operation.Grant,
           plugin,
-          targetDao.address,
+          dao.address,
           AddressZero,
           UPDATE_VOTING_SETTINGS_PERMISSION_ID,
         ],
         [
           Operation.Grant,
           plugin,
-          targetDao.address,
+          dao.address,
           AddressZero,
-          UPGRADE_PERMISSION_ID,
+          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
         ],
         [
           Operation.Grant,
-          targetDao.address,
+          dao.address,
           plugin,
           AddressZero,
-          EXECUTE_PERMISSION_ID,
+          DAO_PERMISSIONS.EXECUTE_PERMISSION_ID,
         ],
       ]);
     });
 
     it('correctly sets up `GovernanceWrappedERC20` helper, when an ERC20 token address is supplied', async () => {
+      const {
+        deployer,
+        pluginSetup,
+        dao,
+        defaultVotingSettings,
+        defaultMintSettings,
+        erc20,
+      } = await loadFixture(fixture);
+
       const nonce = await ethers.provider.getTransactionCount(
-        tokenVotingSetup.address
+        pluginSetup.address
       );
       const anticipatedWrappedTokenAddress = ethers.utils.getContractAddress({
-        from: tokenVotingSetup.address,
+        from: pluginSetup.address,
         nonce: nonce,
       });
 
-      const data = abiCoder.encode(prepareInstallationDataTypes, [
-        Object.values(defaultVotingSettings),
-        [erc20Token.address, tokenName, tokenSymbol],
-        Object.values(defaultMintSettings),
-      ]);
+      const data = abiCoder.encode(
+        getNamedTypesFromMetadata(
+          METADATA.build.pluginSetup.prepareInstallation.inputs
+        ),
+        [
+          Object.values(defaultVotingSettings),
+          [erc20.address, 'myName', 'mySymb'],
+          Object.values(defaultMintSettings),
+        ]
+      );
 
-      await tokenVotingSetup.prepareInstallation(targetDao.address, data);
+      await pluginSetup.prepareInstallation(dao.address, data);
 
       const GovernanceWrappedERC20Factory = new GovernanceWrappedERC20__factory(
-        signers[0]
+        deployer
       );
       const governanceWrappedERC20Contract =
         GovernanceWrappedERC20Factory.attach(anticipatedWrappedTokenAddress);
 
-      expect(await governanceWrappedERC20Contract.name()).to.be.equal(
-        tokenName
-      );
+      expect(await governanceWrappedERC20Contract.name()).to.be.equal('myName');
       expect(await governanceWrappedERC20Contract.symbol()).to.be.equal(
-        tokenSymbol
+        'mySymb'
       );
-
       expect(await governanceWrappedERC20Contract.underlying()).to.be.equal(
-        erc20Token.address
+        erc20.address
       );
     });
 
     it('correctly returns plugin, helpers and permissions, when a governance token address is supplied', async () => {
-      const GovernanceERC20 = new GovernanceERC20__factory(signers[0]);
-      const governanceERC20 = await GovernanceERC20.deploy(
-        targetDao.address,
-        'name',
-        'symbol',
-        {receivers: [], amounts: []}
-      );
+      const {
+        deployer,
+        pluginSetup,
+        dao,
+        defaultVotingSettings,
+        defaultMintSettings,
+      } = await loadFixture(fixture);
+
+      const governanceERC20 = await new GovernanceERC20__factory(
+        deployer
+      ).deploy(dao.address, 'name', 'symbol', {receivers: [], amounts: []});
 
       const nonce = await ethers.provider.getTransactionCount(
-        tokenVotingSetup.address
+        pluginSetup.address
       );
 
       const anticipatedPluginAddress = ethers.utils.getContractAddress({
-        from: tokenVotingSetup.address,
+        from: pluginSetup.address,
         nonce: nonce,
       });
 
-      const data = abiCoder.encode(prepareInstallationDataTypes, [
-        Object.values(defaultVotingSettings),
-        [governanceERC20.address, '', ''],
-        Object.values(defaultMintSettings),
-      ]);
+      const data = abiCoder.encode(
+        getNamedTypesFromMetadata(
+          METADATA.build.pluginSetup.prepareInstallation.inputs
+        ),
+        [
+          Object.values(defaultVotingSettings),
+          [governanceERC20.address, '', ''],
+          Object.values(defaultMintSettings),
+        ]
+      );
 
       const {
         plugin,
         preparedSetupData: {helpers, permissions},
-      } = await tokenVotingSetup.callStatic.prepareInstallation(
-        targetDao.address,
-        data
-      );
+      } = await pluginSetup.callStatic.prepareInstallation(dao.address, data);
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(1);
@@ -347,48 +430,64 @@ describe('TokenVotingSetup', function () {
         [
           Operation.Grant,
           plugin,
-          targetDao.address,
+          dao.address,
           AddressZero,
           UPDATE_VOTING_SETTINGS_PERMISSION_ID,
         ],
         [
           Operation.Grant,
           plugin,
-          targetDao.address,
+          dao.address,
           AddressZero,
-          UPGRADE_PERMISSION_ID,
+          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
         ],
         [
           Operation.Grant,
-          targetDao.address,
+          dao.address,
           plugin,
           AddressZero,
-          EXECUTE_PERMISSION_ID,
+          DAO_PERMISSIONS.EXECUTE_PERMISSION_ID,
         ],
       ]);
     });
 
     it('correctly returns plugin, helpers and permissions, when a token address is not supplied', async () => {
+      const {
+        pluginSetup,
+        dao,
+        defaultVotingSettings,
+        defaultTokenSettings,
+        defaultMintSettings,
+      } = await loadFixture(fixture);
+
       const nonce = await ethers.provider.getTransactionCount(
-        tokenVotingSetup.address
+        pluginSetup.address
       );
       const anticipatedTokenAddress = ethers.utils.getContractAddress({
-        from: tokenVotingSetup.address,
+        from: pluginSetup.address,
         nonce: nonce,
       });
 
       const anticipatedPluginAddress = ethers.utils.getContractAddress({
-        from: tokenVotingSetup.address,
+        from: pluginSetup.address,
         nonce: nonce + 1,
       });
+
+      const data = abiCoder.encode(
+        getNamedTypesFromMetadata(
+          METADATA.build.pluginSetup.prepareInstallation.inputs
+        ),
+        [
+          Object.values(defaultVotingSettings),
+          Object.values(defaultTokenSettings),
+          Object.values(defaultMintSettings),
+        ]
+      );
 
       const {
         plugin,
         preparedSetupData: {helpers, permissions},
-      } = await tokenVotingSetup.callStatic.prepareInstallation(
-        targetDao.address,
-        defaultData
-      );
+      } = await pluginSetup.callStatic.prepareInstallation(dao.address, data);
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(1);
@@ -398,28 +497,28 @@ describe('TokenVotingSetup', function () {
         [
           Operation.Grant,
           plugin,
-          targetDao.address,
+          dao.address,
           AddressZero,
           UPDATE_VOTING_SETTINGS_PERMISSION_ID,
         ],
         [
           Operation.Grant,
           plugin,
-          targetDao.address,
+          dao.address,
           AddressZero,
-          UPGRADE_PERMISSION_ID,
+          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
         ],
         [
           Operation.Grant,
-          targetDao.address,
+          dao.address,
           plugin,
           AddressZero,
-          EXECUTE_PERMISSION_ID,
+          DAO_PERMISSIONS.EXECUTE_PERMISSION_ID,
         ],
         [
           Operation.Grant,
           anticipatedTokenAddress,
-          targetDao.address,
+          dao.address,
           AddressZero,
           MINT_PERMISSION_ID,
         ],
@@ -427,31 +526,46 @@ describe('TokenVotingSetup', function () {
     });
 
     it('correctly sets up the plugin and helpers, when a token address is not passed', async () => {
-      const daoAddress = targetDao.address;
+      const {
+        deployer,
+        pluginSetup,
+        dao,
+        defaultVotingSettings,
+        defaultTokenSettings,
+        defaultMintSettings,
+      } = await loadFixture(fixture);
 
-      const data = abiCoder.encode(prepareInstallationDataTypes, [
-        Object.values(defaultVotingSettings),
-        [AddressZero, tokenName, tokenSymbol],
-        [merkleMintToAddressArray, merkleMintToAmountArray],
-      ]);
+      const daoAddress = dao.address;
+
+      const data = abiCoder.encode(
+        getNamedTypesFromMetadata(
+          METADATA.build.pluginSetup.prepareInstallation.inputs
+        ),
+        [
+          Object.values(defaultVotingSettings),
+          [AddressZero, defaultTokenSettings.name, defaultTokenSettings.symbol],
+          Object.values(defaultMintSettings),
+        ]
+      );
 
       const nonce = await ethers.provider.getTransactionCount(
-        tokenVotingSetup.address
+        pluginSetup.address
       );
       const anticipatedTokenAddress = ethers.utils.getContractAddress({
-        from: tokenVotingSetup.address,
+        from: pluginSetup.address,
         nonce: nonce,
       });
       const anticipatedPluginAddress = ethers.utils.getContractAddress({
-        from: tokenVotingSetup.address,
+        from: pluginSetup.address,
         nonce: nonce + 1,
       });
 
-      await tokenVotingSetup.prepareInstallation(daoAddress, data);
+      await pluginSetup.prepareInstallation(daoAddress, data);
 
       // check plugin
-      const PluginFactory = new TokenVoting__factory(signers[0]);
-      const tokenVoting = PluginFactory.attach(anticipatedPluginAddress);
+      const tokenVoting = new TokenVoting__factory(deployer).attach(
+        anticipatedPluginAddress
+      );
 
       expect(await tokenVoting.dao()).to.be.equal(daoAddress);
 
@@ -472,114 +586,144 @@ describe('TokenVotingSetup', function () {
       );
 
       // check helpers
-      const GovernanceTokenFactory = new GovernanceERC20__factory(signers[0]);
-      const governanceTokenContract = GovernanceTokenFactory.attach(
+      const token = new GovernanceERC20__factory(deployer).attach(
         anticipatedTokenAddress
       );
 
-      expect(await governanceTokenContract.dao()).to.be.equal(daoAddress);
-      expect(await governanceTokenContract.name()).to.be.equal(tokenName);
-      expect(await governanceTokenContract.symbol()).to.be.equal(tokenSymbol);
+      expect(await token.dao()).to.be.equal(daoAddress);
+      expect(await token.name()).to.be.equal(defaultTokenSettings.name);
+      expect(await token.symbol()).to.be.equal(defaultTokenSettings.symbol);
+    });
+  });
+
+  describe('prepareUpdate', async () => {
+    it('should return nothing', async () => {
+      const {pluginSetup, dao} = await loadFixture(fixture);
+
+      // Make a static call to check that the plugin update data being returned is correct.
+      const prepareUpdateData = await pluginSetup.callStatic.prepareUpdate(
+        dao.address,
+        VERSION.build,
+        {
+          currentHelpers: [
+            ethers.Wallet.createRandom().address,
+            ethers.Wallet.createRandom().address,
+          ],
+          data: [],
+          plugin: ethers.Wallet.createRandom().address,
+        }
+      );
+      // Check the return data.
+      expect(prepareUpdateData.initData).to.be.eq('0x');
+      expect(prepareUpdateData.preparedSetupData.permissions).to.be.eql([]);
+      expect(prepareUpdateData.preparedSetupData.helpers).to.be.eql([]);
     });
   });
 
   describe('prepareUninstallation', async () => {
     it('fails when the wrong number of helpers is supplied', async () => {
+      const {pluginSetup, dao, prepareUninstallationInputs} = await loadFixture(
+        fixture
+      );
+
       const plugin = ethers.Wallet.createRandom().address;
 
       await expect(
-        tokenVotingSetup.prepareUninstallation(targetDao.address, {
+        pluginSetup.prepareUninstallation(dao.address, {
           plugin,
           currentHelpers: [],
-          data: EMPTY_DATA,
+          data: prepareUninstallationInputs,
         })
       )
-        .to.be.revertedWithCustomError(
-          tokenVotingSetup,
-          'WrongHelpersArrayLength'
-        )
+        .to.be.revertedWithCustomError(pluginSetup, 'WrongHelpersArrayLength')
         .withArgs(0);
 
       await expect(
-        tokenVotingSetup.prepareUninstallation(targetDao.address, {
+        pluginSetup.prepareUninstallation(dao.address, {
           plugin,
           currentHelpers: [AddressZero, AddressZero, AddressZero],
-          data: EMPTY_DATA,
+          data: prepareUninstallationInputs,
         })
       )
-        .to.be.revertedWithCustomError(
-          tokenVotingSetup,
-          'WrongHelpersArrayLength'
-        )
+        .to.be.revertedWithCustomError(pluginSetup, 'WrongHelpersArrayLength')
         .withArgs(3);
     });
 
     it('correctly returns permissions, when the required number of helpers is supplied', async () => {
+      const {
+        deployer,
+        pluginSetup,
+        dao,
+        defaultTokenSettings,
+        prepareUninstallationInputs,
+      } = await loadFixture(fixture);
+
       const plugin = ethers.Wallet.createRandom().address;
-      const GovernanceERC20 = new GovernanceERC20__factory(signers[0]);
-      const GovernanceWrappedERC20 = new GovernanceWrappedERC20__factory(
-        signers[0]
-      );
-      const governanceERC20 = await GovernanceERC20.deploy(
-        targetDao.address,
-        tokenName,
-        tokenSymbol,
-        {receivers: [], amounts: []}
+      const governanceERC20 = await new GovernanceERC20__factory(
+        deployer
+      ).deploy(
+        dao.address,
+        defaultTokenSettings.name,
+        defaultTokenSettings.symbol,
+        {
+          receivers: [],
+          amounts: [],
+        }
       );
 
-      const governanceWrappedERC20 = await GovernanceWrappedERC20.deploy(
+      const governanceWrappedERC20 = await new GovernanceWrappedERC20__factory(
+        deployer
+      ).deploy(
         governanceERC20.address,
-        tokenName,
-        tokenSymbol
+        defaultTokenSettings.name,
+        defaultTokenSettings.symbol
       );
 
       // When the helpers contain governanceWrappedERC20 token
-      const permissions1 =
-        await tokenVotingSetup.callStatic.prepareUninstallation(
-          targetDao.address,
-          {
-            plugin,
-            currentHelpers: [governanceWrappedERC20.address],
-            data: EMPTY_DATA,
-          }
-        );
+      const permissions1 = await pluginSetup.callStatic.prepareUninstallation(
+        dao.address,
+        {
+          plugin,
+          currentHelpers: [governanceWrappedERC20.address],
+          data: prepareUninstallationInputs,
+        }
+      );
 
       const essentialPermissions = [
         [
           Operation.Revoke,
           plugin,
-          targetDao.address,
+          dao.address,
           AddressZero,
           UPDATE_VOTING_SETTINGS_PERMISSION_ID,
         ],
         [
           Operation.Revoke,
           plugin,
-          targetDao.address,
+          dao.address,
           AddressZero,
-          UPGRADE_PERMISSION_ID,
+          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
         ],
         [
           Operation.Revoke,
-          targetDao.address,
+          dao.address,
           plugin,
           AddressZero,
-          EXECUTE_PERMISSION_ID,
+          DAO_PERMISSIONS.EXECUTE_PERMISSION_ID,
         ],
       ];
 
       expect(permissions1.length).to.be.equal(3);
       expect(permissions1).to.deep.equal([...essentialPermissions]);
 
-      const permissions2 =
-        await tokenVotingSetup.callStatic.prepareUninstallation(
-          targetDao.address,
-          {
-            plugin,
-            currentHelpers: [governanceERC20.address],
-            data: EMPTY_DATA,
-          }
-        );
+      const permissions2 = await pluginSetup.callStatic.prepareUninstallation(
+        dao.address,
+        {
+          plugin,
+          currentHelpers: [governanceERC20.address],
+          data: prepareUninstallationInputs,
+        }
+      );
 
       expect(permissions2.length).to.be.equal(4);
       expect(permissions2).to.deep.equal([
@@ -587,7 +731,7 @@ describe('TokenVotingSetup', function () {
         [
           Operation.Revoke,
           governanceERC20.address,
-          targetDao.address,
+          dao.address,
           AddressZero,
           MINT_PERMISSION_ID,
         ],

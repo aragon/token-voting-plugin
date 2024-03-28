@@ -1,3 +1,4 @@
+import {createDaoProxy} from '../../20_integration-testing/test-helpers';
 import {
   IERC165Upgradeable__factory,
   IERC20MintableUpgradeable__factory,
@@ -5,7 +6,7 @@ import {
   IERC20Upgradeable__factory,
   IVotesUpgradeable__factory,
 } from '../../../typechain';
-import {EMPTY_DATA, createDaoProxy} from '../../test-utils/dao';
+import {MINT_PERMISSION_ID} from '../../test-utils/token-voting-constants';
 import {
   GovernanceERC20__factory,
   GovernanceERC20,
@@ -21,7 +22,6 @@ export type MintSettings = {
   amounts: number[];
 };
 
-const MINT_PERMISSION_ID = ethers.utils.id('MINT_PERMISSION');
 const governanceERC20Name = 'GovernanceToken';
 const governanceERC20Symbol = 'GOV';
 
@@ -42,7 +42,7 @@ describe('GovernanceERC20', function () {
 
   before(async () => {
     signers = await ethers.getSigners();
-    dao = await createDaoProxy(signers[0], EMPTY_DATA);
+    dao = await createDaoProxy(signers[0], '');
     GovernanceERC20 = new GovernanceERC20__factory(signers[0]);
 
     from = signers[0];

@@ -1,32 +1,27 @@
-import {VotingMode, VotingSettings} from './voting-helpers';
-import {TIME, pctToRatio} from '@aragon/osx-commons-sdk';
 import {ethers} from 'hardhat';
-import {Address} from 'hardhat-deploy/types';
 
 export const TOKEN_VOTING_INTERFACE = new ethers.utils.Interface([
   'function initialize(address,tuple(uint8,uint32,uint32,uint64,uint256),address)',
   'function getVotingToken()',
 ]);
-export const TOKEN_VOTING_INTERFACE_ID = '0x50eb001e';
 
-export const DEFAULT_VOTING_SETTINGS: VotingSettings = {
-  votingMode: VotingMode.EarlyExecution,
-  supportThreshold: pctToRatio(50),
-  minParticipation: pctToRatio(20),
-  minDuration: TIME.HOUR,
-  minProposerVotingPower: 0,
+export const MAJORITY_VOTING_BASE_INTERFACE = new ethers.utils.Interface([
+  'function minDuration()',
+  'function minProposerVotingPower()',
+  'function votingMode()',
+  'function totalVotingPower(uint256)',
+  'function getProposal(uint256)',
+  'function updateVotingSettings(tuple(uint8,uint32,uint32,uint64,uint256))',
+  'function createProposal(bytes,tuple(address,uint256,bytes)[],uint256,uint64,uint64,uint8,bool)',
+]);
+
+export const UPDATE_VOTING_SETTINGS_PERMISSION_ID = ethers.utils.id(
+  'UPDATE_VOTING_SETTINGS_PERMISSION'
+);
+
+export const MINT_PERMISSION_ID = ethers.utils.id('MINT_PERMISSION');
+
+export const VOTING_EVENTS = {
+  VOTING_SETTINGS_UPDATED: 'VotingSettingsUpdated',
+  VOTE_CAST: 'VoteCast',
 };
-
-export type TokenVotingSettings = {
-  dao: Address;
-  votingSettings: VotingSettings;
-  token: Address;
-};
-
-export const spreadSettings = (
-  settings: TokenVotingSettings
-): [Address, VotingSettings, Address] => [
-  settings.dao,
-  settings.votingSettings,
-  settings.token,
-];
