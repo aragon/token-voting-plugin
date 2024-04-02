@@ -68,7 +68,7 @@ async function fixture(): Promise<FixtureResult> {
 
   const defaultTokenSettings = {
     addr: AddressZero,
-    name: 'defaultName',
+    name: 'Name',
     symbol: 'SYMB',
   };
   const defaultMintSettings = {receivers: [], amounts: []};

@@ -110,7 +110,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
 
   const token = await new TestGovernanceERC20__factory(deployer).deploy(
     dao.address,
-    'GOV',
+    'gov',
     'GOV',
     {
       receivers: [],
@@ -208,7 +208,7 @@ describe('TokenVoting', function () {
       const {dao, initializedPlugin, defaultVotingSettings, token} =
         await loadFixture(globalFixture);
 
-      //
+      // Try to reinitialize the initialized plugin.
       await expect(
         initializedPlugin.initialize(
           dao.address,
@@ -222,7 +222,7 @@ describe('TokenVoting', function () {
       const {dao, uninitializedPlugin, defaultVotingSettings, token} =
         await loadFixture(globalFixture);
 
-      // Try to reinitialize the initialized plugin.
+      // Initialize the uninitialized plugin.
       await expect(
         await uninitializedPlugin.initialize(
           dao.address,
@@ -366,19 +366,23 @@ describe('TokenVoting', function () {
         globalFixture
       );
 
+      // Set alice's balance to 1, while bob's is still 0.
       await token.setBalance(alice.address, 1);
 
+      // Check the balances of Alice and Bob.
       expect(await token.balanceOf(alice.address)).to.eq(1);
       expect(await token.balanceOf(bob.address)).to.eq(0);
 
+      // Check the voting power of Alice and Bob.
       expect(await token.getVotes(alice.address)).to.eq(1);
       expect(await token.getVotes(bob.address)).to.eq(0);
 
+      // Check that only Alice is a member.
       expect(await initializedPlugin.isMember(alice.address)).to.be.true;
       expect(await initializedPlugin.isMember(bob.address)).to.be.false;
     });
 
-    it('returns true if the account currently has one at least one token delegated to her/him', async () => {
+    it('returns true if the account currently has at least one token delegated to her/him', async () => {
       const {
         alice,
         bob,
@@ -386,15 +390,20 @@ describe('TokenVoting', function () {
         token,
       } = await loadFixture(globalFixture);
 
+      // Set Alice's balance to 1, while Bob's is still 0.
       await token.setBalance(alice.address, 1);
 
+      // Check the balances of Alice and Bob.
       expect(await token.balanceOf(alice.address)).to.eq(1);
       expect(await token.balanceOf(bob.address)).to.eq(0);
 
+      // As Alice, delegate votes to Bob.
       await token.connect(alice).delegate(bob.address);
 
       expect(await token.getVotes(alice.address)).to.eq(0);
       expect(await token.getVotes(bob.address)).to.eq(1);
+
+      // Check that both, Alice and Bob, are members.
 
       expect(await plugin.isMember(alice.address)).to.be.true;
       expect(await plugin.isMember(bob.address)).to.be.true;
@@ -412,11 +421,10 @@ describe('TokenVoting', function () {
           dummyMetadata,
         } = await loadFixture(globalFixture);
 
-        const endDate = (await time.latest()) + TIME.DAY;
-
         await setTotalSupply(token, 1);
 
-        // Create a proposal with alice, who has no voting power.
+        // Create a proposal with Alice despite her having no voting power.
+        const endDate = (await time.latest()) + TIME.DAY;
         const tx = await plugin
           .connect(alice)
           .createProposal(
@@ -450,6 +458,7 @@ describe('TokenVoting', function () {
           dummyMetadata,
         } = await loadFixture(globalFixture);
 
+        // Set `minProposerVotingPower` to be greater than 0.
         const minProposerVotingPower = 123;
         const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
           votingMode: VotingMode.EarlyExecution,
@@ -460,10 +469,12 @@ describe('TokenVoting', function () {
         };
         await plugin.connect(deployer).updateVotingSettings(votingSettings);
 
+        // Let Alice's balance stay 0.
+        // Set Bob's balance to the `minProposerVotingPower` value.
         await token.setBalance(bob.address, minProposerVotingPower);
 
+        // Try to create a proposal as Alice, which will revert.
         const endDate = (await time.latest()) + TIME.DAY;
-
         await expect(
           plugin
             .connect(alice)
@@ -480,6 +491,7 @@ describe('TokenVoting', function () {
           .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
           .withArgs(alice.address);
 
+        // Create a proposal as Bob.
         await expect(
           plugin
             .connect(bob)
@@ -506,6 +518,7 @@ describe('TokenVoting', function () {
           dummyMetadata,
         } = await loadFixture(globalFixture);
 
+        // Set `minProposerVotingPower` to be greater than 0.
         const minProposerVotingPower = 123;
         const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
           votingMode: VotingMode.EarlyExecution,
@@ -516,21 +529,23 @@ describe('TokenVoting', function () {
         };
         await plugin.connect(deployer).updateVotingSettings(votingSettings);
 
+        // Set Alice's balance to the `minProposerVotingPower` value.
         await token.setBalance(alice.address, minProposerVotingPower);
 
         const endDate = (await time.latest()) + TIME.DAY;
 
+        // Disable auto-mining to put the following three transactions into the same block.
         await ethers.provider.send('evm_setAutomine', [false]);
         const expectedSnapshotBlockNumber = (
           await ethers.provider.getBlock('latest')
         ).number;
 
-        // Transaction 1: Transfer the tokens from alice to bob
+        // Transaction 1: Transfer the tokens from Alice to Bob.
         const tx1 = await token
           .connect(alice)
           .transfer(bob.address, votingSettings.minProposerVotingPower);
 
-        // Transaction 2: Expect the proposal creation to fail for alice because she transferred the tokens in transaction 1
+        // Transaction 2: Expect the proposal creation to fail for Alice because she transferred the tokens in transaction 1.
         await expect(
           plugin
             .connect(alice)
@@ -547,7 +562,7 @@ describe('TokenVoting', function () {
           .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
           .withArgs(alice.address);
 
-        // Transaction 3: Create the proposal as bob
+        // Transaction 3: Create the proposal as Bob.
         const tx3 = await plugin
           .connect(bob)
           .createProposal(
@@ -572,7 +587,7 @@ describe('TokenVoting', function () {
         const minedBlockNumber = (await ethers.provider.getBlock('latest'))
           .number;
 
-        // Expect all transaction receipts to be in the same block after the snapshot block.
+        // Expect the transaction receipts to be in the same block after the snapshot block.
         expect((await tx1.wait()).blockNumber).to.equal(minedBlockNumber);
         expect((await tx3.wait()).blockNumber).to.equal(minedBlockNumber);
         expect(minedBlockNumber).to.equal(expectedSnapshotBlockNumber + 1);
@@ -591,16 +606,17 @@ describe('TokenVoting', function () {
         expect(event.args.proposalId).to.equal(id);
         expect(event.args.creator).to.equal(bob.address);
 
-        // Check that the snapshot block stored in the proposal struct
+        // Check that the snapshot block stored in the proposal struct is as expected.
         const proposal = await plugin.getProposal(id);
         expect(proposal.parameters.snapshotBlock).to.equal(
           expectedSnapshotBlockNumber
         );
 
+        // Re-enable auto-mining for the subsequent tests.
         await ethers.provider.send('evm_setAutomine', [true]);
       });
 
-      it('creates a proposal if `_msgSender` owns enough tokens  in the current block', async () => {
+      it('creates a proposal if `_msgSender` owns enough tokens in the current block', async () => {
         const {
           deployer,
           alice,
@@ -611,6 +627,7 @@ describe('TokenVoting', function () {
           dummyMetadata,
         } = await loadFixture(globalFixture);
 
+        // Set `minProposerVotingPower` to be greater than 0.
         const minProposerVotingPower = 123;
         const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
           votingMode: VotingMode.EarlyExecution,
@@ -621,11 +638,11 @@ describe('TokenVoting', function () {
         };
         await plugin.connect(deployer).updateVotingSettings(votingSettings);
 
+        // Set Alice's balance to the `minProposerVotingPower` value.
         await token.setBalance(alice.address, minProposerVotingPower);
 
+        // Check that Bob who has no balance and is not a delegatee can NOT create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-
-        // Check that bob who has no balance and is not a delegatee can NOT create a proposal
         await expect(
           plugin
             .connect(bob)
@@ -642,7 +659,7 @@ describe('TokenVoting', function () {
           .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
           .withArgs(bob.address);
 
-        // Check that signers[0] who has enough balance can create a proposal
+        // Check that Alice who has enough balance can create a proposal.
         await expect(
           plugin
             .connect(alice)
@@ -670,6 +687,7 @@ describe('TokenVoting', function () {
           dummyMetadata,
         } = await loadFixture(globalFixture);
 
+        // Set `minProposerVotingPower` to be greater than 0.
         const minProposerVotingPower = 123;
         const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
           votingMode: VotingMode.EarlyExecution,
@@ -680,14 +698,15 @@ describe('TokenVoting', function () {
         };
         await plugin.connect(deployer).updateVotingSettings(votingSettings);
 
+        // Set Alice's balance to the `minProposerVotingPower` value.
         await token.setBalance(alice.address, minProposerVotingPower);
 
-        // delegate from alice to bob
+        // As Alice delegate all votes to Bob.
         await token.connect(alice).delegate(bob.address);
 
-        const endDate = (await time.latest()) + TIME.DAY;
+        // Check that Carol who has a zero balance and is not a delegatee can NOT create a proposal.
 
-        // Check that carol who has a zero balance and is not a delegatee can NOT create a proposal
+        const endDate = (await time.latest()) + TIME.DAY;
         await expect(
           plugin
             .connect(carol)
@@ -704,6 +723,7 @@ describe('TokenVoting', function () {
           .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
           .withArgs(carol.address);
 
+        // Check that Alice can create a proposal although she delegated to Bob.
         const tx = await plugin
           .connect(alice)
           .createProposal(
@@ -734,6 +754,7 @@ describe('TokenVoting', function () {
           dummyMetadata,
         } = await loadFixture(globalFixture);
 
+        // Set `minProposerVotingPower` to be greater than 0.
         const minProposerVotingPower = 123;
         const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
           votingMode: VotingMode.EarlyExecution,
@@ -744,14 +765,15 @@ describe('TokenVoting', function () {
         };
         await plugin.connect(deployer).updateVotingSettings(votingSettings);
 
+        // Set Alice's balance to the `minProposerVotingPower` value.
         await token.setBalance(alice.address, minProposerVotingPower);
 
         const endDate = (await time.latest()) + TIME.DAY;
 
-        // delegate from alice to bob
+        // As Alice, delegate to Bob.
         await token.connect(alice).delegate(bob.address);
 
-        // Check that carol who has a zero balance and is not a delegatee can NOT create a proposal
+        // Check that Carol who has a zero balance and is not a delegatee can NOT create a proposal.
         await expect(
           plugin
             .connect(carol)
@@ -768,6 +790,7 @@ describe('TokenVoting', function () {
           .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
           .withArgs(carol.address);
 
+        // Check that Bob being a delegate can create a proposal.
         await expect(
           plugin
             .connect(bob)
@@ -794,6 +817,7 @@ describe('TokenVoting', function () {
           dummyMetadata,
         } = await loadFixture(globalFixture);
 
+        // Set `minProposerVotingPower` to be greater than 0.
         const minProposerVotingPower = 123;
         const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
           votingMode: VotingMode.EarlyExecution,
@@ -804,6 +828,7 @@ describe('TokenVoting', function () {
         };
         await plugin.connect(deployer).updateVotingSettings(votingSettings);
 
+        // Set Alice's balance to one and Bob's balance to the `minProposerVotingPower` value.
         await setBalances(token, [
           {
             receiver: alice.address,
@@ -817,7 +842,7 @@ describe('TokenVoting', function () {
 
         const endDate = (await time.latest()) + TIME.DAY;
 
-        // Check that alice who has not enough tokens cannot create a proposal
+        // Check that Alice who has not enough tokens cannot create a proposal.
         await expect(
           plugin
             .connect(alice)
@@ -834,9 +859,10 @@ describe('TokenVoting', function () {
           .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
           .withArgs(alice.address);
 
-        // Check that alice delegating to bob does not let alice create a proposal
+        // As Alice delegate all votes to Bob.
         await token.connect(alice).delegate(bob.address);
 
+        // Check that Alice still cannot create a proposal.
         await expect(
           plugin
             .connect(alice)
@@ -866,6 +892,7 @@ describe('TokenVoting', function () {
 
       await setTotalSupply(token, 0);
 
+      // Check that a proposal cannot be created.
       await expect(
         plugin
           .connect(alice)
@@ -890,12 +917,15 @@ describe('TokenVoting', function () {
         dummyMetadata,
       } = await loadFixture(globalFixture);
 
+      // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
 
+      // Create a start date that is in the past.
       const currentDate = await time.latest();
       const startDateInThePast = currentDate - 1;
       const endDate = 0; // startDate + minDuration
 
+      // Check that the proposal creation fails.
       await expect(
         plugin
           .connect(alice)
@@ -923,8 +953,10 @@ describe('TokenVoting', function () {
         dummyMetadata,
       } = await loadFixture(globalFixture);
 
+      // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
 
+      // Pick a start date that is close to the `MAX_UINT64` value so that adding `minDuration` results in an overflow.
       const MAX_UINT64 = ethers.BigNumber.from(2).pow(64).sub(1);
       const latestStartDate = MAX_UINT64.sub(
         await defaultVotingSettings.minDuration
@@ -932,6 +964,7 @@ describe('TokenVoting', function () {
       const tooLateStartDate = latestStartDate.add(1);
       const endDate = 0; // startDate + minDuration
 
+      // Check that the proposal creation reverts.
       await expect(
         plugin
           .connect(alice)
@@ -957,8 +990,10 @@ describe('TokenVoting', function () {
         dummyMetadata,
       } = await loadFixture(globalFixture);
 
+      // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
 
+      // Pick an end date that is less then `minDuration` after the start date.
       const startDate = (await time.latest()) + 1;
       const earliestEndDate = BigNumber.from(startDate).add(
         await defaultVotingSettings.minDuration
@@ -982,7 +1017,7 @@ describe('TokenVoting', function () {
         .withArgs(earliestEndDate, tooEarlyEndDate);
     });
 
-    it('sets the startDate to now and endDate to startDate + minDuration, if 0 is provided as an input', async () => {
+    it('sets the startDate to now and endDate to startDate + minDuration, if zeros are provided as an inputs', async () => {
       const {
         alice,
         initializedPlugin: plugin,
@@ -991,9 +1026,10 @@ describe('TokenVoting', function () {
         dummyMetadata,
       } = await loadFixture(globalFixture);
 
+      // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
 
-      // Create a proposal with zero as an input for `_startDate` and `_endDate`
+      // Create a proposal with zero as an input for `startDate` and `endDate`
       const startDate = 0; // now
       const endDate = 0; // startDate + minDuration
 
@@ -1025,7 +1061,6 @@ describe('TokenVoting', function () {
         creationTx,
         'ProposalCreated'
       );
-
       expect(event.args.proposalId).to.equal(id);
       expect(event.args.creator).to.equal(alice.address);
       expect(event.args.startDate).to.equal(expectedStartDate);
@@ -1047,6 +1082,7 @@ describe('TokenVoting', function () {
       // Set the total supply to 10 tokens.
       await setTotalSupply(token, 10);
 
+      // Set the `minParticipation` value to have a remainder that will get dropped when calculating `minVotingPower`.
       const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
         votingMode: VotingMode.EarlyExecution,
         supportThreshold: pctToRatio(50),
@@ -1056,8 +1092,8 @@ describe('TokenVoting', function () {
       };
       await plugin.connect(deployer).updateVotingSettings(votingSettings);
 
+      // Create a proposal.
       const endDate = (await time.latest()) + TIME.DAY;
-
       const tx = await plugin.createProposal(
         dummyMetadata,
         dummyActions,
@@ -1089,6 +1125,7 @@ describe('TokenVoting', function () {
       // Set the total supply to 10 tokens.
       await setTotalSupply(token, 10);
 
+      // Set the `minParticipation` to value without a remainder that won't get ceiled when calculating `minVotingPower`.
       const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
         votingMode: VotingMode.EarlyExecution,
         supportThreshold: pctToRatio(50),
@@ -1098,8 +1135,8 @@ describe('TokenVoting', function () {
       };
       await plugin.connect(deployer).updateVotingSettings(votingSettings);
 
+      // Create a proposal
       const endDate = (await time.latest()) + TIME.DAY;
-
       const tx = await plugin.createProposal(
         dummyMetadata,
         dummyActions,
@@ -1119,7 +1156,7 @@ describe('TokenVoting', function () {
       expect((await plugin.getProposal(id)).parameters.minVotingPower).to.eq(3); // 3 out of 10 votes must be casted for the proposal to pass
     });
 
-    it('should create a vote successfully, but not vote', async () => {
+    it('should create a proposal successfully, but not vote', async () => {
       const {
         alice,
         initializedPlugin: plugin,
@@ -1131,8 +1168,10 @@ describe('TokenVoting', function () {
 
       const allowFailureMap = 1;
 
+      // Set Alice's balance to 10
       await token.setBalance(alice.address, 10);
 
+      // Create a proposal as Alice.
       const tx = await plugin
         .connect(alice)
         .createProposal(
@@ -1146,10 +1185,12 @@ describe('TokenVoting', function () {
         );
       const id = 0;
 
+      // Check that the `ProposalCreated` event is emitted and `VoteCast` is not.
       await expect(tx)
         .to.emit(plugin, IPROPOSAL_EVENTS.ProposalCreated)
         .to.not.emit(plugin, VOTING_EVENTS.VOTE_CAST);
 
+      // Check that `ProposalCreated` event contains the expected data.
       const event = await findEvent<ProposalCreatedEvent>(
         tx,
         IPROPOSAL_EVENTS.ProposalCreated
@@ -1165,6 +1206,7 @@ describe('TokenVoting', function () {
 
       const block = await ethers.provider.getBlock('latest');
 
+      // Check that the proposal state is set to the expected data.
       const proposal = await plugin.getProposal(id);
 
       expect(proposal.open).to.equal(true);
@@ -1212,8 +1254,10 @@ describe('TokenVoting', function () {
         dummyMetadata,
       } = await loadFixture(globalFixture);
 
+      // Set Alice's balance to 10.
       await token.setBalance(alice.address, 10);
 
+      // Create a proposal as Alice.
       const tx = await plugin
         .connect(alice)
         .createProposal(
@@ -1227,6 +1271,7 @@ describe('TokenVoting', function () {
         );
       const id = 0;
 
+      // Check that the `ProposalCreated` and `VoteCast` events are emitted with the expected data.
       await expect(tx)
         .to.emit(plugin, IPROPOSAL_EVENTS.ProposalCreated)
         .to.emit(plugin, VOTING_EVENTS.VOTE_CAST)
@@ -1245,6 +1290,7 @@ describe('TokenVoting', function () {
       expect(event.args.actions[0].data).to.equal(dummyActions[0].data);
       expect(event.args.allowFailureMap).to.equal(0);
 
+      // Check that the proposal state is set to the expected data.
       const block = await ethers.provider.getBlock('latest');
 
       const proposal = await plugin.getProposal(id);
@@ -1278,14 +1324,13 @@ describe('TokenVoting', function () {
         dummyMetadata,
       } = await loadFixture(globalFixture);
 
+      // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
 
+      // Try to create a proposal as Alice and vote before the start date, which must revert.
       const startDate = (await time.latest()) + TIME.HOUR;
       const endDate = startDate + TIME.DAY;
-
       expect(await time.latest()).to.be.lessThan(startDate);
-
-      // Reverts if the vote option is not 'None'
       const id = 0;
       await expect(
         plugin
@@ -1303,7 +1348,7 @@ describe('TokenVoting', function () {
         .to.be.revertedWithCustomError(plugin, 'VoteCastForbidden')
         .withArgs(id, alice.address, VoteOption.Yes);
 
-      // Works if the vote option is 'None'
+      // Check that the proposal can be created without voting (by setting `_voteOption` to `VoteOption.None`).
       const tx = await plugin.createProposal(
         dummyMetadata,
         dummyActions,
@@ -1591,20 +1636,24 @@ describe('TokenVoting', function () {
 
         const endDate = (await time.latest()) + TIME.DAY;
 
-        await plugin.createProposal(
-          dummyMetadata,
-          dummyActions,
-          0,
-          0,
-          endDate,
-          VoteOption.None,
-          false
-        );
+        // Create a proposal.
+        await plugin
+          .connect(alice)
+          .createProposal(
+            dummyMetadata,
+            dummyActions,
+            0,
+            0,
+            endDate,
+            VoteOption.None,
+            false
+          );
         const id = 0;
 
+        // Vote as Alice.
         await plugin.connect(alice).vote(id, VoteOption.Yes, false);
 
-        // Try to replace the vote
+        // Try to replace the vote as Alice, which must revert.
         await expect(plugin.connect(alice).vote(id, VoteOption.Yes, false))
           .to.be.revertedWithCustomError(plugin, 'VoteCastForbidden')
           .withArgs(id, alice.address, VoteOption.Yes);
@@ -1634,6 +1683,7 @@ describe('TokenVoting', function () {
 
         const endDate = (await time.latest()) + TIME.DAY;
 
+        // Create a proposal.
         await plugin.createProposal(
           dummyMetadata,
           dummyActions,
@@ -1645,12 +1695,18 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Vote with enough voters so that the execution criteria are met.
+        // Vote with enough votes so that the execution criteria and the vote outcome cannot change anymore,
+        // even with more people voting.
+        // Since there a 60 yes votes, even if all remaining votes are casted for 'no', this cannot result in a
+        // `supportThreshold` below 50%.
         await voteWithSigners(plugin, id, {
           yes: [alice, bob, carol, dave, eve, frank], // 60 votes
           no: [],
           abstain: [],
         });
 
+        // Expect the vote to be non-executable since the voting mode is `Standard` and early execution is not possible.
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(false);
@@ -1672,6 +1728,7 @@ describe('TokenVoting', function () {
 
         const endDate = (await time.latest()) + TIME.DAY;
 
+        // Create a proposal.
         await plugin.createProposal(
           dummyMetadata,
           dummyActions,
@@ -1683,6 +1740,7 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Vote with enough voters so that the execution criteria are met.
         await voteWithSigners(plugin, id, {
           yes: [alice, bob, carol], // 30 votes
           no: [dave, eve], // 20 votes
@@ -1693,11 +1751,12 @@ describe('TokenVoting', function () {
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(false);
 
+        // Wait until the vote is over.
         await time.increaseTo(endDate);
 
+        // Check that the proposal can be executed.
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
-
         expect(await plugin.canExecute(id)).to.equal(true);
       });
 
@@ -1717,6 +1776,7 @@ describe('TokenVoting', function () {
 
         const endDate = (await time.latest()) + TIME.DAY;
 
+        // Create a proposal.
         await plugin.createProposal(
           dummyMetadata,
           dummyActions,
@@ -1728,25 +1788,29 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Vote with enough voters so that the execution criteria are met.
         await voteWithSigners(plugin, id, {
           yes: [alice, bob, carol, dave], // 40 votes
           no: [],
           abstain: [],
         });
 
+        // Check that the proposal cannot be executed.
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        // `tryEarlyExecution` is turned on but the vote is not decided yet
+        // `tryEarlyExecution` is turned on but the vote is not decided yet.
         await plugin.connect(eve).vote(id, VoteOption.Yes, true);
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        // `tryEarlyExecution` is turned off and the vote is decided
+        // Vote 'yes' with `tryEarlyExecution` being turned off and the vote being decided already.
+        // Check that the vote still cannot be executed.
         await plugin.connect(frank).vote(id, VoteOption.Yes, false);
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        // `tryEarlyExecution` is turned on and the vote is decided
+        // Vote yes with `tryEarlyExecution` being turned on and the vote being decided already.
+        // Check that the vote still cannot be executed..
         await plugin.connect(grace).vote(id, VoteOption.Yes, true);
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(false);
@@ -1761,6 +1825,7 @@ describe('TokenVoting', function () {
 
         const endDate = (await time.latest()) + TIME.DAY;
 
+        // Create a proposal.
         await plugin.createProposal(
           dummyMetadata,
           dummyActions,
@@ -1772,6 +1837,7 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Try to execute it while the vote is not decided yet.
         await expect(plugin.execute(id))
           .to.be.revertedWithCustomError(plugin, 'ProposalExecutionForbidden')
           .withArgs(id);
@@ -1882,8 +1948,8 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
 
+        // Create a proposal
         const endDate = (await time.latest()) + TIME.DAY;
-
         await plugin.createProposal(
           dummyMetadata,
           dummyActions,
@@ -1895,9 +1961,10 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Vote with Alice.
         await plugin.connect(alice).vote(id, VoteOption.Yes, false);
 
-        // Try to replace the vote
+        // Try to replace the vote as Alice, which should revert regardless of the new vote option.
         await expect(plugin.connect(alice).vote(id, VoteOption.Yes, false))
           .to.be.revertedWithCustomError(plugin, 'VoteCastForbidden')
           .withArgs(id, alice.address, VoteOption.Yes);
@@ -1925,8 +1992,8 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
 
+        // Create a Proposal
         const endDate = (await time.latest()) + TIME.DAY;
-
         await plugin.createProposal(
           dummyMetadata,
           dummyActions,
@@ -1938,23 +2005,31 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Vote with enough votes so that the vote is almost already decided.
+        // If the remaining 50 votes become 'no's, the proposal would be defeated because the support threshold wouldn't be exceeded.
         await voteWithSigners(plugin, id, {
           yes: [alice, bob, carol, dave, eve], // 50 votes
           no: [],
           abstain: [],
         });
 
+        // Check that the vote cannot be (early) executed.
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(false);
 
+        // Vote with Frank so that the vote is decided even if all remaining people vote 'no'.
         await plugin.connect(frank).vote(id, VoteOption.Yes, false);
+
+        // Check that the proposal can be early executed before the end date.
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
 
+        // Advance time after the end date.
         await time.increaseTo(endDate);
 
+        // Check that the proposal can still be executed.
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
@@ -1978,6 +2053,7 @@ describe('TokenVoting', function () {
 
         const endDate = (await time.latest()) + TIME.DAY;
 
+        // Create a proposal.
         await plugin.createProposal(
           dummyMetadata,
           dummyActions,
@@ -1989,16 +2065,17 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Vote with enough people so that execution criteria are met.
         await voteWithSigners(plugin, id, {
           yes: [alice, bob, carol, dave, eve], // 50 yes
           no: [frank, grace, harold], // 30 votes
           abstain: [ivan], // 10 votes
         });
 
-        // closes the vote
+        // Advance after the end date.
         await time.increaseTo(endDate);
 
-        //The vote is executable as support > 50%, participation > 20%, and the voting period is over
+        // Check that the vote is executable because support > 50%, participation > 20%, and the voting period is over.
         expect(await plugin.canExecute(id)).to.equal(true);
       });
 
@@ -2013,8 +2090,8 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
 
+        // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-
         await plugin.createProposal(
           dummyMetadata,
           dummyActions,
@@ -2026,20 +2103,22 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Set Bob's and Carol's balances.
         await token.setBalance(bob.address, 5);
-        await token.setBalance(carol.address, 1);
+        await token.setBalance(carol.address, 4);
         await setTotalSupply(token, 100);
 
+        // Vote such that the support threshold is is met but minimal participation is not reached.
         await voteWithSigners(plugin, id, {
           yes: [alice], // 10 votes
           no: [bob], //  5 votes
           abstain: [carol], // 4 votes
         });
 
-        // closes the vote
+        // Advance time after the end date.
         await time.increaseTo(endDate);
 
-        //The vote is not executable because the participation with 19% is still too low, despite a support of 67% and the voting period being over
+        //Check that the vote is not executable because the participation with 19% is still too low, despite a support of 67% and the voting period being over.
         expect(await plugin.canExecute(id)).to.equal(false);
       });
 
@@ -2057,8 +2136,8 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
 
+        // Create a Proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-
         await plugin.createProposal(
           dummyMetadata,
           dummyActions,
@@ -2070,24 +2149,28 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Vote 40 votes for 'yes'. The proposal can still get defeated if the remaining 60 votes vote for 'no'.
         await voteWithSigners(plugin, id, {
           yes: [alice, bob, carol, dave], // 40 votes
           no: [], // 0 votes
           abstain: [], // 0 votes
         });
 
-        // `tryEarlyExecution` is turned on but the vote is not decided yet
+        // 'yes'-vote with Eve with `tryEarlyExecution` being turned on. The vote is not decided yet.
         await plugin.connect(eve).vote(id, VoteOption.Yes, true);
+        // Check that the proposal cannot be early executed and didn't execute yet.
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        // `tryEarlyExecution` is turned off and the vote is decided
+        // 'yes'-vote with Frank with `tryEarlyExecution` being turned off. The vote is decided now.
         await plugin.connect(frank).vote(id, VoteOption.Yes, false);
+        // Check that the proposal can be excuted but didn't execute yet.
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(true);
 
-        // `tryEarlyExecution` is turned on and the vote is decided
+        // 'yes'-vote with grace with `tryEarlyExecution` being turned on while the vote is decided.
         const tx = await plugin.connect(grace).vote(id, VoteOption.Yes, true);
+        // Check that this executes the vote as expected.
         {
           const event = await findEventTopicLog<ExecutedEvent>(
             tx,
@@ -2128,8 +2211,8 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
 
+        // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-
         await plugin.createProposal(
           dummyMetadata,
           dummyActions,
@@ -2141,6 +2224,7 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Check that it cannot be executed because it is not decided yet.
         await expect(plugin.execute(id))
           .to.be.revertedWithCustomError(plugin, 'ProposalExecutionForbidden')
           .withArgs(id);
