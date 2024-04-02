@@ -17,11 +17,6 @@ import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {ethers} from 'hardhat';
 
-export type MintSettings = {
-  receivers: string[];
-  amounts: number[];
-};
-
 const governanceERC20Name = 'GovernanceToken';
 const governanceERC20Symbol = 'GOV';
 
@@ -37,12 +32,17 @@ describe('GovernanceERC20', function () {
   let dao: DAO;
   let token: GovernanceERC20;
   let GovernanceERC20: GovernanceERC20__factory;
-  let mintSettings: MintSettings;
-  let defaultInitData: [string, string, string, MintSettings];
+  let mintSettings: GovernanceERC20.MintSettingsStruct;
+  let defaultInitData: [
+    string,
+    string,
+    string,
+    GovernanceERC20.MintSettingsStruct
+  ];
 
   before(async () => {
     signers = await ethers.getSigners();
-    dao = await createDaoProxy(signers[0], '');
+    dao = await createDaoProxy(signers[0], '0x');
     GovernanceERC20 = new GovernanceERC20__factory(signers[0]);
 
     from = signers[0];
