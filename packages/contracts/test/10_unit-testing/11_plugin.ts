@@ -257,8 +257,7 @@ describe('TokenVoting', function () {
     });
 
     it('sets the token', async () => {
-      const {initializedPlugin, defaultVotingSettings, token} =
-        await loadFixture(globalFixture);
+      const {initializedPlugin, token} = await loadFixture(globalFixture);
 
       expect(await initializedPlugin.getVotingToken()).to.equal(token.address);
     });
