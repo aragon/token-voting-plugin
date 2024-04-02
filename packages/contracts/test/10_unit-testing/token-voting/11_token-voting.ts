@@ -1,4 +1,4 @@
-import {createDaoProxy} from '../20_integration-testing/test-helpers';
+import {createDaoProxy} from '../../20_integration-testing/test-helpers';
 import {
   TestGovernanceERC20,
   TestGovernanceERC20__factory,
@@ -9,33 +9,33 @@ import {
   IProposal__factory,
   IProtocolVersion__factory,
   ProxyFactory__factory,
-} from '../../typechain';
-import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
-import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
+} from '../../../typechain';
+import {ProxyCreatedEvent} from '../../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
+import {MajorityVotingBase} from '../../../typechain/src/MajorityVotingBase';
 import {
   ProposalCreatedEvent,
   ProposalExecutedEvent,
-} from '../../typechain/src/TokenVoting';
-import {ExecutedEvent} from '../../typechain/src/mocks/DAOMock';
+} from '../../../typechain/src/TokenVoting';
+import {ExecutedEvent} from '../../../typechain/src/mocks/DAOMock';
 import {
   MAJORITY_VOTING_BASE_INTERFACE,
   VOTING_EVENTS,
-} from '../test-utils/majority-voting-constants';
+} from '../../test-utils/majority-voting-constants';
 import {
   TOKEN_VOTING_INTERFACE,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
-} from '../test-utils/token-voting-constants';
+} from '../../test-utils/token-voting-constants';
 import {
   TokenVoting__factory,
   TokenVoting,
-} from '../test-utils/typechain-versions';
+} from '../../test-utils/typechain-versions';
 import {
   VoteOption,
   VotingMode,
   voteWithSigners,
   setBalances,
   setTotalSupply,
-} from '../test-utils/voting-helpers';
+} from '../../test-utils/voting-helpers';
 import {
   IDAO_EVENTS,
   IMEMBERSHIP_EVENTS,
@@ -208,6 +208,7 @@ describe('TokenVoting', function () {
       const {dao, initializedPlugin, defaultVotingSettings, token} =
         await loadFixture(globalFixture);
 
+      //
       await expect(
         initializedPlugin.initialize(
           dao.address,
@@ -220,6 +221,8 @@ describe('TokenVoting', function () {
     it('emits the `MembershipContractAnnounced` event', async () => {
       const {dao, uninitializedPlugin, defaultVotingSettings, token} =
         await loadFixture(globalFixture);
+
+      // Try to reinitialize the initialized plugin.
       await expect(
         await uninitializedPlugin.initialize(
           dao.address,
@@ -235,31 +238,67 @@ describe('TokenVoting', function () {
     });
 
     it('sets the voting settings', async () => {
-      const {initializedPlugin, defaultVotingSettings} = await loadFixture(
-        globalFixture
+      const {
+        dao,
+        uninitializedPlugin: plugin,
+        defaultVotingSettings,
+        token,
+      } = await loadFixture(globalFixture);
+
+      // Check that the uninitialized plugin hasn't voting settings set yet.
+      expect(await plugin.minDuration()).to.equal(0);
+      expect(await plugin.minParticipation()).to.equal(0);
+      expect(await plugin.minProposerVotingPower()).to.equal(0);
+      expect(await plugin.supportThreshold()).to.equal(0);
+      expect(await plugin.votingMode()).to.equal(0);
+
+      // Initialize the plugin.
+      await plugin.initialize(
+        dao.address,
+        defaultVotingSettings,
+        token.address
       );
 
-      expect(await initializedPlugin.minDuration()).to.equal(
+      // Check that the voting settings have been set.
+      expect(await plugin.minDuration()).to.equal(
         defaultVotingSettings.minDuration
       );
-      expect(await initializedPlugin.minParticipation()).to.equal(
+      expect(await plugin.minParticipation()).to.equal(
         defaultVotingSettings.minParticipation
       );
-      expect(await initializedPlugin.minProposerVotingPower()).to.equal(
+      expect(await plugin.minProposerVotingPower()).to.equal(
         defaultVotingSettings.minProposerVotingPower
       );
-      expect(await initializedPlugin.supportThreshold()).to.equal(
+      expect(await plugin.supportThreshold()).to.equal(
         defaultVotingSettings.supportThreshold
       );
-      expect(await initializedPlugin.votingMode()).to.equal(
+      expect(await plugin.votingMode()).to.equal(
         defaultVotingSettings.votingMode
       );
     });
 
     it('sets the token', async () => {
-      const {initializedPlugin, token} = await loadFixture(globalFixture);
+      const {
+        dao,
+        uninitializedPlugin: plugin,
+        defaultVotingSettings,
+        token,
+      } = await loadFixture(globalFixture);
 
-      expect(await initializedPlugin.getVotingToken()).to.equal(token.address);
+      // Check that the uninitialized plugin has not token set.
+      expect(await plugin.getVotingToken()).to.equal(
+        ethers.constants.AddressZero
+      );
+
+      // Initialize the plugin.
+      await plugin.initialize(
+        dao.address,
+        defaultVotingSettings,
+        token.address
+      );
+
+      // Check that the token has been set.
+      expect(await plugin.getVotingToken()).to.equal(token.address);
     });
   });
 
