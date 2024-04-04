@@ -100,6 +100,11 @@ test('Run TokenVoting (handleProposalCreated) mappings with mock event', () => {
 });
 
 test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
+  // check store is empty before running the test
+  assert.entityCount('TokenVotingProposal', 0);
+  assert.entityCount('TokenVotingVoter', 0);
+  assert.entityCount('TokenVotingVote', 0);
+
   // create state
   let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
 
@@ -130,17 +135,24 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
   // test handler
   handleVoteCast(event);
 
-  // checks vote entity created via handler (not builder)
+  // checks vote entity created via handler (not builder)  //?
+  assert.entityCount('TokenVotingVote', 1);
   vote.assertEntity();
+
+  // check the voter entity
+  assert.entityCount('TokenVotingVoter', 1);
+  voter.lastUpdated = event.block.timestamp;
+  voter.assertEntity(true);
 
   // check proposal
   // expected changes to the proposal entity
   proposal.castedVotingPower = BigInt.fromString(ONE);
   proposal.approvalReached = false;
   // assert proposal entity
+  assert.entityCount('TokenVotingProposal', 1);
   proposal.assertEntity();
 
-  // Check when voter replace vote
+  // --------- Check when voter replace vote ---------
   // create calls 2
   proposal.yes = BigInt.fromString(ZERO);
   proposal.no = BigInt.fromString(ONE);
@@ -162,8 +174,19 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
   vote.updatedAt = bigInt.fromString(ONE);
 
   // checks vote entity created via handler (not builder)
+  assert.entityCount('TokenVotingVote', 1);
   vote.assertEntity();
 
+  // check the voter entity
+  assert.entityCount('TokenVotingVoter', 1);
+  voter.lastUpdated = event.block.timestamp;
+  voter.assertEntity(true);
+
+  // check proposal
+  assert.entityCount('TokenVotingProposal', 1);
+  proposal.assertEntity();
+
+  // --------- check new cast vote ---------
   // create calls 3
   proposal.yes = BigInt.fromString(TWO);
   proposal.no = BigInt.fromString(ZERO);
@@ -179,14 +202,23 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
 
   handleVoteCast(event3);
 
-  // expected changes to the proposal entity
-  proposal.approvalReached = true;
-  proposal.castedVotingPower = BigInt.fromString(TWO);
-
+  // check proposal
+  assert.entityCount('TokenVotingProposal', 1);
   proposal.assertEntity();
+
+  // checks vote entity created via handler (not builder)  //?
+  assert.entityCount('TokenVotingVote', 1);
+  vote.assertEntity();
+
+  // check the voter
+  assert.entityCount('TokenVotingVoter', 1);
+  voter.lastUpdated = event.block.timestamp;
+  voter.assertEntity(true);
 
   clearStore();
 });
+
+// ! add test for a complete flow, create proposal=>vote all users=>check the proposal can be executed
 
 test('Run TokenVoting (handleVoteCast) mappings with mock event and vote option "None"', () => {
   let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
@@ -254,6 +286,7 @@ test('Run TokenVoting (handleVotingSettingsUpdated) mappings with mock event', (
 
   clearStore();
 });
+
 describe('handleMembershipContractAnnounced', () => {
   test('it should create an erc20 and assign its address to the tokenVotingPlugin', () => {
     // create entities
@@ -281,6 +314,7 @@ describe('handleMembershipContractAnnounced', () => {
 
     clearStore();
   });
+
   test('it should create an erc20Wrapped and assign an erc20 as the underlying token and assign the erc20Wrapped address to the tokenVotingPlugin', () => {
     // create entities
     let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
