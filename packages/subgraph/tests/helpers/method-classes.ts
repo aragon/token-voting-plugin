@@ -10,6 +10,7 @@ import {
   TokenVotingVote,
   TokenVotingVoter,
   ERC20Contract,
+  Action,
 } from '../../generated/schema';
 import {
   DelegateChanged,
@@ -70,6 +71,8 @@ import {
   generatePluginEntityId,
   createERC20TokenCalls,
   createWrappedERC20TokenCalls,
+  createDummyAction,
+  generateActionEntityId,
 } from '@aragon/osx-commons-subgraph';
 import {Address, BigInt, Bytes, ethereum} from '@graphprotocol/graph-ts';
 
@@ -288,6 +291,31 @@ class TokenVotingProposalMethods extends TokenVotingProposal {
       this.plugin
     );
     return event;
+  }
+}
+
+class ActionMethods extends Action {
+  withDefaultValues(): ActionMethods {
+    this.id = generateActionEntityId(
+      Address.fromString(CONTRACT_ADDRESS),
+      Address.fromString(DAO_ADDRESS),
+      PLUGIN_PROPOSAL_ID,
+      0
+    );
+    this.to = Address.fromHexString(DAO_TOKEN_ADDRESS);
+    this.value = BigInt.fromString(ZERO);
+    this.data = Bytes.fromHexString('0x00000000');
+    this.daoAddress = Bytes.fromHexString(DAO_ADDRESS);
+    this.proposal = PROPOSAL_ENTITY_ID;
+    return this;
+  }
+
+  getDummyAction(): ethereum.Tuple {
+    return createDummyAction(
+      this.to.toHexString(),
+      this.value.toString(),
+      this.data.toHexString()
+    );
   }
 }
 
