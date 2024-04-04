@@ -16,6 +16,7 @@ import {
   ExtendedTokenVotingProposal,
   ExtendedTokenVotingVote,
   ExtendedTokenVotingVoter,
+  ExtendedAction,
 } from '../helpers/extended-schema';
 import {
   DAO_TOKEN_ADDRESS,
@@ -49,6 +50,11 @@ let actions = [
 ];
 
 test('Run TokenVoting (handleProposalCreated) mappings with mock event', () => {
+  // check store is empty before running the test
+  assert.entityCount('TokenVotingPlugin', 0);
+  assert.entityCount('TokenVotingProposal', 0);
+  assert.entityCount('Action', 0);
+
   // create state
   let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
   tokenVotingPlugin.buildOrUpdate();
@@ -58,14 +64,19 @@ test('Run TokenVoting (handleProposalCreated) mappings with mock event', () => {
 
   let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
 
+  let action = new ExtendedAction().withDefaultValues();
+
   // create calls
   tokenVotingPlugin.proposalCount = BigInt.fromString(ONE);
   tokenVotingPlugin.mockCall_getProposalCountCall();
-  proposal.mockCall_getProposal(actions);
+  proposal.mockCall_getProposal([action.getDummyAction()]);
   proposal.mockCall_totalVotingPower();
 
   // create event
-  let event = proposal.createEvent_ProposalCreated(actions, STRING_DATA);
+  let event = proposal.createEvent_ProposalCreated(
+    [action.getDummyAction()],
+    STRING_DATA
+  );
 
   // handle event
   _handleProposalCreated(event, proposal.daoAddress.toHexString(), STRING_DATA);
@@ -74,10 +85,16 @@ test('Run TokenVoting (handleProposalCreated) mappings with mock event', () => {
   // expected changes
   proposal.creationBlockNumber = BigInt.fromString(ONE);
   proposal.votingMode = VOTING_MODES.get(parseInt(VOTING_MODE)) as string;
-  // // check TokenVotingProposal
-  proposal.assertEntity();
 
+  // check the proposal and the plugin
+  assert.entityCount('TokenVotingPlugin', 1);
+  assert.entityCount('TokenVotingProposal', 1);
+  proposal.assertEntity();
   tokenVotingPlugin.assertEntity();
+
+  // check the actions
+  assert.entityCount('Action', 1);
+  action.assertEntity();
 
   clearStore();
 });
