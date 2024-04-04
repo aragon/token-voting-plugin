@@ -220,9 +220,6 @@ test('Run TokenVoting (handleProposalExecuted) mappings with mock event', () => 
   proposal.yes = BigInt.fromString(ONE);
   proposal.buildOrUpdate();
 
-  // create calls
-  proposal.mockCall_getProposal(actions);
-
   // create event
   let event = proposal.createEvent_ProposalExecuted();
 
@@ -232,6 +229,9 @@ test('Run TokenVoting (handleProposalExecuted) mappings with mock event', () => 
   // checks
   // expected changes
   proposal.executed = true;
+  proposal.executionDate = event.block.timestamp;
+  proposal.executionBlockNumber = event.block.number;
+  proposal.executionTxHash = event.transaction.hash;
   // assert TokenVotingProposal
   proposal.assertEntity();
 
