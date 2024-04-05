@@ -119,12 +119,12 @@ export function _handleProposalCreated(
   proposalEntity.save();
 
   // update vote length
-  const packageEntity = TokenVotingPlugin.load(pluginEntityId);
-  if (packageEntity) {
+  const pluginEntity = TokenVotingPlugin.load(pluginEntityId);
+  if (pluginEntity) {
     const voteLength = contract.try_proposalCount();
     if (!voteLength.reverted) {
-      packageEntity.proposalCount = voteLength.value;
-      packageEntity.save();
+      pluginEntity.proposalCount = voteLength.value;
+      pluginEntity.save();
     }
   }
 }
@@ -260,18 +260,18 @@ export function handleProposalExecuted(event: ProposalExecuted): void {
 export function handleVotingSettingsUpdated(
   event: VotingSettingsUpdated
 ): void {
-  const packageEntity = TokenVotingPlugin.load(
+  const pluginEntity = TokenVotingPlugin.load(
     generatePluginEntityId(event.address)
   );
-  if (packageEntity) {
+  if (pluginEntity) {
     const votingMode = VOTING_MODES.get(event.params.votingMode);
 
-    packageEntity.votingMode = votingMode as string;
-    packageEntity.supportThreshold = event.params.supportThreshold;
-    packageEntity.minParticipation = event.params.minParticipation;
-    packageEntity.minDuration = event.params.minDuration;
-    packageEntity.minProposerVotingPower = event.params.minProposerVotingPower;
-    packageEntity.save();
+    pluginEntity.votingMode = votingMode as string;
+    pluginEntity.supportThreshold = event.params.supportThreshold;
+    pluginEntity.minParticipation = event.params.minParticipation;
+    pluginEntity.minDuration = event.params.minDuration;
+    pluginEntity.minProposerVotingPower = event.params.minProposerVotingPower;
+    pluginEntity.save();
   }
 }
 
@@ -280,15 +280,15 @@ export function handleMembershipContractAnnounced(
 ): void {
   const token = event.params.definingContract;
   const pluginEntityId = generatePluginEntityId(event.address);
-  const packageEntity = TokenVotingPlugin.load(pluginEntityId);
+  const pluginEntity = TokenVotingPlugin.load(pluginEntityId);
 
-  if (packageEntity) {
+  if (pluginEntity) {
     const tokenAddress = identifyAndFetchOrCreateERC20TokenEntity(token);
     if (!tokenAddress) {
       return;
     }
-    packageEntity.token = tokenAddress as string;
-    packageEntity.save();
+    pluginEntity.token = tokenAddress as string;
+    pluginEntity.save();
 
     // Both GovernanceWrappedERC20/GovernanceERC20 use the `Transfer` event, so
     // It's safe to create the same type of template for them.
