@@ -1,5 +1,3 @@
-import {ProposalCreated} from '../../generated/templates/TokenVoting/TokenVoting';
-import {PLUGIN_REPO_ADDRESS} from '../../imported/repo-address';
 import {
   handleVoteCast,
   handleProposalExecuted,
@@ -19,26 +17,19 @@ import {
   ExtendedAction,
 } from '../helpers/extended-schema';
 import {
-  DAO_TOKEN_ADDRESS,
   STRING_DATA,
   VOTING_MODE,
   ONE,
   ZERO,
   TWO,
   ERC20_AMOUNT_FULL,
-  DAO_ADDRESS,
 } from '../utils/constants';
-import {
-  createDummyAction,
-  generateActionEntityId,
-} from '@aragon/osx-commons-subgraph';
-import {Address, bigInt, BigInt, ethereum} from '@graphprotocol/graph-ts';
+import {bigInt, BigInt} from '@graphprotocol/graph-ts';
 import {
   afterAll,
   assert,
   clearStore,
   describe,
-  newMockEvent,
   test,
 } from 'matchstick-as/assembly/index';
 
