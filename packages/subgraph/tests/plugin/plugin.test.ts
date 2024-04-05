@@ -142,7 +142,7 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
   // check the voter entity
   assert.entityCount('TokenVotingVoter', 1);
   voter.lastUpdated = event.block.timestamp;
-  voter.assertEntity(true);
+  voter.assertEntity();
 
   // check proposal
   // expected changes to the proposal entity
