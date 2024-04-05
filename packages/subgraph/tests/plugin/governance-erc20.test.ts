@@ -473,7 +473,7 @@ describe('Governance ERC20', () => {
     });
   });
 
-  describe('handleDelegatevotesChanged', () => {
+  describe('handleDelegateVotesChanged', () => {
     test('it should create member for delegate address', () => {
       let member = new ExtendedTokenVotingMember().withDefaultValues(
         memberAddressHexString,
