@@ -65,6 +65,11 @@ import {
   MIN_DURATION,
   DAO_TOKEN_ADDRESS,
   STRING_DATA,
+  MIN_PROPOSER_VOTING_POWER,
+  NEW_MIN_PROPOSER_VOTING_POWER,
+  NEW_MIN_PARTICIPATION,
+  NEW_SUPPORT_THRESHOLD,
+  NEW_MIN_DURATION,
 } from '../utils';
 import {
   generateEntityIdFromAddress,
@@ -370,7 +375,7 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
     this.supportThreshold = BigInt.fromString(SUPPORT_THRESHOLD);
     this.minParticipation = BigInt.fromString(MIN_PARTICIPATION);
     this.minDuration = BigInt.fromString(MIN_DURATION);
-    this.minProposerVotingPower = BigInt.zero();
+    this.minProposerVotingPower = BigInt.fromString(MIN_PROPOSER_VOTING_POWER);
     this.proposalCount = BigInt.zero();
     this.token = DAO_TOKEN_ADDRESS;
 
@@ -421,6 +426,26 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
     );
 
     return event;
+  }
+
+  setNewPluginSetting(): TokenVotingPluginMethods {
+    let votingModeIndex = parseInt(TWO);
+    if (!VOTING_MODES.has(votingModeIndex)) {
+      throw new Error('voting mode is not valid.');
+    }
+    // we use casting here to remove autocompletion complaint
+    // since we know it will be captured by the previous check
+    let votingMode = VOTING_MODES.get(votingModeIndex) as string;
+
+    this.votingMode = votingMode;
+    this.supportThreshold = BigInt.fromString(NEW_SUPPORT_THRESHOLD);
+    this.minParticipation = BigInt.fromString(NEW_MIN_PARTICIPATION);
+    this.minDuration = BigInt.fromString(NEW_MIN_DURATION);
+    this.minProposerVotingPower = BigInt.fromString(
+      NEW_MIN_PROPOSER_VOTING_POWER
+    );
+
+    return this;
   }
 }
 
