@@ -38,13 +38,18 @@ export const TOKEN_SYMBOL = 'symbol';
 export const TOKEN_NAME = 'name';
 
 export const HOUR = '3600';
+export const TWO_HOURS = '7200';
 
 export const VOTING_MODE: string = ONE; // EarlyExecution
 export const SUPPORT_THRESHOLD = '500000'; // 50*10**4 = 50%
+export const NEW_SUPPORT_THRESHOLD = '400000'; // 40*10**4 = 40%
 export const MIN_PARTICIPATION = '500000'; // 50*10**4 = 50%
+export const NEW_MIN_PARTICIPATION = '400000'; // 40*10**4 = 40%
 export const MIN_DURATION = HOUR;
+export const NEW_MIN_DURATION = TWO_HOURS;
 
 export const MIN_PROPOSER_VOTING_POWER = ZERO;
+export const NEW_MIN_PROPOSER_VOTING_POWER = ONE;
 export const START_DATE = '1644851000';
 export const END_DATE = '1644852000';
 export const SNAPSHOT_BLOCK = '100';
