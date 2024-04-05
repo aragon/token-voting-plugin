@@ -108,6 +108,7 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
   // create state
   let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
 
+  let action = new ExtendedAction().withDefaultValues();
   proposal.buildOrUpdate();
 
   // check proposal entity
@@ -115,7 +116,7 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
 
   // create calls
   proposal.yes = bigInt.fromString(ONE);
-  proposal.mockCall_getProposal(actions);
+  proposal.mockCall_getProposal([action.getDummyAction()]);
   proposal.mockCall_totalVotingPower();
 
   // create event
@@ -135,11 +136,11 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
   // test handler
   handleVoteCast(event);
 
-  // checks vote entity created via handler (not builder)  //?
+  // checks vote entity created via handler (not builder)
   assert.entityCount('TokenVotingVote', 1);
   vote.assertEntity();
 
-  // check the voter entity
+  // check the voter
   assert.entityCount('TokenVotingVoter', 1);
   voter.lastUpdated = event.block.timestamp;
   voter.assertEntity();
@@ -152,11 +153,11 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
   assert.entityCount('TokenVotingProposal', 1);
   proposal.assertEntity();
 
-  // --------- Check when voter replace vote ---------
+  // --------- Check when voter replace vote (from yes to no) ---------
   // create calls 2
   proposal.yes = BigInt.fromString(ZERO);
   proposal.no = BigInt.fromString(ONE);
-  proposal.mockCall_getProposal(actions);
+  proposal.mockCall_getProposal([action.getDummyAction()]);
   proposal.mockCall_totalVotingPower();
 
   vote.voteOption = 'No';
@@ -171,7 +172,7 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
 
   // expected changes in TokenVotingVote
   vote.voteReplaced = true;
-  vote.updatedAt = bigInt.fromString(ONE);
+  vote.updatedAt = event2.block.timestamp;
 
   // checks vote entity created via handler (not builder)
   assert.entityCount('TokenVotingVote', 1);
@@ -180,17 +181,17 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
   // check the voter entity
   assert.entityCount('TokenVotingVoter', 1);
   voter.lastUpdated = event.block.timestamp;
-  voter.assertEntity(true);
+  voter.assertEntity();
 
   // check proposal
   assert.entityCount('TokenVotingProposal', 1);
   proposal.assertEntity();
 
   // --------- check new cast vote ---------
-  // create calls 3
+  // update the getProposal to have 2 yes votes
   proposal.yes = BigInt.fromString(TWO);
   proposal.no = BigInt.fromString(ZERO);
-  proposal.mockCall_getProposal(actions);
+  proposal.mockCall_getProposal([action.getDummyAction()]);
 
   vote.voteOption = 'Yes';
 
@@ -204,21 +205,22 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
 
   // check proposal
   assert.entityCount('TokenVotingProposal', 1);
+  // expected changes to the proposal entity
+  proposal.approvalReached = true;
+  proposal.castedVotingPower = BigInt.fromString(TWO);
   proposal.assertEntity();
 
-  // checks vote entity created via handler (not builder)  //?
+  // checks vote entity created via handler (not builder)
   assert.entityCount('TokenVotingVote', 1);
   vote.assertEntity();
 
   // check the voter
   assert.entityCount('TokenVotingVoter', 1);
   voter.lastUpdated = event.block.timestamp;
-  voter.assertEntity(true);
+  voter.assertEntity();
 
   clearStore();
 });
-
-// ! add test for a complete flow, create proposal=>vote all users=>check the proposal can be executed
 
 test('Run TokenVoting (handleVoteCast) mappings with mock event and vote option "None"', () => {
   let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
@@ -274,6 +276,9 @@ test('Run TokenVoting (handleVotingSettingsUpdated) mappings with mock event', (
   // create state
   let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
   tokenVotingPlugin.buildOrUpdate();
+
+  // update plugin configuration
+  tokenVotingPlugin.setNewPluginSetting();
 
   // create event
   let event = tokenVotingPlugin.createEvent_VotingSettingsUpdated();
