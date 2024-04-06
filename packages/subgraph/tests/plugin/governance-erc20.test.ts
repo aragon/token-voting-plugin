@@ -43,7 +43,7 @@ import {
 } from 'matchstick-as';
 
 // mock plugins
-const pluginAddress = Address.fromString(ADDRESS_SIX);
+const pluginAddress = Address.fromString(CONTRACT_ADDRESS);
 const pluginEntityId = generatePluginEntityId(pluginAddress);
 const pluginAddressSecond = Address.fromString(ADDRESS_SEVEN);
 const secondPluginAddr = ADDRESS_SEVEN;
@@ -270,8 +270,7 @@ describe('Governance ERC20', () => {
 
     test('it should create a member from `fromDelegate`.', () => {
       let member = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString,
-        pluginEntityId
+        memberAddressHexString
       );
 
       let event = member.createEvent_DelegateChanged();
@@ -287,8 +286,7 @@ describe('Governance ERC20', () => {
       const memberTwoAddress = Address.fromString(ADDRESS_TWO);
       const memberTwoAddressHexString = memberTwoAddress.toHexString();
       let member = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString,
-        pluginEntityId
+        memberAddressHexString
       );
 
       let event = member.createEvent_DelegateChanged(
@@ -308,31 +306,11 @@ describe('Governance ERC20', () => {
       member.assertEntity();
 
       assert.entityCount('TokenVotingMember', 2);
-      assert.fieldEquals(
-        'TokenVotingMember',
-        member.id,
-        'delegatee',
-        expectedDelegatee
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        member.id,
-        'address',
-        memberAddressHexString
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        member.id,
-        'plugin',
-        pluginEntityId
-      );
-      assert.fieldEquals('TokenVotingMember', member.id, 'balance', '0');
     });
 
     test('it should create a member for `delegator`, `fromDelegate` and `toDelegate`, and set delegatee as `toDelegate`.', () => {
       let member = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString,
-        pluginEntityId
+        memberAddressHexString
       );
       const oldDelegateeId = ADDRESS_TWO;
       const newDelegateeAddress = Address.fromString(ADDRESS_THREE);
@@ -358,8 +336,7 @@ describe('Governance ERC20', () => {
 
     test('it should update delegatee of an existing member', () => {
       let member = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString,
-        pluginEntityId
+        memberAddressHexString
       );
 
       member.buildOrUpdate();
