@@ -16,6 +16,7 @@ import {
   DelegateChanged,
   DelegateVotesChanged,
 } from '../../generated/templates/GovernanceERC20/GovernanceERC20';
+import {Transfer} from '../../generated/templates/TokenVoting/ERC20';
 import {
   MembershipContractAnnounced,
   ProposalCreated,
@@ -42,10 +43,14 @@ import {
   getBalanceOf,
   getProposalCountCall,
   getSupportsInterface,
+  createNewERC20TransferEventWithAddress,
+  getDelegatee,
+  getVotes,
 } from '../utils';
 import {createGetProposalCall, createTotalVotingPowerCall} from '../utils';
 import {
   ADDRESS_ONE,
+  ADDRESS_TWO,
   ALLOW_FAILURE_MAP,
   CONTRACT_ADDRESS,
   CREATED_AT,
@@ -70,6 +75,7 @@ import {
   NEW_MIN_PARTICIPATION,
   NEW_SUPPORT_THRESHOLD,
   NEW_MIN_DURATION,
+  ONE_ETH,
 } from '../utils';
 import {
   generateEntityIdFromAddress,
@@ -477,6 +483,18 @@ class TokenVotingMemberMethods extends TokenVotingMember {
     delegatesCall(tokenContractAddress, account, returns);
   }
 
+  mockCall_getBalanceOf(account: string, value: string = '0'): void {
+    getBalanceOf(DAO_TOKEN_ADDRESS, account, value);
+  }
+
+  mockCall_getDelegatee(account: string): void {
+    getDelegatee(DAO_TOKEN_ADDRESS, account, null);
+  }
+
+  mockCall_getVotes(toAddress: string, value: string = '0'): void {
+    getVotes(DAO_TOKEN_ADDRESS, toAddress, value);
+  }
+
   createEvent_DelegateChanged(
     delegator: string = this.address.toHexString(),
     fromDelegate: string = this.address.toHexString(),
@@ -507,6 +525,21 @@ class TokenVotingMemberMethods extends TokenVotingMember {
       previousBalance,
       newBalance,
       tokenContract
+    );
+
+    return event;
+  }
+
+  createEvent_Transfer(
+    from: string = ADDRESS_ONE,
+    to: string = ADDRESS_TWO,
+    amount: string = ONE_ETH
+  ): Transfer {
+    let event = createNewERC20TransferEventWithAddress(
+      from,
+      to,
+      amount,
+      DAO_TOKEN_ADDRESS
     );
 
     return event;
