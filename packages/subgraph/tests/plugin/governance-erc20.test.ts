@@ -217,11 +217,11 @@ describe('Governance ERC20', () => {
 
       // check from and to accounts in current plugin context
       fromAccountMember.balance = BigInt.fromString(REMAINING);
-      fromAccountMember.assertEntity(true);
+      fromAccountMember.assertEntity();
 
       toAccountMember.balance = BigInt.fromString(TRANSFER);
       toAccountMember.delegatee = toAccountMember.id;
-      toAccountMember.assertEntity(true);
+      toAccountMember.assertEntity();
 
       // set the context to the second plugin and handle the event
       setContext(secondPluginEntityId);
