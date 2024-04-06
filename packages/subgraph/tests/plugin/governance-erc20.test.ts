@@ -14,6 +14,7 @@ import {
   ADDRESS_THREE,
   DAO_TOKEN_ADDRESS,
   ADDRESS_SEVEN,
+  CONTRACT_ADDRESS,
 } from '../utils/constants';
 import {
   createNewDelegateChangedEvent,
@@ -25,7 +26,12 @@ import {
   generateEntityIdFromAddress,
   generatePluginEntityId,
 } from '@aragon/osx-commons-subgraph';
-import {Address, BigInt, DataSourceContext, log} from '@graphprotocol/graph-ts';
+import {
+  Address,
+  bigInt,
+  BigInt,
+  DataSourceContext,
+} from '@graphprotocol/graph-ts';
 import {
   assert,
   afterEach,
@@ -40,9 +46,14 @@ import {
 const pluginAddress = Address.fromString(ADDRESS_SIX);
 const pluginEntityId = generatePluginEntityId(pluginAddress);
 const pluginAddressSecond = Address.fromString(ADDRESS_SEVEN);
-const pluginEntityIdSecond = generatePluginEntityId(pluginAddressSecond);
+const secondPluginAddr = ADDRESS_SEVEN;
+const secondPluginEntityId = generatePluginEntityId(
+  Address.fromString(secondPluginAddr)
+);
 
 // mock members
+const fromAccount = ADDRESS_ONE;
+const toAccount = ADDRESS_TWO;
 const fromAddress = Address.fromString(ADDRESS_ONE);
 const memberAddress = fromAddress;
 const toAddress = Address.fromString(ADDRESS_TWO);
@@ -51,7 +62,11 @@ const memberAddressHexString = fromAddressHexString;
 const toAddressHexString = toAddress.toHexString();
 const thirdAddress = Address.fromString(ADDRESS_THREE);
 
-function setContext(pluginId: string): void {
+function setContext(
+  pluginId: string = generatePluginEntityId(
+    Address.fromString(CONTRACT_ADDRESS)
+  )
+): void {
   const context = new DataSourceContext();
   context.setString('pluginId', pluginId);
   dataSourceMock.setContext(context);
@@ -59,7 +74,7 @@ function setContext(pluginId: string): void {
 
 describe('Governance ERC20', () => {
   beforeAll(() => {
-    setContext(pluginEntityId);
+    setContext();
   });
 
   afterEach(() => {
@@ -67,275 +82,174 @@ describe('Governance ERC20', () => {
   });
 
   describe('handleTransfer', () => {
-    test('it should create a new member of from', () => {
-      const mockEvent = createNewERC20TransferEventWithAddress(
-        fromAddressHexString,
-        toAddressHexString,
-        ONE_ETH,
-        DAO_TOKEN_ADDRESS
+    test('it should create a new member of from and to', () => {
+      assert.entityCount('TokenVotingMember', 0);
+
+      // initialize the extended class members
+      let fromAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
+        fromAccount
+      );
+      let toAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
+        toAccount
       );
 
-      getBalanceOf(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), '0');
-      getBalanceOf(DAO_TOKEN_ADDRESS, toAddress.toHexString(), ONE_ETH);
-      getDelegatee(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), null);
-      getDelegatee(DAO_TOKEN_ADDRESS, toAddress.toHexString(), null);
-      getVotes(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), '0');
-      getVotes(DAO_TOKEN_ADDRESS, toAddress.toHexString(), ONE_ETH);
+      // create a new transfer event
+      let event = fromAccountMember.createEvent_Transfer(
+        fromAccount,
+        toAccount
+      );
 
-      handleTransfer(mockEvent);
+      // mock the calls
+      fromAccountMember.mockCall_getBalanceOf(fromAccount);
+      fromAccountMember.mockCall_getBalanceOf(toAccount, ONE_ETH);
 
-      const memberEntityId = generateMemberEntityId(pluginAddress, fromAddress);
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'id',
-        memberEntityId
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'address',
-        fromAddressHexString
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'plugin',
-        pluginEntityId
-      );
-      assert.fieldEquals('TokenVotingMember', memberEntityId, 'balance', '0');
+      fromAccountMember.mockCall_getDelegatee(fromAccount);
+      fromAccountMember.mockCall_getDelegatee(toAccount);
+
+      fromAccountMember.mockCall_getVotes(fromAccount);
+      fromAccountMember.mockCall_getVotes(toAccount, ONE_ETH);
+
+      // handle the event
+      handleTransfer(event);
+
+      // check from account
+      assert.entityCount('TokenVotingMember', 2);
+      fromAccountMember.delegatee = fromAccountMember.id;
+      fromAccountMember.assertEntity();
+
+      // check to account
+      toAccountMember.delegatee = toAccountMember.id;
+      toAccountMember.balance = BigInt.fromString(ONE_ETH);
+      toAccountMember.votingPower = BigInt.fromString(ONE_ETH);
+      toAccountMember.assertEntity();
     });
 
-    test('it should create a new member of to', () => {
-      const mockEvent = createNewERC20TransferEventWithAddress(
-        fromAddressHexString,
-        toAddressHexString,
-        ONE_ETH,
-        DAO_TOKEN_ADDRESS
+    test('it should update an existing fromAccount and toAccount entity', () => {
+      assert.entityCount('TokenVotingMember', 0);
+
+      let fromAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
+        fromAccount
+      );
+      fromAccountMember.balance = BigInt.fromString(ONE_ETH + '0'); // 10 ETH
+      fromAccountMember.delegatee = fromAccountMember.id;
+
+      let toAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
+        toAccount
+      );
+      toAccountMember.balance = BigInt.fromString(ONE_ETH); // 1 ETH
+      toAccountMember.delegatee = toAccountMember.id;
+
+      // create the from and to members
+      fromAccountMember.buildOrUpdate();
+      toAccountMember.buildOrUpdate();
+      assert.entityCount('TokenVotingMember', 2);
+
+      // create transfer event
+      let event = fromAccountMember.createEvent_Transfer(
+        fromAccount,
+        toAccount
       );
 
-      getBalanceOf(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), '0');
-      getBalanceOf(DAO_TOKEN_ADDRESS, toAddress.toHexString(), ONE_ETH);
+      // mock calls
+      fromAccountMember.mockCall_getBalanceOf(fromAccount);
+      fromAccountMember.mockCall_getBalanceOf(toAccount, ONE_ETH + '0');
 
-      handleTransfer(mockEvent);
+      // handle event
+      handleTransfer(event);
 
-      const memberEntityId = generateMemberEntityId(pluginAddress, toAddress);
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'id',
-        memberEntityId
+      // assert the from account
+      // reduce the balance by the transfer
+      assert.entityCount('TokenVotingMember', 2);
+      fromAccountMember.balance = BigInt.fromString(ONE_ETH).times(
+        BigInt.fromString('9')
       );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'address',
-        toAddressHexString
+      fromAccountMember.assertEntity();
+
+      // assert the to account
+      // increment the balance by the transfer
+      toAccountMember.balance = BigInt.fromString(ONE_ETH).plus(
+        BigInt.fromString(ONE_ETH)
       );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'plugin',
-        pluginEntityId
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'balance',
-        ONE_ETH
-      );
+      toAccountMember.assertEntity();
     });
 
-    test('it should update an existing from entity', () => {
-      const memberEntityId = createTokenVotingMember(
-        fromAddressHexString,
-        pluginEntityId,
-        ONE_ETH + '0' /* 10 ETH */
-      );
-
-      const mockEvent = createNewERC20TransferEventWithAddress(
-        fromAddressHexString,
-        toAddressHexString,
-        ONE_ETH,
-        DAO_TOKEN_ADDRESS
-      );
-
-      getBalanceOf(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), '0');
-      getBalanceOf(DAO_TOKEN_ADDRESS, toAddress.toHexString(), ONE_ETH + '0');
-
-      handleTransfer(mockEvent);
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'id',
-        memberEntityId
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'address',
-        fromAddressHexString
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'plugin',
-        pluginEntityId
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'balance',
-        BigInt.fromString(ONE_ETH).times(BigInt.fromString('9')).toString()
-      );
-    });
-
-    test('it should update an existing to entity', () => {
-      const memberEntityId = createTokenVotingMember(
-        toAddressHexString,
-        pluginEntityId,
-        ONE_ETH + '0'
-      );
-
-      const mockEvent = createNewERC20TransferEventWithAddress(
-        fromAddressHexString,
-        toAddressHexString,
-        ONE_ETH,
-        DAO_TOKEN_ADDRESS
-      );
-
-      getBalanceOf(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), ONE_ETH + '0');
-      getBalanceOf(DAO_TOKEN_ADDRESS, toAddress.toHexString(), '0');
-      handleTransfer(mockEvent);
-
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'id',
-        memberEntityId
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'address',
-        ADDRESS_TWO
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'plugin',
-        ADDRESS_SIX
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityId,
-        'balance',
-        BigInt.fromString(ONE_ETH).times(BigInt.fromString('11')).toString()
-      );
-    });
-
-    test("it should initialize with the user's existing balance, if she has one", () => {
+    test("it should initialize with the user's existing balance (in different plugins), if has one", () => {
       // constants
-      const STARTING_BALANCE = '10';
-      const TRANSFER = '3';
-      const REMAINING = '7';
+      const STARTING_BALANCE = ONE_ETH + '0'; // 10 ETH
+      const TRANSFER = ONE_ETH.replace('1', '3'); // 3 ETH
+      const REMAINING = ONE_ETH.replace('1', '7'); // 7 ETH
 
-      // mocked calls
-      getBalanceOf(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), REMAINING);
-      getBalanceOf(DAO_TOKEN_ADDRESS, toAddress.toHexString(), TRANSFER);
+      // initialize the extended class members
+      let fromAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
+        fromAccount
+      );
+      fromAccountMember.balance = BigInt.fromString(STARTING_BALANCE);
+      fromAccountMember.delegatee = fromAccountMember.id;
 
-      const memberEntityIdFrom = createTokenVotingMember(
-        fromAddressHexString,
-        pluginEntityId,
-        STARTING_BALANCE
+      let toAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
+        toAccount
       );
 
-      const memberEntityIdFromSecondPlugin = generateMemberEntityId(
-        pluginAddressSecond,
-        Address.fromString(fromAddressHexString)
-      );
+      // save the from account member
+      fromAccountMember.buildOrUpdate();
 
-      const memberEntityIdTo = generateMemberEntityId(
-        pluginAddressSecond,
-        Address.fromString(toAddressHexString)
-      );
+      // mock calls
+      fromAccountMember.mockCall_getBalanceOf(fromAccount, REMAINING);
+      fromAccountMember.mockCall_getBalanceOf(toAccount, TRANSFER);
 
-      const memberEntityIdToSecondPlugin = generateMemberEntityId(
-        pluginAddressSecond,
-        Address.fromString(toAddressHexString)
-      );
+      fromAccountMember.mockCall_getDelegatee(fromAccount);
+      fromAccountMember.mockCall_getDelegatee(toAccount);
 
-      // handle a transfer to another user
-      const transferEvent = createNewERC20TransferEventWithAddress(
-        fromAddressHexString,
-        toAddressHexString,
-        TRANSFER,
-        DAO_TOKEN_ADDRESS
-      );
+      fromAccountMember.mockCall_getVotes(toAccount);
 
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdFrom,
-        'id',
-        memberEntityIdFrom
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdFrom,
-        'address',
-        fromAddressHexString
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdFrom,
-        'plugin',
-        pluginEntityId
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdFrom,
-        'balance',
-        STARTING_BALANCE
-      );
-
-      // execute the transfer in the context of both plugins
-      handleTransfer(transferEvent);
-      setContext(pluginEntityIdSecond);
-      handleTransfer(transferEvent);
-
-      // we should see:
-      // user A has balances updated in both plugins
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdFrom,
-        'balance',
-        REMAINING
-      );
-
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdFromSecondPlugin,
-        'balance',
-        REMAINING
-      );
-
-      // user B has balances updated in both plugins
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdTo,
-        'balance',
+      // create transfer event
+      let event = fromAccountMember.createEvent_Transfer(
+        fromAccount,
+        toAccount,
         TRANSFER
       );
 
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdToSecondPlugin,
-        'balance',
-        TRANSFER
-      );
+      // check the member entity before handling the event
+      fromAccountMember.assertEntity();
+
+      // execute the transfer in current plugin context
+      handleTransfer(event);
+
+      // check from and to accounts in current plugin context
+      fromAccountMember.balance = BigInt.fromString(REMAINING);
+      fromAccountMember.assertEntity(true);
+
+      toAccountMember.balance = BigInt.fromString(TRANSFER);
+      toAccountMember.delegatee = toAccountMember.id;
+      toAccountMember.assertEntity(true);
+
+      // set the context to the second plugin and handle the event
+      setContext(secondPluginEntityId);
+      handleTransfer(event);
+
+      // build the members in the second plugin context
+      let fromAccountMember2ndPlugin =
+        new ExtendedTokenVotingMember().withDefaultValues(
+          fromAccount,
+          secondPluginAddr
+        );
+      fromAccountMember2ndPlugin.balance = BigInt.fromString(REMAINING);
+      fromAccountMember2ndPlugin.delegatee = fromAccountMember2ndPlugin.id;
+
+      let toAccountMember2ndPlugin =
+        new ExtendedTokenVotingMember().withDefaultValues(
+          toAccount,
+          secondPluginAddr
+        );
+      toAccountMember2ndPlugin.balance = BigInt.fromString(TRANSFER);
+      toAccountMember2ndPlugin.delegatee = toAccountMember2ndPlugin.id;
+
+      // check the from and to accounts in the second plugin context
+      fromAccountMember2ndPlugin.assertEntity();
+      toAccountMember2ndPlugin.assertEntity();
 
       // set the context back to the first plugin
-      setContext(pluginEntityId);
+      setContext();
     });
   });
 
@@ -344,9 +258,11 @@ describe('Governance ERC20', () => {
       getBalanceOf(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), '0');
       getBalanceOf(DAO_TOKEN_ADDRESS, toAddress.toHexString(), '0');
       getBalanceOf(DAO_TOKEN_ADDRESS, thirdAddress.toHexString(), '0');
+
       getVotes(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), '0');
       getVotes(DAO_TOKEN_ADDRESS, toAddress.toHexString(), '0');
       getVotes(DAO_TOKEN_ADDRESS, thirdAddress.toHexString(), '0');
+
       getDelegatee(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), null);
       getDelegatee(DAO_TOKEN_ADDRESS, toAddress.toHexString(), null);
       getDelegatee(DAO_TOKEN_ADDRESS, thirdAddress.toHexString(), null);
@@ -671,7 +587,7 @@ describe('Governance ERC20', () => {
       );
 
       // now do the delegation in the context of the second plugin
-      setContext(pluginEntityIdSecond);
+      setContext(secondPluginEntityId);
       handleDelegateChanged(delegateChangedEvent);
 
       assert.fieldEquals(
