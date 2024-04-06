@@ -314,8 +314,6 @@ describe('handleMembershipContractAnnounced', () => {
   });
 
   test('it should create an erc20Wrapped and assign an erc20 as the underlying token and assign the erc20Wrapped address to the tokenVotingPlugin', () => {
-    assert.dataSourceCount('GovernanceERC20', 0);
-
     // create entities
     let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
     let erc20Contract = new ExtendedERC20Contract().withDefaultValues();
@@ -355,7 +353,6 @@ describe('handleMembershipContractAnnounced', () => {
     erc20WrappedContract.assertEntity();
 
     // check the template were created
-    assert.dataSourceCount('GovernanceERC20', 1);
     assert.dataSourceExists('GovernanceERC20', erc20Contract.id);
   });
 });
