@@ -5,10 +5,9 @@ import {
 } from '../../src/plugin/governance-erc20';
 import {generateMemberEntityId} from '../../src/utils/ids';
 import {ExtendedTokenVotingMember} from '../helpers/extended-schema';
-import {createNewERC20TransferEventWithAddress, getBalanceOf} from '../utils';
+import {getBalanceOf} from '../utils';
 import {
   ADDRESS_ONE,
-  ADDRESS_SIX,
   ADDRESS_TWO,
   ONE_ETH,
   ADDRESS_THREE,
@@ -16,22 +15,12 @@ import {
   ADDRESS_SEVEN,
   CONTRACT_ADDRESS,
 } from '../utils/constants';
-import {
-  createNewDelegateChangedEvent,
-  createTokenVotingMember,
-  getDelegatee,
-  getVotes,
-} from '../utils/voting';
+import {getDelegatee, getVotes} from '../utils/voting';
 import {
   generateEntityIdFromAddress,
   generatePluginEntityId,
 } from '@aragon/osx-commons-subgraph';
-import {
-  Address,
-  bigInt,
-  BigInt,
-  DataSourceContext,
-} from '@graphprotocol/graph-ts';
+import {Address, BigInt, DataSourceContext} from '@graphprotocol/graph-ts';
 import {
   assert,
   afterEach,
@@ -45,7 +34,6 @@ import {
 // mock plugins
 const pluginAddress = Address.fromString(CONTRACT_ADDRESS);
 const pluginEntityId = generatePluginEntityId(pluginAddress);
-const pluginAddressSecond = Address.fromString(ADDRESS_SEVEN);
 const secondPluginAddr = ADDRESS_SEVEN;
 const secondPluginEntityId = generatePluginEntityId(
   Address.fromString(secondPluginAddr)
@@ -64,7 +52,6 @@ const memberAddress = fromAddress;
 const toAddress = Address.fromString(ADDRESS_TWO);
 const fromAddressHexString = fromAddress.toHexString();
 const memberAddressHexString = fromAddressHexString;
-const toAddressHexString = toAddress.toHexString();
 const thirdAddress = Address.fromString(ADDRESS_THREE);
 
 function setContext(
