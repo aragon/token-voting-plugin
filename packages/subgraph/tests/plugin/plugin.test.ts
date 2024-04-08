@@ -137,7 +137,7 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
   assert.entityCount('TokenVotingProposal', 1);
   proposal.assertEntity();
 
-  // --------- Check when voter replace vote (from yes to no) ---------
+  // --------- Check when voter replaces vote (from yes to no) ---------
   // create calls 2
   proposal.yes = BigInt.fromString(ZERO);
   proposal.no = BigInt.fromString(ONE);
