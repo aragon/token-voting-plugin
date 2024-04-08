@@ -1446,6 +1446,9 @@ describe('TokenVoting', function () {
           alice,
           bob,
           carol,
+          dave,
+          eve,
+          frank,
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
@@ -1464,6 +1467,7 @@ describe('TokenVoting', function () {
         );
         const id = 0;
 
+        // Vote with Alice.
         await expect(plugin.connect(alice).vote(id, VoteOption.Yes, false))
           .to.emit(plugin, VOTING_EVENTS.VOTE_CAST)
           .withArgs(id, alice.address, VoteOption.Yes, 10);
@@ -1473,6 +1477,7 @@ describe('TokenVoting', function () {
         expect(proposal.tally.no).to.equal(0);
         expect(proposal.tally.abstain).to.equal(0);
 
+        // Vote with Bob.
         await expect(plugin.connect(bob).vote(id, VoteOption.No, false))
           .to.emit(plugin, VOTING_EVENTS.VOTE_CAST)
           .withArgs(id, bob.address, VoteOption.No, 10);
@@ -1482,6 +1487,7 @@ describe('TokenVoting', function () {
         expect(proposal.tally.no).to.equal(10);
         expect(proposal.tally.abstain).to.equal(0);
 
+        // Vote with Carol.
         await expect(plugin.connect(carol).vote(id, VoteOption.Abstain, false))
           .to.emit(plugin, VOTING_EVENTS.VOTE_CAST)
           .withArgs(id, carol.address, VoteOption.Abstain, 10);
@@ -1490,6 +1496,16 @@ describe('TokenVoting', function () {
         expect(proposal.tally.yes).to.equal(10);
         expect(proposal.tally.no).to.equal(10);
         expect(proposal.tally.abstain).to.equal(10);
+
+        // Vote once more with Dave, Eve, and Frank.
+        await plugin.connect(dave).vote(id, VoteOption.Yes, false);
+        await plugin.connect(eve).vote(id, VoteOption.No, false);
+        await plugin.connect(frank).vote(id, VoteOption.Abstain, false);
+
+        proposal = await plugin.getProposal(id);
+        expect(proposal.tally.yes).to.equal(20);
+        expect(proposal.tally.no).to.equal(20);
+        expect(proposal.tally.abstain).to.equal(20);
       });
 
       it('reverts on voting None', async () => {
