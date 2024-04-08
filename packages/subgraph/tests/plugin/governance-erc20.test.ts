@@ -33,6 +33,7 @@ import {
 
 // mock plugins
 const pluginAddress = Address.fromString(CONTRACT_ADDRESS);
+const pluginEntityId = generatePluginEntityId(pluginAddress);
 const secondPluginAddr = Address.fromString(ADDRESS_SEVEN);
 const secondPluginEntityId = generatePluginEntityId(secondPluginAddr);
 
@@ -49,11 +50,7 @@ const memberAddress = fromAddress;
 const toAddress = Address.fromString(ADDRESS_TWO);
 const thirdAddress = Address.fromString(ADDRESS_THREE);
 
-function setContext(
-  pluginId: string = generatePluginEntityId(
-    Address.fromString(CONTRACT_ADDRESS)
-  )
-): void {
+function setContext(pluginId: string = pluginEntityId): void {
   const context = new DataSourceContext();
   context.setString('pluginId', pluginId);
   dataSourceMock.setContext(context);
