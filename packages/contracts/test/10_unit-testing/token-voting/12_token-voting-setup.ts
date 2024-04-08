@@ -714,7 +714,7 @@ describe('TokenVotingSetup', function () {
       ];
 
       expect(permissions1.length).to.be.equal(3);
-      expect(permissions1).to.deep.equal([...essentialPermissions]);
+      expect(permissions1).to.deep.equal(essentialPermissions);
 
       const permissions2 = await pluginSetup.callStatic.prepareUninstallation(
         dao.address,
