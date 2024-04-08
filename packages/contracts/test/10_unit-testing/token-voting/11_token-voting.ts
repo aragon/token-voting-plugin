@@ -576,7 +576,8 @@ describe('TokenVoting', function () {
           );
         const id = 0;
 
-        // Check the balances before the block is mined
+        // Check the balances before the block is mined. Note that `balanceOf` is a view function,
+        // whose result will be immediately available and does not rely on the block to be mined.
         expect(await token.balanceOf(alice.address)).to.equal(
           votingSettings.minProposerVotingPower
         );
