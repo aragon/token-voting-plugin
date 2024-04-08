@@ -3237,7 +3237,7 @@ describe('TokenVoting', function () {
       });
     });
 
-    describe.only('Execution criteria handle token balances for multiple orders of magnitude', async function () {
+    describe('Execution criteria handle token balances for multiple orders of magnitude', async function () {
       const powers = [0, 1, 2, 3, 6, 12, 18, 24, 36, 48, 60, 66];
       // ~10^67 is the biggest total supply possible.
       // => Log10[2^224] ~ 67.4307 (OZ ERC20VotesUpgradeable checkpoints are stored in `uint224`).
