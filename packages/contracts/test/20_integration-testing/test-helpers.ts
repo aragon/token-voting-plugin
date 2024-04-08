@@ -6,7 +6,6 @@ import {
 } from '../../typechain';
 import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {PluginUUPSUpgradeable__factory} from '../../typechain/factories/@aragon/osx-v1.0.0/core/plugin';
-import {hashHelpers} from '../../utils/helpers';
 import {
   DAO_PERMISSIONS,
   PLUGIN_SETUP_PROCESSOR_PERMISSIONS,
@@ -66,7 +65,12 @@ export async function installPLugin(
     pluginSetupRef,
     plugin,
     permissions: preparedPermissions,
-    helpersHash: hashHelpers(preparedEvent.args.preparedSetupData.helpers),
+    helpersHash: ethers.utils.keccak256(
+      ethers.utils.defaultAbiCoder.encode(
+        ['address[]'],
+        [preparedEvent.args.preparedSetupData.helpers]
+      )
+    ),
   });
 
   const appliedEvent =
@@ -182,7 +186,12 @@ export async function updatePlugin(
     pluginSetupRef: pluginSetupRefUpdate,
     initData: preparedEvent.args.initData,
     permissions: preparedPermissions,
-    helpersHash: hashHelpers(preparedEvent.args.preparedSetupData.helpers),
+    helpersHash: ethers.utils.keccak256(
+      ethers.utils.defaultAbiCoder.encode(
+        ['address[]'],
+        [preparedEvent.args.preparedSetupData.helpers]
+      )
+    ),
   });
 
   const appliedEvent =
