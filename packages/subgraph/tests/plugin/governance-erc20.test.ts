@@ -33,11 +33,8 @@ import {
 
 // mock plugins
 const pluginAddress = Address.fromString(CONTRACT_ADDRESS);
-const pluginEntityId = generatePluginEntityId(pluginAddress);
-const secondPluginAddr = ADDRESS_SEVEN;
-const secondPluginEntityId = generatePluginEntityId(
-  Address.fromString(secondPluginAddr)
-);
+const secondPluginAddr = Address.fromString(ADDRESS_SEVEN);
+const secondPluginEntityId = generatePluginEntityId(secondPluginAddr);
 
 // balances
 const STARTING_BALANCE = ONE_ETH + '0'; // 10 ETH
@@ -50,8 +47,6 @@ const toAccount = ADDRESS_TWO;
 const fromAddress = Address.fromString(ADDRESS_ONE);
 const memberAddress = fromAddress;
 const toAddress = Address.fromString(ADDRESS_TWO);
-const fromAddressHexString = fromAddress.toHexString();
-const memberAddressHexString = fromAddressHexString;
 const thirdAddress = Address.fromString(ADDRESS_THREE);
 
 function setContext(
@@ -218,7 +213,7 @@ describe('Governance ERC20', () => {
       let fromAccountMember2ndPlugin =
         new ExtendedTokenVotingMember().withDefaultValues(
           fromAddress,
-          Address.fromString(secondPluginAddr)
+          secondPluginAddr
         );
       fromAccountMember2ndPlugin.balance = BigInt.fromString(REMAINING);
       fromAccountMember2ndPlugin.delegatee = fromAccountMember2ndPlugin.id;
@@ -226,7 +221,7 @@ describe('Governance ERC20', () => {
       let toAccountMember2ndPlugin =
         new ExtendedTokenVotingMember().withDefaultValues(
           toAddress,
-          Address.fromString(secondPluginAddr)
+          secondPluginAddr
         );
       toAccountMember2ndPlugin.balance = BigInt.fromString(TRANSFER);
       toAccountMember2ndPlugin.delegatee = toAccountMember2ndPlugin.id;
@@ -270,24 +265,19 @@ describe('Governance ERC20', () => {
     });
 
     test('it should create a member from `toDelegate`.', () => {
-      const memberTwoAddress = Address.fromString(ADDRESS_TWO);
-      const memberTwoAddressHexString = memberTwoAddress.toHexString();
       let member = new ExtendedTokenVotingMember().withDefaultValues(
         fromAddress
       );
 
       let event = member.createEvent_DelegateChanged(
-        memberAddressHexString,
-        memberAddressHexString,
-        memberTwoAddressHexString
+        fromAccount,
+        fromAccount,
+        toAccount
       );
 
       handleDelegateChanged(event);
 
-      let expectedDelegatee = generateMemberEntityId(
-        pluginAddress,
-        memberTwoAddress
-      );
+      let expectedDelegatee = generateMemberEntityId(pluginAddress, toAddress);
 
       member.delegatee = expectedDelegatee;
       member.assertEntity();
@@ -304,7 +294,7 @@ describe('Governance ERC20', () => {
       const newDelegateeId = generateEntityIdFromAddress(newDelegateeAddress);
 
       let event = member.createEvent_DelegateChanged(
-        memberAddressHexString,
+        fromAccount,
         oldDelegateeId,
         newDelegateeId
       );
@@ -334,8 +324,8 @@ describe('Governance ERC20', () => {
       let delegateeId = generateEntityIdFromAddress(delegateeAddress);
       let event = member.createEvent_DelegateChanged(
         // member address is ADDRESS ONE
-        memberAddressHexString,
-        memberAddressHexString,
+        fromAccount,
+        fromAccount,
         delegateeId
       );
 
@@ -387,15 +377,11 @@ describe('Governance ERC20', () => {
     });
 
     test('it should delete a member without voting power and balance and not delegating to another address', () => {
-      const memberTwoAddress = Address.fromString(ADDRESS_TWO);
-      const memberTwoAddressHexString =
-        generateEntityIdFromAddress(memberTwoAddress);
-
       let memberOne = new ExtendedTokenVotingMember().withDefaultValues(
         fromAddress
       );
       let memberTwo = new ExtendedTokenVotingMember().withDefaultValues(
-        memberTwoAddress
+        toAddress
       );
       /* member one has 100 token delegated to member two*/
       memberOne.balance = BigInt.fromString('100');
@@ -414,11 +400,7 @@ describe('Governance ERC20', () => {
       let eventOne = memberOne.createEvent_DelegateVotesChanged('100');
       let eventTwo = memberTwo.createEvent_DelegateVotesChanged('0');
 
-      memberTwo.mockCall_delegatesCall(
-        DAO_TOKEN_ADDRESS,
-        memberTwoAddressHexString,
-        memberTwoAddressHexString
-      );
+      memberTwo.mockCall_delegatesCall(DAO_TOKEN_ADDRESS, toAccount, toAccount);
 
       handleDelegateVotesChanged(eventOne);
       handleDelegateVotesChanged(eventTwo);
@@ -454,7 +436,7 @@ describe('Governance ERC20', () => {
       memberTwo.mockCall_delegatesCall(
         DAO_TOKEN_ADDRESS,
         toAccount,
-        memberAddressHexString
+        fromAccount
       );
       memberTwo.mockCall_getVotes(toAccount, '100');
 
@@ -488,9 +470,9 @@ describe('Governance ERC20', () => {
 
       // delegate to self
       let event = memberOne.createEvent_DelegateChanged(
-        fromAddressHexString,
-        fromAddressHexString,
-        fromAddressHexString,
+        fromAccount,
+        fromAccount,
+        fromAccount,
         DAO_TOKEN_ADDRESS
       );
 
@@ -507,10 +489,7 @@ describe('Governance ERC20', () => {
       handleDelegateChanged(event);
 
       let memberOne2ndPlugin =
-        new ExtendedTokenVotingMember().withDefaultValues(
-          fromAddress,
-          Address.fromString(secondPluginAddr)
-        );
+        new ExtendedTokenVotingMember().withDefaultValues(fromAddress);
       memberOne2ndPlugin.votingPower = BigInt.fromString(STARTING_BALANCE);
       memberOne2ndPlugin.delegatee = memberOne2ndPlugin.id;
       memberOne2ndPlugin.balance = BigInt.fromString(STARTING_BALANCE);
