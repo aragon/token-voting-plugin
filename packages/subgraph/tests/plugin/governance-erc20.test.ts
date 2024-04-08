@@ -79,10 +79,10 @@ describe('Governance ERC20', () => {
 
       // initialize the extended class members
       let fromAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
-        fromAccount
+        fromAddress
       );
       let toAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
-        toAccount
+        toAddress
       );
 
       // create a new transfer event
@@ -120,13 +120,13 @@ describe('Governance ERC20', () => {
       assert.entityCount('TokenVotingMember', 0);
 
       let fromAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
-        fromAccount
+        fromAddress
       );
       fromAccountMember.balance = BigInt.fromString(ONE_ETH + '0'); // 10 ETH
       fromAccountMember.delegatee = fromAccountMember.id;
 
       let toAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
-        toAccount
+        toAddress
       );
       toAccountMember.balance = BigInt.fromString(ONE_ETH); // 1 ETH
       toAccountMember.delegatee = toAccountMember.id;
@@ -168,13 +168,13 @@ describe('Governance ERC20', () => {
     test("it should initialize with the user's existing balance (in different plugins), if has one", () => {
       // initialize the extended class members
       let fromAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
-        fromAccount
+        fromAddress
       );
       fromAccountMember.balance = BigInt.fromString(STARTING_BALANCE);
       fromAccountMember.delegatee = fromAccountMember.id;
 
       let toAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
-        toAccount
+        toAddress
       );
 
       // save the from account member
@@ -217,16 +217,16 @@ describe('Governance ERC20', () => {
       // build the members in the second plugin context
       let fromAccountMember2ndPlugin =
         new ExtendedTokenVotingMember().withDefaultValues(
-          fromAccount,
-          secondPluginAddr
+          fromAddress,
+          Address.fromString(secondPluginAddr)
         );
       fromAccountMember2ndPlugin.balance = BigInt.fromString(REMAINING);
       fromAccountMember2ndPlugin.delegatee = fromAccountMember2ndPlugin.id;
 
       let toAccountMember2ndPlugin =
         new ExtendedTokenVotingMember().withDefaultValues(
-          toAccount,
-          secondPluginAddr
+          toAddress,
+          Address.fromString(secondPluginAddr)
         );
       toAccountMember2ndPlugin.balance = BigInt.fromString(TRANSFER);
       toAccountMember2ndPlugin.delegatee = toAccountMember2ndPlugin.id;
@@ -257,7 +257,7 @@ describe('Governance ERC20', () => {
 
     test('it should create a member from `fromDelegate`.', () => {
       let member = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString
+        fromAddress
       );
 
       let event = member.createEvent_DelegateChanged();
@@ -273,7 +273,7 @@ describe('Governance ERC20', () => {
       const memberTwoAddress = Address.fromString(ADDRESS_TWO);
       const memberTwoAddressHexString = memberTwoAddress.toHexString();
       let member = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString
+        fromAddress
       );
 
       let event = member.createEvent_DelegateChanged(
@@ -297,7 +297,7 @@ describe('Governance ERC20', () => {
 
     test('it should create a member for `delegator`, `fromDelegate` and `toDelegate`, and set delegatee as `toDelegate`.', () => {
       let member = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString
+        fromAddress
       );
       const oldDelegateeId = ADDRESS_TWO;
       const newDelegateeAddress = Address.fromString(ADDRESS_THREE);
@@ -323,7 +323,7 @@ describe('Governance ERC20', () => {
 
     test('it should update delegatee of an existing member', () => {
       let member = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString
+        fromAddress
       );
 
       member.buildOrUpdate();
@@ -356,8 +356,7 @@ describe('Governance ERC20', () => {
   describe('handleDelegateVotesChanged', () => {
     test('it should create member for delegate address', () => {
       let member = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString,
-        pluginEntityId
+        fromAddress
       );
       member.votingPower = BigInt.fromString('100');
       let event = member.createEvent_DelegateVotesChanged('100', '0');
@@ -371,8 +370,7 @@ describe('Governance ERC20', () => {
 
     test('it should update delegateVotes of members', () => {
       let member = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString,
-        pluginEntityId
+        fromAddress
       );
 
       let newBalance = '111';
@@ -394,12 +392,10 @@ describe('Governance ERC20', () => {
         generateEntityIdFromAddress(memberTwoAddress);
 
       let memberOne = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString,
-        pluginEntityId
+        fromAddress
       );
       let memberTwo = new ExtendedTokenVotingMember().withDefaultValues(
-        memberTwoAddressHexString,
-        pluginEntityId
+        memberTwoAddress
       );
       /* member one has 100 token delegated to member two*/
       memberOne.balance = BigInt.fromString('100');
@@ -438,12 +434,10 @@ describe('Governance ERC20', () => {
 
     test('it should not delete a member without voting power and balance, but delegating to another address', () => {
       let memberOne = new ExtendedTokenVotingMember().withDefaultValues(
-        fromAccount,
-        pluginEntityId
+        fromAddress
       );
       let memberTwo = new ExtendedTokenVotingMember().withDefaultValues(
-        toAccount,
-        pluginEntityId
+        toAddress
       );
       /* member one has 100 token delegated to member two*/
       memberOne.balance = BigInt.fromString('100');
@@ -479,8 +473,7 @@ describe('Governance ERC20', () => {
 
     test("It should initialize with the user's existing voting power and delegation, if she has any", () => {
       let memberOne = new ExtendedTokenVotingMember().withDefaultValues(
-        fromAccount,
-        pluginEntityId
+        fromAddress
       );
 
       // mock the calls
@@ -515,8 +508,8 @@ describe('Governance ERC20', () => {
 
       let memberOne2ndPlugin =
         new ExtendedTokenVotingMember().withDefaultValues(
-          fromAccount,
-          secondPluginAddr
+          fromAddress,
+          Address.fromString(secondPluginAddr)
         );
       memberOne2ndPlugin.votingPower = BigInt.fromString(STARTING_BALANCE);
       memberOne2ndPlugin.delegatee = memberOne2ndPlugin.id;
