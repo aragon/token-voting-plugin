@@ -236,7 +236,7 @@ describe('TokenVotingSetup', function () {
         ),
         [
           Object.values(defaultVotingSettings),
-          [alice.address, '', ''],
+          [alice.address, '', ''], // Instead of a token address, we pass Alice's address here.
           Object.values(defaultMintSettings),
         ]
       );
