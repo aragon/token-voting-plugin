@@ -434,22 +434,21 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
     return event;
   }
 
-  setNewPluginSetting(): TokenVotingPluginMethods {
-    let votingModeIndex = parseInt(TWO);
-    if (!VOTING_MODES.has(votingModeIndex)) {
-      throw new Error('voting mode is not valid.');
-    }
-    // we use casting here to remove autocompletion complaint
-    // since we know it will be captured by the previous check
-    let votingMode = VOTING_MODES.get(votingModeIndex) as string;
-
-    this.votingMode = votingMode;
-    this.supportThreshold = BigInt.fromString(NEW_SUPPORT_THRESHOLD);
-    this.minParticipation = BigInt.fromString(NEW_MIN_PARTICIPATION);
-    this.minDuration = BigInt.fromString(NEW_MIN_DURATION);
-    this.minProposerVotingPower = BigInt.fromString(
+  setNewPluginSetting(
+    newVotingMode: string = VOTING_MODES.get(parseInt(TWO)) as string,
+    newSupportThreshold: BigInt = BigInt.fromString(NEW_SUPPORT_THRESHOLD),
+    newMinParticipation: BigInt = BigInt.fromString(NEW_MIN_PARTICIPATION),
+    newMinDuration: BigInt = BigInt.fromString(NEW_MIN_DURATION),
+    newMinProposerVotingPower: BigInt = BigInt.fromString(
       NEW_MIN_PROPOSER_VOTING_POWER
-    );
+    )
+  ): TokenVotingPluginMethods {
+    let votingMode = newVotingMode;
+    this.votingMode = votingMode;
+    this.supportThreshold = newSupportThreshold;
+    this.minParticipation = newMinParticipation;
+    this.minDuration = newMinDuration;
+    this.minProposerVotingPower = newMinProposerVotingPower;
 
     return this;
   }
