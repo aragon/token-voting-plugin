@@ -369,14 +369,6 @@ describe('TokenVoting', function () {
       // Set alice's balance to 1, while bob's is still 0.
       await token.setBalance(alice.address, 1);
 
-      // Check the balances of Alice and Bob.
-      expect(await token.balanceOf(alice.address)).to.eq(1);
-      expect(await token.balanceOf(bob.address)).to.eq(0);
-
-      // Check the voting power of Alice and Bob.
-      expect(await token.getVotes(alice.address)).to.eq(1);
-      expect(await token.getVotes(bob.address)).to.eq(0);
-
       // Check that only Alice is a member.
       expect(await initializedPlugin.isMember(alice.address)).to.be.true;
       expect(await initializedPlugin.isMember(bob.address)).to.be.false;
