@@ -100,7 +100,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
   );
   const dao = await createDaoProxy(deployer, dummyMetadata);
 
-  // Deploy a plugin proxy factory containing the multisig implementation.
+  // Deploy a plugin proxy factory containing the plugin implementation.
   const pluginImplementation = await new TokenVoting__factory(
     deployer
   ).deploy();
