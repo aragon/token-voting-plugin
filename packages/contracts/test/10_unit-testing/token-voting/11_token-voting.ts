@@ -575,7 +575,8 @@ describe('TokenVoting', function () {
         );
         expect(await token.balanceOf(bob.address)).to.equal(0);
 
-        // Mine the block
+        // Mine the block. This will result in the transactions 1 to 3 to be executed.
+        // Transaction 1 and 3 will produce a receipt whereas transaction 2 will revert with an error as expected.
         await ethers.provider.send('evm_mine', []);
         const minedBlockNumber = (await ethers.provider.getBlock('latest'))
           .number;
