@@ -245,7 +245,7 @@ describe('TokenVoting', function () {
         token,
       } = await loadFixture(globalFixture);
 
-      // Check that the uninitialized plugin hasn't voting settings set yet.
+      // Check that the uninitialized plugin doesn't have voting settings set yet.
       expect(await plugin.minDuration()).to.equal(0);
       expect(await plugin.minParticipation()).to.equal(0);
       expect(await plugin.minProposerVotingPower()).to.equal(0);
@@ -285,7 +285,7 @@ describe('TokenVoting', function () {
         token,
       } = await loadFixture(globalFixture);
 
-      // Check that the uninitialized plugin has not token set.
+      // Check that the uninitialized plugin doesn't have token set.
       expect(await plugin.getVotingToken()).to.equal(
         ethers.constants.AddressZero
       );
