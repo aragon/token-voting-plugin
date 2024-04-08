@@ -1470,7 +1470,6 @@ describe('TokenVoting', function () {
 
         let proposal = await plugin.getProposal(id);
         expect(proposal.tally.yes).to.equal(10);
-        expect(proposal.tally.yes).to.equal(10);
         expect(proposal.tally.no).to.equal(0);
         expect(proposal.tally.abstain).to.equal(0);
 
@@ -1479,7 +1478,7 @@ describe('TokenVoting', function () {
           .withArgs(id, bob.address, VoteOption.No, 10);
 
         proposal = await plugin.getProposal(id);
-        expect(proposal.tally.no).to.equal(10);
+        expect(proposal.tally.yes).to.equal(10);
         expect(proposal.tally.no).to.equal(10);
         expect(proposal.tally.abstain).to.equal(0);
 
