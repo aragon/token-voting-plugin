@@ -51,6 +51,11 @@ const secondPluginEntityId = generatePluginEntityId(
   Address.fromString(secondPluginAddr)
 );
 
+// balances
+const STARTING_BALANCE = ONE_ETH + '0'; // 10 ETH
+const TRANSFER = ONE_ETH.replace('1', '3'); // 3 ETH
+const REMAINING = ONE_ETH.replace('1', '7'); // 7 ETH
+
 // mock members
 const fromAccount = ADDRESS_ONE;
 const toAccount = ADDRESS_TWO;
@@ -174,11 +179,6 @@ describe('Governance ERC20', () => {
     });
 
     test("it should initialize with the user's existing balance (in different plugins), if has one", () => {
-      // constants
-      const STARTING_BALANCE = ONE_ETH + '0'; // 10 ETH
-      const TRANSFER = ONE_ETH.replace('1', '3'); // 3 ETH
-      const REMAINING = ONE_ETH.replace('1', '7'); // 7 ETH
-
       // initialize the extended class members
       let fromAccountMember = new ExtendedTokenVotingMember().withDefaultValues(
         fromAccount
@@ -450,24 +450,16 @@ describe('Governance ERC20', () => {
     });
 
     test('it should not delete a member without voting power and balance, but delegating to another address', () => {
-      const memberTwoAddress = Address.fromString(ADDRESS_TWO);
-      const memberTwoAddressHexString =
-        generateEntityIdFromAddress(memberTwoAddress);
       let memberOne = new ExtendedTokenVotingMember().withDefaultValues(
-        memberAddressHexString,
+        fromAccount,
         pluginEntityId
       );
       let memberTwo = new ExtendedTokenVotingMember().withDefaultValues(
-        memberTwoAddressHexString,
+        toAccount,
         pluginEntityId
       );
       /* member one has 100 token delegated to member two*/
       memberOne.balance = BigInt.fromString('100');
-      memberOne.votingPower = BigInt.fromString('0');
-      /* member two balance is 0 but has 100 voting power from the delegation of member one */
-      memberTwo.balance = BigInt.fromString('0');
-      memberTwo.votingPower = BigInt.fromString('100');
-      /* member three has 100 tokens and none delegated */
 
       memberOne.buildOrUpdate();
       memberTwo.buildOrUpdate();
@@ -480,9 +472,10 @@ describe('Governance ERC20', () => {
 
       memberTwo.mockCall_delegatesCall(
         DAO_TOKEN_ADDRESS,
-        memberTwoAddressHexString,
+        toAccount,
         memberAddressHexString
       );
+      memberTwo.mockCall_getVotes(toAccount, '100');
 
       handleDelegateVotesChanged(eventOne);
       handleDelegateVotesChanged(eventTwo);
@@ -492,96 +485,59 @@ describe('Governance ERC20', () => {
       memberOne.votingPower = BigInt.fromString('100');
       memberOne.assertEntity();
 
-      assert.fieldEquals('TokenVotingMember', memberOne.id, 'id', memberOne.id);
       // memberTwo should not be deleted because it has no (balance and voting power), but it delegates to another address.
-      assert.fieldEquals('TokenVotingMember', memberTwo.id, 'id', memberTwo.id);
+      memberTwo.assertEntity();
       assert.entityCount('TokenVotingMember', 2);
     });
 
     test("It should initialize with the user's existing voting power and delegation, if she has any", () => {
-      // constants
-      const STARTING_BALANCE = '10';
-      const TRANSFER = '3';
-      const REMAINING = '7';
-
-      // mocked calls
-      getBalanceOf(
-        DAO_TOKEN_ADDRESS,
-        fromAddress.toHexString(),
-        STARTING_BALANCE
-      );
-      getBalanceOf(DAO_TOKEN_ADDRESS, toAddress.toHexString(), '0');
-      getVotes(DAO_TOKEN_ADDRESS, fromAddress.toHexString(), STARTING_BALANCE);
-      getVotes(DAO_TOKEN_ADDRESS, toAddress.toHexString(), '0');
-      getDelegatee(
-        DAO_TOKEN_ADDRESS,
-        fromAddress.toHexString(),
-        fromAddress.toHexString()
-      );
-      getDelegatee(DAO_TOKEN_ADDRESS, toAddress.toHexString(), null);
-
-      const memberEntityIdFrom = generateMemberEntityId(
-        pluginAddress,
-        fromAddress
+      let memberOne = new ExtendedTokenVotingMember().withDefaultValues(
+        fromAccount,
+        pluginEntityId
       );
 
-      const memberEntityIdFromSecondPlugin = generateMemberEntityId(
-        pluginAddressSecond,
-        Address.fromString(fromAddressHexString)
-      );
+      // mock the calls
+      memberOne.mockCall_getBalanceOf(fromAccount, STARTING_BALANCE);
+      memberOne.mockCall_getBalanceOf(toAccount);
 
-      const memberEntityIdTo = generateMemberEntityId(
-        pluginAddressSecond,
-        Address.fromString(toAddressHexString)
-      );
+      memberOne.mockCall_getDelegatee(fromAccount);
+      memberOne.mockCall_getDelegatee(toAccount);
 
-      const memberEntityIdToSecondPlugin = generateMemberEntityId(
-        pluginAddressSecond,
-        Address.fromString(toAddressHexString)
-      );
+      memberOne.mockCall_getVotes(fromAccount, STARTING_BALANCE);
+      memberOne.mockCall_getVotes(toAccount);
 
       // delegate to self
-      const delegateChangedEvent = createNewDelegateChangedEvent(
+      let event = memberOne.createEvent_DelegateChanged(
         fromAddressHexString,
         fromAddressHexString,
         fromAddressHexString,
         DAO_TOKEN_ADDRESS
       );
 
-      handleDelegateChanged(delegateChangedEvent);
+      handleDelegateChanged(event);
 
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdFrom,
-        'votingPower',
-        STARTING_BALANCE
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdFrom,
-        'delegatee',
-        memberEntityIdFrom
-      );
+      // assert
+      memberOne.votingPower = BigInt.fromString(STARTING_BALANCE);
+      memberOne.delegatee = memberOne.id;
+      memberOne.balance = BigInt.fromString(STARTING_BALANCE);
+      memberOne.assertEntity();
 
       // now do the delegation in the context of the second plugin
       setContext(secondPluginEntityId);
-      handleDelegateChanged(delegateChangedEvent);
+      handleDelegateChanged(event);
 
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdFromSecondPlugin,
-        'votingPower',
-        STARTING_BALANCE
-      );
-      assert.fieldEquals(
-        'TokenVotingMember',
-        memberEntityIdFromSecondPlugin,
-        'delegatee',
-        memberEntityIdFromSecondPlugin
-      );
+      let memberOne2ndPlugin =
+        new ExtendedTokenVotingMember().withDefaultValues(
+          fromAccount,
+          secondPluginAddr
+        );
+      memberOne2ndPlugin.votingPower = BigInt.fromString(STARTING_BALANCE);
+      memberOne2ndPlugin.delegatee = memberOne2ndPlugin.id;
+      memberOne.balance = BigInt.fromString(STARTING_BALANCE);
+      memberOne2ndPlugin.assertEntity();
 
       // set the context back to the first plugin
-      setContext(pluginEntityId);
+      setContext();
     });
   });
 });
