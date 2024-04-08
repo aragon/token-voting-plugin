@@ -54,6 +54,7 @@ import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
+import {deepCopy} from 'ethers/lib/utils';
 import {ethers} from 'hardhat';
 
 type GlobalFixtureResult = {
@@ -241,7 +242,6 @@ describe('TokenVoting', function () {
       const {
         dao,
         uninitializedPlugin: plugin,
-        defaultVotingSettings,
         token,
       } = await loadFixture(globalFixture);
 
@@ -252,29 +252,30 @@ describe('TokenVoting', function () {
       expect(await plugin.supportThreshold()).to.equal(0);
       expect(await plugin.votingMode()).to.equal(0);
 
+      // Pick settings that differ from the uninitialized values.
+      const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
+        votingMode: VotingMode.EarlyExecution,
+        supportThreshold: pctToRatio(50),
+        minParticipation: pctToRatio(20),
+        minDuration: TIME.HOUR,
+        minProposerVotingPower: 123,
+      };
+
       // Initialize the plugin.
-      await plugin.initialize(
-        dao.address,
-        defaultVotingSettings,
-        token.address
-      );
+      await plugin.initialize(dao.address, votingSettings, token.address);
 
       // Check that the voting settings have been set.
-      expect(await plugin.minDuration()).to.equal(
-        defaultVotingSettings.minDuration
-      );
+      expect(await plugin.minDuration()).to.equal(votingSettings.minDuration);
       expect(await plugin.minParticipation()).to.equal(
-        defaultVotingSettings.minParticipation
+        votingSettings.minParticipation
       );
       expect(await plugin.minProposerVotingPower()).to.equal(
-        defaultVotingSettings.minProposerVotingPower
+        votingSettings.minProposerVotingPower
       );
       expect(await plugin.supportThreshold()).to.equal(
-        defaultVotingSettings.supportThreshold
+        votingSettings.supportThreshold
       );
-      expect(await plugin.votingMode()).to.equal(
-        defaultVotingSettings.votingMode
-      );
+      expect(await plugin.votingMode()).to.equal(votingSettings.votingMode);
     });
 
     it('sets the token', async () => {
