@@ -54,7 +54,6 @@ import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
-import {deepCopy} from 'ethers/lib/utils';
 import {ethers} from 'hardhat';
 
 type GlobalFixtureResult = {
