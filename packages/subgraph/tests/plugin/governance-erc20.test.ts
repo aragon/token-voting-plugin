@@ -533,7 +533,7 @@ describe('Governance ERC20', () => {
         );
       memberOne2ndPlugin.votingPower = BigInt.fromString(STARTING_BALANCE);
       memberOne2ndPlugin.delegatee = memberOne2ndPlugin.id;
-      memberOne.balance = BigInt.fromString(STARTING_BALANCE);
+      memberOne2ndPlugin.balance = BigInt.fromString(STARTING_BALANCE);
       memberOne2ndPlugin.assertEntity();
 
       // set the context back to the first plugin
