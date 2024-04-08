@@ -1227,6 +1227,7 @@ describe('TokenVoting', function () {
       ).to.equal(10);
       expect(proposal.tally.yes).to.equal(0);
       expect(proposal.tally.no).to.equal(0);
+      expect(proposal.tally.abstain).to.equal(0);
 
       expect(await plugin.canVote(1, alice.address, VoteOption.Yes)).to.equal(
         false
