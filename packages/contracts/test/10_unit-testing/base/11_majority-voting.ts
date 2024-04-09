@@ -181,17 +181,5 @@ describe('MajorityVotingMock', function () {
           votingSettings.minProposerVotingPower
         );
     });
-
-    it('should change the voting settings successfully', async () => {
-      await expect(votingBase.updateVotingSettings(votingSettings))
-        .to.emit(votingBase, 'VotingSettingsUpdated')
-        .withArgs(
-          votingSettings.votingMode,
-          votingSettings.supportThreshold,
-          votingSettings.minParticipation,
-          votingSettings.minDuration,
-          votingSettings.minProposerVotingPower
-        );
-    });
   });
 });
