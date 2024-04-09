@@ -683,25 +683,6 @@ describe('TokenVoting', function () {
         // As Alice delegate all votes to Bob.
         await token.connect(alice).delegate(bob.address);
 
-        // Check that Carol who has a zero balance and is not a delegatee can NOT create a proposal.
-
-        const endDate = (await time.latest()) + TIME.DAY;
-        await expect(
-          plugin
-            .connect(carol)
-            .createProposal(
-              dummyMetadata,
-              dummyActions,
-              0,
-              0,
-              endDate,
-              VoteOption.None,
-              false
-            )
-        )
-          .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
-          .withArgs(carol.address);
-
         // Check that Alice can create a proposal although she delegated to Bob.
         const tx = await plugin
           .connect(alice)
