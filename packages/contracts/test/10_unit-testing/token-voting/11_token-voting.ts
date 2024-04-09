@@ -403,6 +403,18 @@ describe('TokenVoting', function () {
   });
 
   describe('Proposal creation', async () => {
+    let voteSettingsWithMinProposerVotingPower: MajorityVotingBase.VotingSettingsStruct;
+
+    before(async () => {
+      voteSettingsWithMinProposerVotingPower = {
+        votingMode: VotingMode.EarlyExecution,
+        supportThreshold: pctToRatio(50),
+        minParticipation: pctToRatio(20),
+        minDuration: TIME.HOUR,
+        minProposerVotingPower: 123,
+      };
+    });
+
     describe('minProposerVotingPower == 0', async () => {
       it('creates a proposal if `_msgSender` owns no tokens and has no tokens delegated to her/him in the current block', async () => {
         const {
@@ -450,20 +462,16 @@ describe('TokenVoting', function () {
           dummyMetadata,
         } = await loadFixture(globalFixture);
 
-        // Set `minProposerVotingPower` to be greater than 0.
-        const minProposerVotingPower = 123;
-        const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
-          votingMode: VotingMode.EarlyExecution,
-          supportThreshold: pctToRatio(50),
-          minParticipation: pctToRatio(20),
-          minDuration: TIME.HOUR,
-          minProposerVotingPower,
-        };
-        await plugin.connect(deployer).updateVotingSettings(votingSettings);
+        await plugin
+          .connect(deployer)
+          .updateVotingSettings(voteSettingsWithMinProposerVotingPower);
 
         // Let Alice's balance stay 0.
         // Set Bob's balance to the `minProposerVotingPower` value.
-        await token.setBalance(bob.address, minProposerVotingPower);
+        await token.setBalance(
+          bob.address,
+          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+        );
 
         // Try to create a proposal as Alice, which will revert.
         const endDate = (await time.latest()) + TIME.DAY;
@@ -511,18 +519,15 @@ describe('TokenVoting', function () {
         } = await loadFixture(globalFixture);
 
         // Set `minProposerVotingPower` to be greater than 0.
-        const minProposerVotingPower = 123;
-        const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
-          votingMode: VotingMode.EarlyExecution,
-          supportThreshold: pctToRatio(50),
-          minParticipation: pctToRatio(20),
-          minDuration: TIME.HOUR,
-          minProposerVotingPower,
-        };
-        await plugin.connect(deployer).updateVotingSettings(votingSettings);
+        await plugin
+          .connect(deployer)
+          .updateVotingSettings(voteSettingsWithMinProposerVotingPower);
 
         // Set Alice's balance to the `minProposerVotingPower` value.
-        await token.setBalance(alice.address, minProposerVotingPower);
+        await token.setBalance(
+          alice.address,
+          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+        );
 
         const endDate = (await time.latest()) + TIME.DAY;
 
@@ -535,7 +540,10 @@ describe('TokenVoting', function () {
         // Transaction 1: Transfer the tokens from Alice to Bob.
         const tx1 = await token
           .connect(alice)
-          .transfer(bob.address, votingSettings.minProposerVotingPower);
+          .transfer(
+            bob.address,
+            voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+          );
 
         // Transaction 2: Expect the proposal creation to fail for Alice because she transferred the tokens in transaction 1.
         await expect(
@@ -571,7 +579,7 @@ describe('TokenVoting', function () {
         // Check the balances before the block is mined. Note that `balanceOf` is a view function,
         // whose result will be immediately available and does not rely on the block to be mined.
         expect(await token.balanceOf(alice.address)).to.equal(
-          votingSettings.minProposerVotingPower
+          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
         );
         expect(await token.balanceOf(bob.address)).to.equal(0);
 
@@ -589,7 +597,7 @@ describe('TokenVoting', function () {
         // Expect the balances to have changed
         expect(await token.balanceOf(alice.address)).to.equal(0);
         expect(await token.balanceOf(bob.address)).to.equal(
-          votingSettings.minProposerVotingPower
+          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
         );
 
         // Check the `ProposalCreatedEvent` for the creator and proposalId
@@ -622,18 +630,16 @@ describe('TokenVoting', function () {
         } = await loadFixture(globalFixture);
 
         // Set `minProposerVotingPower` to be greater than 0.
-        const minProposerVotingPower = 123;
-        const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
-          votingMode: VotingMode.EarlyExecution,
-          supportThreshold: pctToRatio(50),
-          minParticipation: pctToRatio(20),
-          minDuration: TIME.HOUR,
-          minProposerVotingPower,
-        };
-        await plugin.connect(deployer).updateVotingSettings(votingSettings);
+
+        await plugin
+          .connect(deployer)
+          .updateVotingSettings(voteSettingsWithMinProposerVotingPower);
 
         // Set Alice's balance to the `minProposerVotingPower` value.
-        await token.setBalance(alice.address, minProposerVotingPower);
+        await token.setBalance(
+          alice.address,
+          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+        );
 
         // Check that Bob who has no balance and is not a delegatee can NOT create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
@@ -682,18 +688,15 @@ describe('TokenVoting', function () {
         } = await loadFixture(globalFixture);
 
         // Set `minProposerVotingPower` to be greater than 0.
-        const minProposerVotingPower = 123;
-        const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
-          votingMode: VotingMode.EarlyExecution,
-          supportThreshold: pctToRatio(50),
-          minParticipation: pctToRatio(20),
-          minDuration: TIME.HOUR,
-          minProposerVotingPower,
-        };
-        await plugin.connect(deployer).updateVotingSettings(votingSettings);
+        await plugin
+          .connect(deployer)
+          .updateVotingSettings(voteSettingsWithMinProposerVotingPower);
 
         // Set Alice's balance to the `minProposerVotingPower` value.
-        await token.setBalance(alice.address, minProposerVotingPower);
+        await token.setBalance(
+          alice.address,
+          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+        );
 
         // As Alice delegate all votes to Bob.
         await token.connect(alice).delegate(bob.address);
@@ -749,18 +752,15 @@ describe('TokenVoting', function () {
         } = await loadFixture(globalFixture);
 
         // Set `minProposerVotingPower` to be greater than 0.
-        const minProposerVotingPower = 123;
-        const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
-          votingMode: VotingMode.EarlyExecution,
-          supportThreshold: pctToRatio(50),
-          minParticipation: pctToRatio(20),
-          minDuration: TIME.HOUR,
-          minProposerVotingPower,
-        };
-        await plugin.connect(deployer).updateVotingSettings(votingSettings);
+        await plugin
+          .connect(deployer)
+          .updateVotingSettings(voteSettingsWithMinProposerVotingPower);
 
         // Set Alice's balance to the `minProposerVotingPower` value.
-        await token.setBalance(alice.address, minProposerVotingPower);
+        await token.setBalance(
+          alice.address,
+          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+        );
 
         const endDate = (await time.latest()) + TIME.DAY;
 
@@ -812,15 +812,9 @@ describe('TokenVoting', function () {
         } = await loadFixture(globalFixture);
 
         // Set `minProposerVotingPower` to be greater than 0.
-        const minProposerVotingPower = 123;
-        const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
-          votingMode: VotingMode.EarlyExecution,
-          supportThreshold: pctToRatio(50),
-          minParticipation: pctToRatio(20),
-          minDuration: TIME.HOUR,
-          minProposerVotingPower,
-        };
-        await plugin.connect(deployer).updateVotingSettings(votingSettings);
+        await plugin
+          .connect(deployer)
+          .updateVotingSettings(voteSettingsWithMinProposerVotingPower);
 
         // Set Alice's balance to one and Bob's balance to the `minProposerVotingPower` value.
         await setBalances(token, [
@@ -830,7 +824,8 @@ describe('TokenVoting', function () {
           },
           {
             receiver: bob.address,
-            amount: minProposerVotingPower,
+            amount:
+              voteSettingsWithMinProposerVotingPower.minProposerVotingPower,
           },
         ]);
 
