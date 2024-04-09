@@ -237,19 +237,22 @@ describe('TokenVoting', function () {
         .withArgs(token.address);
     });
 
-    it('sets the voting settings', async () => {
+    it('sets the voting settings and token', async () => {
       const {
         dao,
         uninitializedPlugin: plugin,
         token,
       } = await loadFixture(globalFixture);
 
-      // Check that the uninitialized plugin doesn't have voting settings set yet.
+      // Check that the uninitialized plugin doesn't have voting settings and token set yet.
       expect(await plugin.minDuration()).to.equal(0);
       expect(await plugin.minParticipation()).to.equal(0);
       expect(await plugin.minProposerVotingPower()).to.equal(0);
       expect(await plugin.supportThreshold()).to.equal(0);
       expect(await plugin.votingMode()).to.equal(0);
+      expect(await plugin.getVotingToken()).to.equal(
+        ethers.constants.AddressZero
+      );
 
       // Pick settings that differ from the uninitialized values.
       const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
@@ -275,27 +278,6 @@ describe('TokenVoting', function () {
         votingSettings.supportThreshold
       );
       expect(await plugin.votingMode()).to.equal(votingSettings.votingMode);
-    });
-
-    it('sets the token', async () => {
-      const {
-        dao,
-        uninitializedPlugin: plugin,
-        defaultVotingSettings,
-        token,
-      } = await loadFixture(globalFixture);
-
-      // Check that the uninitialized plugin doesn't have token set.
-      expect(await plugin.getVotingToken()).to.equal(
-        ethers.constants.AddressZero
-      );
-
-      // Initialize the plugin.
-      await plugin.initialize(
-        dao.address,
-        defaultVotingSettings,
-        token.address
-      );
 
       // Check that the token has been set.
       expect(await plugin.getVotingToken()).to.equal(token.address);
