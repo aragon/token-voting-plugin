@@ -141,7 +141,7 @@ describe('MajorityVotingMock', function () {
         .withArgs(pctToRatio(100).sub(1), votingSettings.supportThreshold);
     });
 
-    it('accepts if the minimum participation specified equals 100%', async () => {
+    it('reverts if the support threshold specified equals 100%', async () => {
       votingSettings.supportThreshold = pctToRatio(1000);
       await expect(votingBase.updateVotingSettings(votingSettings))
         .to.be.revertedWithCustomError(votingBase, 'RatioOutOfBounds')
