@@ -683,6 +683,7 @@ describe('TokenVoting', function () {
         await token.connect(alice).delegate(bob.address);
 
         // Check that Alice can create a proposal although she delegated to Bob.
+        const endDate = (await time.latest()) + TIME.DAY;
         const tx = await plugin
           .connect(alice)
           .createProposal(
