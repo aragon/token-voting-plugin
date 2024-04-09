@@ -1,5 +1,3 @@
-import {ProposalCreated} from '../../generated/templates/TokenVoting/TokenVoting';
-import {PLUGIN_REPO_ADDRESS} from '../../imported/repo-address';
 import {
   handleVoteCast,
   handleProposalExecuted,
@@ -16,39 +14,31 @@ import {
   ExtendedTokenVotingProposal,
   ExtendedTokenVotingVote,
   ExtendedTokenVotingVoter,
+  ExtendedAction,
 } from '../helpers/extended-schema';
 import {
-  DAO_TOKEN_ADDRESS,
   STRING_DATA,
   VOTING_MODE,
   ONE,
   ZERO,
   TWO,
   ERC20_AMOUNT_FULL,
-  DAO_ADDRESS,
 } from '../utils/constants';
+import {bigInt, BigInt} from '@graphprotocol/graph-ts';
 import {
-  createDummyAction,
-  generateActionEntityId,
-} from '@aragon/osx-commons-subgraph';
-import {Address, bigInt, BigInt, ethereum} from '@graphprotocol/graph-ts';
-import {
+  afterAll,
   assert,
   clearStore,
   describe,
-  newMockEvent,
   test,
 } from 'matchstick-as/assembly/index';
 
-let dummyActionTo = DAO_TOKEN_ADDRESS;
-let dummyActionValue = '0';
-let dummyActionData = '0x00000000';
-
-let actions = [
-  createDummyAction(dummyActionTo, dummyActionValue, dummyActionData),
-];
-
 test('Run TokenVoting (handleProposalCreated) mappings with mock event', () => {
+  // check store is empty before running the test
+  assert.entityCount('TokenVotingPlugin', 0);
+  assert.entityCount('TokenVotingProposal', 0);
+  assert.entityCount('Action', 0);
+
   // create state
   let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
   tokenVotingPlugin.buildOrUpdate();
@@ -58,14 +48,19 @@ test('Run TokenVoting (handleProposalCreated) mappings with mock event', () => {
 
   let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
 
+  let action = new ExtendedAction().withDefaultValues();
+
   // create calls
   tokenVotingPlugin.proposalCount = BigInt.fromString(ONE);
   tokenVotingPlugin.mockCall_getProposalCountCall();
-  proposal.mockCall_getProposal(actions);
+  proposal.mockCall_getProposal([action.getDummyAction()]);
   proposal.mockCall_totalVotingPower();
 
   // create event
-  let event = proposal.createEvent_ProposalCreated(actions, STRING_DATA);
+  let event = proposal.createEvent_ProposalCreated(
+    [action.getDummyAction()],
+    STRING_DATA
+  );
 
   // handle event
   _handleProposalCreated(event, proposal.daoAddress.toHexString(), STRING_DATA);
@@ -74,18 +69,30 @@ test('Run TokenVoting (handleProposalCreated) mappings with mock event', () => {
   // expected changes
   proposal.creationBlockNumber = BigInt.fromString(ONE);
   proposal.votingMode = VOTING_MODES.get(parseInt(VOTING_MODE)) as string;
-  // // check TokenVotingProposal
-  proposal.assertEntity();
 
+  // check the proposal and the plugin
+  assert.entityCount('TokenVotingPlugin', 1);
+  assert.entityCount('TokenVotingProposal', 1);
+  proposal.assertEntity();
   tokenVotingPlugin.assertEntity();
+
+  // check the actions
+  assert.entityCount('Action', 1);
+  action.assertEntity();
 
   clearStore();
 });
 
 test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
+  // check store is empty before running the test
+  assert.entityCount('TokenVotingProposal', 0);
+  assert.entityCount('TokenVotingVoter', 0);
+  assert.entityCount('TokenVotingVote', 0);
+
   // create state
   let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
 
+  let action = new ExtendedAction().withDefaultValues();
   proposal.buildOrUpdate();
 
   // check proposal entity
@@ -93,7 +100,7 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
 
   // create calls
   proposal.yes = bigInt.fromString(ONE);
-  proposal.mockCall_getProposal(actions);
+  proposal.mockCall_getProposal([action.getDummyAction()]);
   proposal.mockCall_totalVotingPower();
 
   // create event
@@ -114,20 +121,27 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
   handleVoteCast(event);
 
   // checks vote entity created via handler (not builder)
+  assert.entityCount('TokenVotingVote', 1);
   vote.assertEntity();
+
+  // check the voter
+  assert.entityCount('TokenVotingVoter', 1);
+  voter.lastUpdated = event.block.timestamp;
+  voter.assertEntity();
 
   // check proposal
   // expected changes to the proposal entity
   proposal.castedVotingPower = BigInt.fromString(ONE);
   proposal.approvalReached = false;
   // assert proposal entity
+  assert.entityCount('TokenVotingProposal', 1);
   proposal.assertEntity();
 
-  // Check when voter replace vote
+  // --------- Check when voter replaces vote (from yes to no) ---------
   // create calls 2
   proposal.yes = BigInt.fromString(ZERO);
   proposal.no = BigInt.fromString(ONE);
-  proposal.mockCall_getProposal(actions);
+  proposal.mockCall_getProposal([action.getDummyAction()]);
   proposal.mockCall_totalVotingPower();
 
   vote.voteOption = 'No';
@@ -142,15 +156,26 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
 
   // expected changes in TokenVotingVote
   vote.voteReplaced = true;
-  vote.updatedAt = bigInt.fromString(ONE);
+  vote.updatedAt = event2.block.timestamp;
 
   // checks vote entity created via handler (not builder)
+  assert.entityCount('TokenVotingVote', 1);
   vote.assertEntity();
 
-  // create calls 3
+  // check the voter entity
+  assert.entityCount('TokenVotingVoter', 1);
+  voter.lastUpdated = event.block.timestamp;
+  voter.assertEntity();
+
+  // check proposal
+  assert.entityCount('TokenVotingProposal', 1);
+  proposal.assertEntity();
+
+  // --------- check new cast vote ---------
+  // update the getProposal to have 2 yes votes
   proposal.yes = BigInt.fromString(TWO);
   proposal.no = BigInt.fromString(ZERO);
-  proposal.mockCall_getProposal(actions);
+  proposal.mockCall_getProposal([action.getDummyAction()]);
 
   vote.voteOption = 'Yes';
 
@@ -162,20 +187,31 @@ test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
 
   handleVoteCast(event3);
 
+  // check proposal
+  assert.entityCount('TokenVotingProposal', 1);
   // expected changes to the proposal entity
   proposal.approvalReached = true;
   proposal.castedVotingPower = BigInt.fromString(TWO);
-
   proposal.assertEntity();
+
+  // checks vote entity created via handler (not builder)
+  assert.entityCount('TokenVotingVote', 1);
+  vote.assertEntity();
+
+  // check the voter
+  assert.entityCount('TokenVotingVoter', 1);
+  voter.lastUpdated = event.block.timestamp;
+  voter.assertEntity();
 
   clearStore();
 });
 
 test('Run TokenVoting (handleVoteCast) mappings with mock event and vote option "None"', () => {
   let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
+  let action = new ExtendedAction().withDefaultValues();
 
   // create calls
-  proposal.mockCall_getProposal(actions);
+  proposal.mockCall_getProposal([action.getDummyAction()]);
 
   // create event
   let voter = new ExtendedTokenVotingVoter().withDefaultValues();
@@ -203,9 +239,6 @@ test('Run TokenVoting (handleProposalExecuted) mappings with mock event', () => 
   proposal.yes = BigInt.fromString(ONE);
   proposal.buildOrUpdate();
 
-  // create calls
-  proposal.mockCall_getProposal(actions);
-
   // create event
   let event = proposal.createEvent_ProposalExecuted();
 
@@ -215,6 +248,9 @@ test('Run TokenVoting (handleProposalExecuted) mappings with mock event', () => 
   // checks
   // expected changes
   proposal.executed = true;
+  proposal.executionDate = event.block.timestamp;
+  proposal.executionBlockNumber = event.block.number;
+  proposal.executionTxHash = event.transaction.hash;
   // assert TokenVotingProposal
   proposal.assertEntity();
 
@@ -225,6 +261,9 @@ test('Run TokenVoting (handleVotingSettingsUpdated) mappings with mock event', (
   // create state
   let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
   tokenVotingPlugin.buildOrUpdate();
+
+  // update plugin configuration
+  tokenVotingPlugin.setNewPluginSetting();
 
   // create event
   let event = tokenVotingPlugin.createEvent_VotingSettingsUpdated();
@@ -237,8 +276,15 @@ test('Run TokenVoting (handleVotingSettingsUpdated) mappings with mock event', (
 
   clearStore();
 });
+
 describe('handleMembershipContractAnnounced', () => {
+  afterAll(() => {
+    clearStore();
+  });
+
   test('it should create an erc20 and assign its address to the tokenVotingPlugin', () => {
+    assert.dataSourceCount('GovernanceERC20', 0);
+
     // create entities
     let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
     let erc20Contract = new ExtendedERC20Contract().withDefaultValues();
@@ -262,8 +308,11 @@ describe('handleMembershipContractAnnounced', () => {
     tokenVotingPlugin.assertEntity();
     erc20Contract.assertEntity();
 
-    clearStore();
+    // check the template were created
+    assert.dataSourceCount('GovernanceERC20', 1);
+    assert.dataSourceExists('GovernanceERC20', erc20Contract.id);
   });
+
   test('it should create an erc20Wrapped and assign an erc20 as the underlying token and assign the erc20Wrapped address to the tokenVotingPlugin', () => {
     // create entities
     let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
@@ -303,100 +352,7 @@ describe('handleMembershipContractAnnounced', () => {
     erc20Contract.assertEntity();
     erc20WrappedContract.assertEntity();
 
-    clearStore();
-  });
-});
-
-describe('Testing Actions', () => {
-  test('A new proposal action is registered during the proposal creation', () => {
-    // manual re-write so this approach can be ported to other plugins
-    assert.entityCount('Action', 0);
-    assert.entityCount('TokenVotingProposal', 0);
-
-    let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
-    let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
-
-    // step 1: create the mock proposal event
-    tokenVotingPlugin.proposalCount = BigInt.fromString(ONE);
-    tokenVotingPlugin.mockCall_getProposalCountCall();
-    proposal.mockCall_getProposal(actions);
-    proposal.mockCall_totalVotingPower();
-
-    const proposalEvent = changetype<ProposalCreated>(newMockEvent());
-    proposalEvent.address = Address.fromString(proposal.plugin);
-
-    let proposalId = new BigInt(0);
-    let creator = proposal.creator;
-    let startDate = proposal.startDate;
-    let endDate = proposal.endDate;
-
-    let metadata: string;
-    if (proposal.metadata) {
-      metadata = proposal.metadata as string;
-    } else {
-      metadata = 'metadata';
-    }
-    let allowFailureMap = proposal.allowFailureMap;
-
-    let proposalIdEvent = new ethereum.EventParam(
-      'proposalId',
-      ethereum.Value.fromUnsignedBigInt(
-        BigInt.fromString(proposalId.toString())
-      )
-    );
-
-    let creatorEvent = new ethereum.EventParam(
-      'creator',
-      ethereum.Value.fromAddress(Address.fromBytes(creator))
-    );
-    let startDateEvent = new ethereum.EventParam(
-      'startDate',
-      ethereum.Value.fromUnsignedBigInt(startDate)
-    );
-    let endDateEvent = new ethereum.EventParam(
-      'endDate',
-      ethereum.Value.fromUnsignedBigInt(endDate)
-    );
-    let metadataEvent = new ethereum.EventParam(
-      'metadata',
-      ethereum.Value.fromString(metadata as string)
-    );
-    let actionsEvent = new ethereum.EventParam(
-      'actions',
-      ethereum.Value.fromTupleArray(actions)
-    );
-    let allowFailureMapEvent = new ethereum.EventParam(
-      'allowFailureMap',
-      ethereum.Value.fromUnsignedBigInt(allowFailureMap)
-    );
-
-    proposalEvent.parameters = [
-      proposalIdEvent,
-      creatorEvent,
-      startDateEvent,
-      endDateEvent,
-      metadataEvent,
-      actionsEvent,
-      allowFailureMapEvent,
-    ];
-
-    // step 2: handle the proposal event
-    _handleProposalCreated(proposalEvent, DAO_ADDRESS, metadata);
-
-    // step 3: check that the proposal action was created
-    assert.entityCount('Action', 1);
-    assert.entityCount('TokenVotingProposal', 1);
-
-    // step 3.1: check that the action has the correct fields
-    const actionID = generateActionEntityId(
-      Address.fromString(proposal.plugin),
-      Address.fromString(DAO_ADDRESS),
-      proposalId.toString(),
-      0
-    );
-    assert.fieldEquals('Action', actionID, 'to', dummyActionTo.toLowerCase());
-    assert.fieldEquals('Action', actionID, 'value', dummyActionValue);
-    assert.fieldEquals('Action', actionID, 'data', dummyActionData);
-    assert.fieldEquals('Action', actionID, 'proposal', proposal.id);
+    // check the template were created
+    assert.dataSourceExists('GovernanceERC20', erc20Contract.id);
   });
 });

@@ -10,11 +10,13 @@ import {
   TokenVotingVote,
   TokenVotingVoter,
   ERC20Contract,
+  Action,
 } from '../../generated/schema';
 import {
   DelegateChanged,
   DelegateVotesChanged,
 } from '../../generated/templates/GovernanceERC20/GovernanceERC20';
+import {Transfer} from '../../generated/templates/TokenVoting/ERC20';
 import {
   MembershipContractAnnounced,
   ProposalCreated,
@@ -41,10 +43,14 @@ import {
   getBalanceOf,
   getProposalCountCall,
   getSupportsInterface,
+  createNewERC20TransferEventWithAddress,
+  getDelegatee,
+  getVotes,
 } from '../utils';
 import {createGetProposalCall, createTotalVotingPowerCall} from '../utils';
 import {
   ADDRESS_ONE,
+  ADDRESS_TWO,
   ALLOW_FAILURE_MAP,
   CONTRACT_ADDRESS,
   CREATED_AT,
@@ -64,12 +70,20 @@ import {
   MIN_DURATION,
   DAO_TOKEN_ADDRESS,
   STRING_DATA,
+  MIN_PROPOSER_VOTING_POWER,
+  NEW_MIN_PROPOSER_VOTING_POWER,
+  NEW_MIN_PARTICIPATION,
+  NEW_SUPPORT_THRESHOLD,
+  NEW_MIN_DURATION,
+  ONE_ETH,
 } from '../utils';
 import {
   generateEntityIdFromAddress,
   generatePluginEntityId,
   createERC20TokenCalls,
   createWrappedERC20TokenCalls,
+  createDummyAction,
+  generateActionEntityId,
 } from '@aragon/osx-commons-subgraph';
 import {Address, BigInt, Bytes, ethereum} from '@graphprotocol/graph-ts';
 
@@ -291,6 +305,31 @@ class TokenVotingProposalMethods extends TokenVotingProposal {
   }
 }
 
+class ActionMethods extends Action {
+  withDefaultValues(): ActionMethods {
+    this.id = generateActionEntityId(
+      Address.fromString(CONTRACT_ADDRESS),
+      Address.fromString(DAO_ADDRESS),
+      PLUGIN_PROPOSAL_ID,
+      0
+    );
+    this.to = Address.fromHexString(DAO_TOKEN_ADDRESS);
+    this.value = BigInt.fromString(ZERO);
+    this.data = Bytes.fromHexString('0x00000000');
+    this.daoAddress = Bytes.fromHexString(DAO_ADDRESS);
+    this.proposal = PROPOSAL_ENTITY_ID;
+    return this;
+  }
+
+  getDummyAction(): ethereum.Tuple {
+    return createDummyAction(
+      this.to.toHexString(),
+      this.value.toString(),
+      this.data.toHexString()
+    );
+  }
+}
+
 class TokenVotingVoteMethods extends TokenVotingVote {
   // build entity
   // if id not changed it will update
@@ -342,7 +381,7 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
     this.supportThreshold = BigInt.fromString(SUPPORT_THRESHOLD);
     this.minParticipation = BigInt.fromString(MIN_PARTICIPATION);
     this.minDuration = BigInt.fromString(MIN_DURATION);
-    this.minProposerVotingPower = BigInt.zero();
+    this.minProposerVotingPower = BigInt.fromString(MIN_PROPOSER_VOTING_POWER);
     this.proposalCount = BigInt.zero();
     this.token = DAO_TOKEN_ADDRESS;
 
@@ -394,20 +433,39 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
 
     return event;
   }
+
+  setNewPluginSetting(
+    newVotingMode: string = VOTING_MODES.get(parseInt(TWO)) as string,
+    newSupportThreshold: BigInt = BigInt.fromString(NEW_SUPPORT_THRESHOLD),
+    newMinParticipation: BigInt = BigInt.fromString(NEW_MIN_PARTICIPATION),
+    newMinDuration: BigInt = BigInt.fromString(NEW_MIN_DURATION),
+    newMinProposerVotingPower: BigInt = BigInt.fromString(
+      NEW_MIN_PROPOSER_VOTING_POWER
+    )
+  ): TokenVotingPluginMethods {
+    let votingMode = newVotingMode;
+    this.votingMode = votingMode;
+    this.supportThreshold = newSupportThreshold;
+    this.minParticipation = newMinParticipation;
+    this.minDuration = newMinDuration;
+    this.minProposerVotingPower = newMinProposerVotingPower;
+
+    return this;
+  }
 }
 
 // TokenVotingMember
 class TokenVotingMemberMethods extends TokenVotingMember {
   withDefaultValues(
-    memberAddress: string = ADDRESS_ONE,
-    pluginAddress: string = CONTRACT_ADDRESS
+    memberAddress: Address = Address.fromString(ADDRESS_ONE),
+    pluginAddress: Address = Address.fromString(CONTRACT_ADDRESS)
   ): TokenVotingMemberMethods {
-    const plugin = Address.fromBytes(Bytes.fromHexString(pluginAddress));
-    const member = Address.fromBytes(Bytes.fromHexString(memberAddress));
+    const plugin = pluginAddress;
+    const member = memberAddress;
     let id = generateMemberEntityId(plugin, member);
 
     this.id = id;
-    this.address = Address.fromHexString(memberAddress);
+    this.address = memberAddress;
     this.balance = BigInt.zero();
     this.plugin = plugin.toHexString();
     this.delegatee = null;
@@ -422,6 +480,18 @@ class TokenVotingMemberMethods extends TokenVotingMember {
     returns: string
   ): void {
     delegatesCall(tokenContractAddress, account, returns);
+  }
+
+  mockCall_getBalanceOf(account: string, value: string = '0'): void {
+    getBalanceOf(DAO_TOKEN_ADDRESS, account, value);
+  }
+
+  mockCall_getDelegatee(account: string): void {
+    getDelegatee(DAO_TOKEN_ADDRESS, account, null);
+  }
+
+  mockCall_getVotes(toAddress: string, value: string = '0'): void {
+    getVotes(DAO_TOKEN_ADDRESS, toAddress, value);
   }
 
   createEvent_DelegateChanged(
@@ -454,6 +524,21 @@ class TokenVotingMemberMethods extends TokenVotingMember {
       previousBalance,
       newBalance,
       tokenContract
+    );
+
+    return event;
+  }
+
+  createEvent_Transfer(
+    from: string = ADDRESS_ONE,
+    to: string = ADDRESS_TWO,
+    amount: string = ONE_ETH
+  ): Transfer {
+    let event = createNewERC20TransferEventWithAddress(
+      from,
+      to,
+      amount,
+      DAO_TOKEN_ADDRESS
     );
 
     return event;

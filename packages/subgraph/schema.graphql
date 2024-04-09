@@ -89,7 +89,7 @@ type TokenVotingVoter @entity {
 }
 
 type TokenVotingVote @entity {
-  "VoterProposal for Many-to-Many"
+  "Voter to Proposal  Many-to-Many relationship"
   id: ID! # voterAddress + proposalEntityId
   voter: TokenVotingVoter!
   proposal: TokenVotingProposal!
