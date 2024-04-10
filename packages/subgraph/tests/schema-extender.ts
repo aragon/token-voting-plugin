@@ -70,6 +70,19 @@ function main() {
     // add methods to generated classes
     sourceMethodClasses.forEach(classDeclaration => {
       if (classDeclaration.getName() === `${originalClassName}Methods`) {
+        const properties = classDeclaration.getProperties();
+        properties.forEach(property => {
+          newClass.addProperty(
+            property.getStructure() as {
+              name: string;
+              type: string;
+              hasQuestionToken: boolean;
+              initializer: string;
+              decorators: {name: string; arguments: string[]}[];
+            }
+          );
+        });
+
         const methods = classDeclaration.getMethods();
 
         methods.forEach(method => {
