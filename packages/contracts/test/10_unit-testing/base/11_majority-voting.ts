@@ -1,3 +1,4 @@
+import {createDaoProxy} from '../../20_integration-testing/test-helpers';
 import {
   MajorityVotingMock,
   IERC165Upgradeable__factory,
@@ -6,12 +7,13 @@ import {
   IMajorityVoting__factory,
   MajorityVotingMock__factory,
   IProtocolVersion__factory,
+  ProxyFactory__factory,
 } from '../../../typechain';
-import {EMPTY_DATA, createDaoProxy} from '../../test-utils/dao';
+import {ProxyCreatedEvent} from '../../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
+import {MajorityVotingBase} from '../../../typechain/src/MajorityVotingBase';
 import {MAJORITY_VOTING_BASE_INTERFACE} from '../../test-utils/majority-voting-constants';
-import {deployWithProxy} from '../../test-utils/proxy';
-import {VotingSettings, VotingMode} from '../../test-utils/voting-helpers';
-import {TIME} from '@aragon/osx-commons-sdk';
+import {VotingMode} from '../../test-utils/voting-helpers';
+import {TIME, findEvent} from '@aragon/osx-commons-sdk';
 import {getInterfaceId} from '@aragon/osx-commons-sdk';
 import {pctToRatio} from '@aragon/osx-commons-sdk';
 import {DAO} from '@aragon/osx-ethers';
@@ -21,16 +23,17 @@ import {ethers} from 'hardhat';
 
 describe('MajorityVotingMock', function () {
   let signers: SignerWithAddress[];
+  let deployer: SignerWithAddress;
   let votingBase: MajorityVotingMock;
   let dao: DAO;
-  let ownerAddress: string;
-  let votingSettings: VotingSettings;
+
+  let votingSettings: MajorityVotingBase.VotingSettingsStruct;
 
   before(async () => {
     signers = await ethers.getSigners();
-    ownerAddress = await signers[0].getAddress();
+    deployer = signers[0];
 
-    dao = await createDaoProxy(signers[0], EMPTY_DATA);
+    dao = await createDaoProxy(signers[0], '0x00');
   });
 
   beforeEach(async () => {
@@ -42,17 +45,30 @@ describe('MajorityVotingMock', function () {
       minProposerVotingPower: 0,
     };
 
-    const MajorityVotingMock = new MajorityVotingMock__factory(signers[0]);
+    const pluginImplementation = await new MajorityVotingMock__factory(
+      signers[0]
+    ).deploy();
+    const proxyFactory = await new ProxyFactory__factory(deployer).deploy(
+      pluginImplementation.address
+    );
+    const deploymentTx1 = await proxyFactory.deployUUPSProxy([]);
+    const proxyCreatedEvent1 = await findEvent<ProxyCreatedEvent>(
+      deploymentTx1,
+      proxyFactory.interface.getEvent('ProxyCreated').name
+    );
+    votingBase = MajorityVotingMock__factory.connect(
+      proxyCreatedEvent1.args.proxy,
+      deployer
+    );
 
-    votingBase = await deployWithProxy<MajorityVotingMock>(MajorityVotingMock);
     await dao.grant(
       votingBase.address,
-      ownerAddress,
+      deployer.address,
       ethers.utils.id('UPDATE_VOTING_SETTINGS_PERMISSION')
     );
   });
 
-  describe('initialize: ', async () => {
+  describe('initialize', async () => {
     it('reverts if trying to re-initialize', async () => {
       await votingBase.initializeMock(dao.address, votingSettings);
 
@@ -106,7 +122,7 @@ describe('MajorityVotingMock', function () {
     });
   });
 
-  describe('validateAndSetSettings: ', async () => {
+  describe('updateVotingSettings', async () => {
     beforeEach(async () => {
       await votingBase.initializeMock(dao.address, votingSettings);
     });
@@ -125,7 +141,7 @@ describe('MajorityVotingMock', function () {
         .withArgs(pctToRatio(100).sub(1), votingSettings.supportThreshold);
     });
 
-    it('accepts if the minimum participation specified equals 100%', async () => {
+    it('reverts if the support threshold specified equals 100%', async () => {
       votingSettings.supportThreshold = pctToRatio(1000);
       await expect(votingBase.updateVotingSettings(votingSettings))
         .to.be.revertedWithCustomError(votingBase, 'RatioOutOfBounds')
@@ -152,18 +168,6 @@ describe('MajorityVotingMock', function () {
       await expect(votingBase.updateVotingSettings(votingSettings))
         .to.be.revertedWithCustomError(votingBase, 'MinDurationOutOfBounds')
         .withArgs(TIME.YEAR, votingSettings.minDuration);
-    });
-
-    it('should change the voting settings successfully', async () => {
-      await expect(votingBase.updateVotingSettings(votingSettings))
-        .to.emit(votingBase, 'VotingSettingsUpdated')
-        .withArgs(
-          votingSettings.votingMode,
-          votingSettings.supportThreshold,
-          votingSettings.minParticipation,
-          votingSettings.minDuration,
-          votingSettings.minProposerVotingPower
-        );
     });
 
     it('should change the voting settings successfully', async () => {

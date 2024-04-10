@@ -1,5 +1,7 @@
+import {TestGovernanceERC20} from '@aragon/osx-ethers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {BigNumber, Contract} from 'ethers';
+import {ethers} from 'hardhat';
 
 export enum VoteOption {
   None,
@@ -14,40 +16,56 @@ export enum VotingMode {
   VoteReplacement,
 }
 
-export type VotingSettings = {
-  votingMode: number;
-  supportThreshold: BigNumber;
-  minParticipation: BigNumber;
-  minDuration: number;
-  minProposerVotingPower: number;
-};
-
 export async function voteWithSigners(
   votingContract: Contract,
   proposalId: number,
-  signers: SignerWithAddress[],
-  signerIds: {
-    yes: number[];
-    no: number[];
-    abstain: number[];
+  ballot: {
+    yes: SignerWithAddress[];
+    no: SignerWithAddress[];
+    abstain: SignerWithAddress[];
   }
 ) {
-  let promises = signerIds.yes.map(i =>
-    votingContract.connect(signers[i]).vote(proposalId, VoteOption.Yes, false)
+  let promises = ballot.yes.map(signer =>
+    votingContract.connect(signer).vote(proposalId, VoteOption.Yes, false)
   );
 
   promises = promises.concat(
-    signerIds.no.map(i =>
-      votingContract.connect(signers[i]).vote(proposalId, VoteOption.No, false)
+    ballot.no.map(signer =>
+      votingContract.connect(signer).vote(proposalId, VoteOption.No, false)
     )
   );
   promises = promises.concat(
-    signerIds.abstain.map(i =>
-      votingContract
-        .connect(signers[i])
-        .vote(proposalId, VoteOption.Abstain, false)
+    ballot.abstain.map(signer =>
+      votingContract.connect(signer).vote(proposalId, VoteOption.Abstain, false)
     )
   );
 
   await Promise.all(promises);
+}
+
+export async function setBalances(
+  token: TestGovernanceERC20,
+  balances: {receiver: string; amount: number | BigNumber}[]
+) {
+  const promises = balances.map(balance =>
+    token.setBalance(balance.receiver, balance.amount)
+  );
+  await Promise.all(promises);
+}
+
+export async function setTotalSupply(
+  token: TestGovernanceERC20,
+  totalSupply: number
+) {
+  await ethers.provider.send('evm_mine', []);
+  const block = await ethers.provider.getBlock('latest');
+
+  const currentTotalSupply: BigNumber = await token.getPastTotalSupply(
+    block.number - 1
+  );
+
+  await token.setBalance(
+    `0x${'0'.repeat(39)}1`, // address(1)
+    BigNumber.from(totalSupply).sub(currentTotalSupply)
+  );
 }
