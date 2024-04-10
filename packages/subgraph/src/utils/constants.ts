@@ -39,12 +39,8 @@ export const VOTE_OPTIONS = new Map<string, string>()
 export const VOTING_MODES = new Map<number, string>()
   .set(0, 'Standard')
   .set(1, 'EarlyExecution')
-  .set(2, 'VoteReplacement');
-
-export const VOTING_MODE_INDEXES = new Map<string, string>()
-  .set('Standard', '0')
-  .set('EarlyExecution', '1')
-  .set('VoteReplacement', '2');
+  .set(2, 'VoteReplacement')
+  .set(10, 'Undefined');
 
 export const TOKEN_VOTING_INTERFACE_ID = '0x50eb001e';
 export const ADDRESSLIST_VOTING_INTERFACE_ID = '0x5f21eb8b';
