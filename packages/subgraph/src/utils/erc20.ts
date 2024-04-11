@@ -48,7 +48,7 @@ export function fetchOrCreateWrappedERC20Entity(
   if (totalSupply.reverted || balanceOf.reverted || underlying.reverted) {
     return null;
   }
-  // get and save the underliying contract
+  // get and save the underlying contract
   const underlyingContract = fetchOrCreateERC20Entity(underlying.value);
   if (!underlyingContract) {
     return null;
