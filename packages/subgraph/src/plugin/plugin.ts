@@ -14,7 +14,12 @@ import {
   MembershipContractAnnounced,
   TokenVoting,
 } from '../../generated/templates/TokenVoting/TokenVoting';
-import {RATIO_BASE, VOTER_OPTIONS, VOTING_MODES} from '../utils/constants';
+import {
+  RATIO_BASE,
+  VOTER_OPTIONS,
+  VOTING_MODES,
+  VOTING_MODE_UNDEFINED_INDEX,
+} from '../utils/constants';
 import {identifyAndFetchOrCreateERC20TokenEntity} from '../utils/erc20';
 import {generateMemberEntityId, generateVoteEntityId} from '../utils/ids';
 import {
@@ -73,7 +78,7 @@ export function _handleProposalCreated(
     let votingModeIndex = parameters.votingMode;
     if (!VOTING_MODES.has(votingModeIndex)) {
       // if the voting mode is not defined, set it to 'Undefined'
-      votingModeIndex = 10;
+      votingModeIndex = VOTING_MODE_UNDEFINED_INDEX;
     }
 
     const votingMode = VOTING_MODES.get(votingModeIndex);
@@ -273,7 +278,7 @@ export function handleVotingSettingsUpdated(
     let votingModeIndex = event.params.votingMode;
     if (!VOTING_MODES.has(votingModeIndex)) {
       // if the voting mode is not defined, set it to 'Undefined'
-      votingModeIndex = 10;
+      votingModeIndex = VOTING_MODE_UNDEFINED_INDEX;
     }
 
     const votingMode = VOTING_MODES.get(votingModeIndex);
