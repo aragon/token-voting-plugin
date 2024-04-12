@@ -40,7 +40,7 @@ export const TOKEN_NAME = 'name';
 export const HOUR = '3600';
 export const TWO_HOURS = '7200';
 
-export const VOTING_MODE_ONE: string = ONE; // EarlyExecution
+export const VOTING_MODE: string = ONE; // EarlyExecution
 export const SUPPORT_THRESHOLD = '500000'; // 50*10**4 = 50%
 export const NEW_SUPPORT_THRESHOLD = '400000'; // 40*10**4 = 40%
 export const MIN_PARTICIPATION = '500000'; // 50*10**4 = 50%
