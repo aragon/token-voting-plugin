@@ -85,7 +85,7 @@ import {
   createDummyAction,
   generateActionEntityId,
 } from '@aragon/osx-commons-subgraph';
-import {Address, BigInt, Bytes, ethereum} from '@graphprotocol/graph-ts';
+import {Address, BigInt, Bytes, ethereum, Int8} from '@graphprotocol/graph-ts';
 
 class ERC20WrapperContractMethods extends ERC20WrapperContract {
   withDefaultValues(): ERC20WrapperContractMethods {
@@ -201,7 +201,7 @@ class TokenVotingProposalMethods extends TokenVotingProposal {
     this.executed = false;
 
     // for event we need the index of the mapping to simulate the contract event
-    this.votingModeIndex = votingModeIndex;
+    this.votingModeIndex = votingModeIndex as Int8;
     this.votingMode = VOTING_MODES.has(votingModeIndex)
       ? (VOTING_MODES.get(votingModeIndex) as string)
       : (VOTING_MODES.get(VOTING_MODE_UNDEFINED) as string);
@@ -379,7 +379,7 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
     this.daoAddress = Bytes.fromHexString(DAO_ADDRESS);
     this.pluginAddress = pluginAddress;
 
-    this.votingModeIndex = votingModeIndex; // for event we need the index of the mapping to simulate the contract event
+    this.votingModeIndex = votingModeIndex as Int8; // for event we need the index of the mapping to simulate the contract event
     this.votingMode = VOTING_MODES.has(votingModeIndex)
       ? (VOTING_MODES.get(votingModeIndex) as string)
       : (VOTING_MODES.get(VOTING_MODE_UNDEFINED) as string);
@@ -435,7 +435,7 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
       NEW_MIN_PROPOSER_VOTING_POWER
     )
   ): TokenVotingPluginMethods {
-    this.votingModeIndex = votingModeIndex;
+    this.votingModeIndex = votingModeIndex as Int8;
     this.votingMode = VOTING_MODES.has(votingModeIndex)
       ? (VOTING_MODES.get(votingModeIndex) as string)
       : (VOTING_MODES.get(VOTING_MODE_UNDEFINED) as string);
