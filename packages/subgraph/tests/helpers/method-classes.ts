@@ -64,7 +64,7 @@ import {
   SUPPORT_THRESHOLD,
   TOTAL_VOTING_POWER,
   TWO,
-  VOTING_MODE_ONE,
+  VOTING_MODE,
   ZERO,
   MIN_PARTICIPATION,
   MIN_DURATION,
@@ -188,7 +188,7 @@ class TokenVotingVoterMethods extends TokenVotingVoter {
 
 class TokenVotingProposalMethods extends TokenVotingProposal {
   withDefaultValues(
-    votingModeIndex: string = VOTING_MODE_ONE
+    votingModeIndex: number = parseInt(VOTING_MODE)
   ): TokenVotingProposalMethods {
     this.id = PROPOSAL_ENTITY_ID;
 
@@ -202,8 +202,8 @@ class TokenVotingProposalMethods extends TokenVotingProposal {
 
     // for event we need the index of the mapping to simulate the contract event
     this.votingModeIndex = votingModeIndex;
-    this.votingMode = VOTING_MODES.has(parseInt(votingModeIndex))
-      ? (VOTING_MODES.get(parseInt(votingModeIndex)) as string)
+    this.votingMode = VOTING_MODES.has(votingModeIndex)
+      ? (VOTING_MODES.get(votingModeIndex) as string)
       : (VOTING_MODES.get(VOTING_MODE_UNDEFINED) as string);
 
     this.supportThreshold = BigInt.fromString(SUPPORT_THRESHOLD);
@@ -238,7 +238,7 @@ class TokenVotingProposalMethods extends TokenVotingProposal {
         this.pluginProposalId.toString(),
         this.open,
         this.executed,
-        this.votingModeIndex as string, // we need the index for this mocked call
+        this.votingModeIndex.toString(), // we need the index for this mocked call
         this.supportThreshold.toString(),
         this.minVotingPower.toString(),
         this.startDate.toString(),
@@ -370,7 +370,7 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
   // build entity
   // if id not changed it will update
   withDefaultValues(
-    votingModeIndex: string = VOTING_MODE_ONE
+    votingModeIndex: number = parseInt(VOTING_MODE)
   ): TokenVotingPluginMethods {
     const pluginAddress = Address.fromString(CONTRACT_ADDRESS);
     const pluginEntityId = generatePluginEntityId(pluginAddress);
@@ -380,8 +380,8 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
     this.pluginAddress = pluginAddress;
 
     this.votingModeIndex = votingModeIndex; // for event we need the index of the mapping to simulate the contract event
-    this.votingMode = VOTING_MODES.has(parseInt(votingModeIndex))
-      ? (VOTING_MODES.get(parseInt(votingModeIndex)) as string)
+    this.votingMode = VOTING_MODES.has(votingModeIndex)
+      ? (VOTING_MODES.get(votingModeIndex) as string)
       : (VOTING_MODES.get(VOTING_MODE_UNDEFINED) as string);
 
     this.supportThreshold = BigInt.fromString(SUPPORT_THRESHOLD);
@@ -403,7 +403,7 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
 
   createEvent_VotingSettingsUpdated(): VotingSettingsUpdated {
     let event = createNewVotingSettingsUpdatedEvent(
-      this.votingModeIndex as string, // we need the index for simulate the event
+      this.votingModeIndex.toString(), // we need the index for simulate the event
       (this.supportThreshold as BigInt).toString(),
       (this.minParticipation as BigInt).toString(),
       (this.minDuration as BigInt).toString(),
@@ -427,7 +427,7 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
   }
 
   setNewPluginSetting(
-    votingModeIndex: string = TWO,
+    votingModeIndex: number = parseInt(TWO),
     newSupportThreshold: BigInt = BigInt.fromString(NEW_SUPPORT_THRESHOLD),
     newMinParticipation: BigInt = BigInt.fromString(NEW_MIN_PARTICIPATION),
     newMinDuration: BigInt = BigInt.fromString(NEW_MIN_DURATION),
@@ -436,8 +436,8 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
     )
   ): TokenVotingPluginMethods {
     this.votingModeIndex = votingModeIndex;
-    this.votingMode = VOTING_MODES.has(parseInt(votingModeIndex))
-      ? (VOTING_MODES.get(parseInt(votingModeIndex)) as string)
+    this.votingMode = VOTING_MODES.has(votingModeIndex)
+      ? (VOTING_MODES.get(votingModeIndex) as string)
       : (VOTING_MODES.get(VOTING_MODE_UNDEFINED) as string);
     this.supportThreshold = newSupportThreshold;
     this.minParticipation = newMinParticipation;
