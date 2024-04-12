@@ -64,7 +64,7 @@ import {
   SUPPORT_THRESHOLD,
   TOTAL_VOTING_POWER,
   TWO,
-  VOTING_MODE,
+  VOTING_MODE_ONE,
   ZERO,
   MIN_PARTICIPATION,
   MIN_DURATION,
@@ -187,10 +187,10 @@ class TokenVotingVoterMethods extends TokenVotingVoter {
 }
 
 class TokenVotingProposalMethods extends TokenVotingProposal {
-  votingModeIndex: string = VOTING_MODE;
+  votingModeIndex: string = '';
 
   withDefaultValues(
-    votingModeIndex: string = VOTING_MODE
+    votingModeIndex: string = VOTING_MODE_ONE
   ): TokenVotingProposalMethods {
     this.id = PROPOSAL_ENTITY_ID;
 
@@ -369,11 +369,11 @@ class TokenVotingVoteMethods extends TokenVotingVote {
 }
 
 class TokenVotingPluginMethods extends TokenVotingPlugin {
-  votingModeIndex: string = VOTING_MODE;
+  votingModeIndex: string = '';
   // build entity
   // if id not changed it will update
   withDefaultValues(
-    votingModeIndex: string = VOTING_MODE
+    votingModeIndex: string = VOTING_MODE_ONE
   ): TokenVotingPluginMethods {
     const pluginAddress = Address.fromString(CONTRACT_ADDRESS);
     const pluginEntityId = generatePluginEntityId(pluginAddress);
