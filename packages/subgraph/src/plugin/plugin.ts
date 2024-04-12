@@ -75,15 +75,13 @@ export function _handleProposalCreated(
 
     // ProposalParameters
     const parameters = proposal.value.value2;
-    let votingModeIndex = parameters.votingMode;
-    if (!VOTING_MODES.has(votingModeIndex)) {
+    let votingMode = parameters.votingMode;
+    if (!VOTING_MODES.has(votingMode)) {
       // if the voting mode is not defined, set it to 'Undefined'
-      votingModeIndex = VOTING_MODE_UNDEFINED_INDEX;
+      votingMode = VOTING_MODE_UNDEFINED_INDEX;
     }
 
-    const votingMode = VOTING_MODES.get(votingModeIndex);
-
-    proposalEntity.votingMode = votingMode as string;
+    proposalEntity.votingMode = VOTING_MODES.get(votingMode) as string;
     proposalEntity.supportThreshold = parameters.supportThreshold;
     proposalEntity.snapshotBlock = parameters.snapshotBlock;
     proposalEntity.minVotingPower = parameters.minVotingPower;
@@ -275,14 +273,13 @@ export function handleVotingSettingsUpdated(
     generatePluginEntityId(event.address)
   );
   if (pluginEntity) {
-    let votingModeIndex = event.params.votingMode;
-    if (!VOTING_MODES.has(votingModeIndex)) {
+    let votingMode = event.params.votingMode;
+    if (!VOTING_MODES.has(votingMode)) {
       // if the voting mode is not defined, set it to 'Undefined'
-      votingModeIndex = VOTING_MODE_UNDEFINED_INDEX;
+      votingMode = VOTING_MODE_UNDEFINED_INDEX;
     }
 
-    const votingMode = VOTING_MODES.get(votingModeIndex);
-    pluginEntity.votingMode = votingMode as string;
+    pluginEntity.votingMode = VOTING_MODES.get(votingMode) as string;
     pluginEntity.supportThreshold = event.params.supportThreshold;
     pluginEntity.minParticipation = event.params.minParticipation;
     pluginEntity.minDuration = event.params.minDuration;
