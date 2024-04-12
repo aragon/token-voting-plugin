@@ -107,6 +107,9 @@ describe('handleProposalCreated', () => {
     let proposal = new ExtendedTokenVotingProposal().withDefaultValues(11);
     let action = new ExtendedAction().withDefaultValues();
 
+    // mock call because the votingMode is being gotten from the plugin
+    proposal.mockCall_getProposal([action.getDummyAction()]);
+
     // create event
     let event = proposal.createEvent_ProposalCreated(
       [action.getDummyAction()],
