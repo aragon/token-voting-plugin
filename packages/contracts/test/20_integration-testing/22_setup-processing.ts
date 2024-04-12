@@ -1,14 +1,13 @@
 import {METADATA, VERSION} from '../../plugin-settings';
+import {GovernanceERC20} from '../../typechain';
+import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {getProductionNetworkName, findPluginRepo} from '../../utils/helpers';
-import {
-  DEFAULT_VOTING_SETTINGS,
-  TokenVotingSettings,
-} from '../test-utils/token-voting-constants';
 import {
   GovernanceERC20__factory,
   TokenVotingSetup,
   TokenVotingSetup__factory,
 } from '../test-utils/typechain-versions';
+import {VotingMode} from '../test-utils/voting-helpers';
 import {
   createDaoProxy,
   installPLugin,
@@ -22,8 +21,10 @@ import {
 import {
   DAO_PERMISSIONS,
   PLUGIN_SETUP_PROCESSOR_PERMISSIONS,
+  TIME,
   UnsupportedNetworkError,
   getNamedTypesFromMetadata,
+  pctToRatio,
 } from '@aragon/osx-commons-sdk';
 import {
   PluginSetupProcessor,
@@ -45,11 +46,17 @@ type FixtureResult = {
   alice: SignerWithAddress;
   bob: SignerWithAddress;
   dao: DAO;
-  defaultInitData: TokenVotingSettings;
   psp: PluginSetupProcessor;
   pluginRepo: PluginRepo;
   pluginSetup: TokenVotingSetup;
   pluginSetupRefLatestBuild: PluginSetupProcessorStructs.PluginSetupRefStruct;
+  defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct;
+  defaultTokenSettings: {
+    addr: string;
+    name: string;
+    symbol: string;
+  };
+  defaultMintSettings: GovernanceERC20.MintSettingsStruct;
 };
 
 async function fixture(): Promise<FixtureResult> {
@@ -78,8 +85,7 @@ async function fixture(): Promise<FixtureResult> {
     deployer
   );
 
-  const erc20 = new GovernanceERC20__factory(deployer);
-  const governanceErc20 = await erc20.deploy(
+  const token = await new GovernanceERC20__factory(deployer).deploy(
     dao.address,
     'GovernanceERC20',
     'GOV',
@@ -88,6 +94,7 @@ async function fixture(): Promise<FixtureResult> {
       amounts: ['100'],
     }
   );
+
   // Get the deployed `PluginRepo`
   const {pluginRepo, ensDomain} = await findPluginRepo(env);
   if (pluginRepo === null) {
@@ -102,12 +109,6 @@ async function fixture(): Promise<FixtureResult> {
     deployer
   );
 
-  const defaultInitData = {
-    dao: dao.address,
-    votingSettings: DEFAULT_VOTING_SETTINGS,
-    token: governanceErc20.address,
-  };
-
   const pluginSetupRefLatestBuild = {
     versionTag: {
       release: VERSION.release,
@@ -116,16 +117,37 @@ async function fixture(): Promise<FixtureResult> {
     pluginSetupRepo: pluginRepo.address,
   };
 
+  const defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
+    votingMode: VotingMode.EarlyExecution,
+    supportThreshold: pctToRatio(50),
+    minParticipation: pctToRatio(20),
+    minDuration: TIME.HOUR,
+    minProposerVotingPower: 0,
+  };
+
+  const defaultTokenSettings = {
+    addr: token.address,
+    name: '', // only relevant if `address(0)` is provided as the token address
+    symbol: '', // only relevant if `address(0)` is provided as the token address
+  };
+
+  const defaultMintSettings = {
+    receivers: [],
+    amounts: [],
+  };
+
   return {
     deployer,
     alice,
     bob,
     psp,
     dao,
-    defaultInitData,
     pluginRepo,
     pluginSetup,
     pluginSetupRefLatestBuild,
+    defaultVotingSettings,
+    defaultTokenSettings,
+    defaultMintSettings,
   };
 }
 
@@ -137,7 +159,9 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       psp,
       dao,
       pluginSetupRefLatestBuild,
-      defaultInitData,
+      defaultVotingSettings,
+      defaultTokenSettings,
+      defaultMintSettings,
     } = await loadFixture(fixture);
 
     // Grant deployer all required permissions
@@ -160,9 +184,9 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       .grant(dao.address, psp.address, DAO_PERMISSIONS.ROOT_PERMISSION_ID);
 
     const prepareInstallData = {
-      votingSettings: Object.values(DEFAULT_VOTING_SETTINGS),
-      tokenSettings: [defaultInitData.token, 'testToken', 'TEST'],
-      mintSettings: [[], []],
+      votingSettings: Object.values(defaultVotingSettings),
+      tokenSettings: Object.values(defaultTokenSettings),
+      mintSettings: Object.values(defaultMintSettings),
     };
 
     const prepareInstallInputType = getNamedTypesFromMetadata(
@@ -210,8 +234,14 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
   });
 
   it('installs & uninstalls the current build without a token', async () => {
-    const {alice, deployer, psp, dao, pluginSetupRefLatestBuild} =
-      await loadFixture(fixture);
+    const {
+      alice,
+      deployer,
+      psp,
+      dao,
+      defaultVotingSettings,
+      pluginSetupRefLatestBuild,
+    } = await loadFixture(fixture);
 
     // Grant deployer all required permissions
     await dao
@@ -233,7 +263,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       .grant(dao.address, psp.address, DAO_PERMISSIONS.ROOT_PERMISSION_ID);
 
     const prepareInstallData = {
-      votingSettings: Object.values(DEFAULT_VOTING_SETTINGS),
+      votingSettings: Object.values(defaultVotingSettings),
       tokenSettings: [ethers.constants.AddressZero, 'testToken', 'TEST'],
       mintSettings: [[alice.address], ['1000']],
     };
@@ -287,15 +317,17 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       deployer,
       psp,
       dao,
-      defaultInitData,
+      defaultVotingSettings,
+      defaultTokenSettings,
+      defaultMintSettings,
       pluginRepo,
       pluginSetupRefLatestBuild,
     } = await loadFixture(fixture);
 
     const prepareInstallData = {
-      votingSettings: Object.values(DEFAULT_VOTING_SETTINGS),
-      tokenSettings: [defaultInitData.token, 'testToken', 'TEST'],
-      mintSettings: [[], []],
+      votingSettings: Object.values(defaultVotingSettings),
+      tokenSettings: Object.values(defaultTokenSettings),
+      mintSettings: Object.values(defaultMintSettings),
     };
 
     await updateFromBuildTest(
@@ -315,15 +347,17 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       deployer,
       psp,
       dao,
-      defaultInitData,
       pluginRepo,
       pluginSetupRefLatestBuild,
+      defaultVotingSettings,
+      defaultTokenSettings,
+      defaultMintSettings,
     } = await loadFixture(fixture);
 
     const prepareInstallData = {
-      votingSettings: Object.values(DEFAULT_VOTING_SETTINGS),
-      tokenSettings: [defaultInitData.token, 'testToken', 'TEST'],
-      mintSettings: [[], []],
+      votingSettings: Object.values(defaultVotingSettings),
+      tokenSettings: Object.values(defaultTokenSettings),
+      mintSettings: Object.values(defaultMintSettings),
     };
 
     await updateFromBuildTest(

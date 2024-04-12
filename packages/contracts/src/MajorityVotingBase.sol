@@ -33,7 +33,7 @@ import {IMajorityVoting} from "./IMajorityVoting.sol";
 /// #### Limit Values: Support Threshold & Minimum Participation
 ///
 /// Two limit values are associated with these parameters and decide if a proposal execution should be possible:
-/// $\texttt{supportThreshold} \in [0,1]$ and $\texttt{minParticipation} \in [0,1]$.
+/// $\texttt{supportThreshold} \in [0,1)$ and $\texttt{minParticipation} \in [0,1]$.
 ///
 /// For threshold values, $>$ comparison is used. This **does not** include the threshold value.
 /// E.g., for $\texttt{supportThreshold} = 50\%$,
@@ -63,7 +63,7 @@ import {IMajorityVoting} from "./IMajorityVoting.sol";
 /// $$N_\text{yes} + N_\text{no} + N_\text{abstain} \ge \texttt{minVotingPower},$$
 /// where $\texttt{minVotingPower} = \texttt{minParticipation} \cdot N_\text{total}$.
 ///
-/// ### Vote Replacement Execution
+/// ### Vote Replacement
 ///
 /// The contract allows votes to be replaced. Voters can vote multiple times
 /// and only the latest voteOption is tallied.
@@ -77,7 +77,7 @@ import {IMajorityVoting} from "./IMajorityVoting.sol";
 /// iff the support threshold is met even if all remaining votes are no votes.
 /// We call this number the worst-case number of no votes and define it as
 ///
-/// $$N_\text{no, worst-case} = N_\text{no, worst-case} + \texttt{remainingVotes}$$
+/// $$N_\text{no, worst-case} = N_\text{no} + \texttt{remainingVotes}$$
 ///
 /// where
 ///

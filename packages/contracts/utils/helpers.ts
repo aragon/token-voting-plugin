@@ -21,9 +21,7 @@ import {
 } from '@aragon/osx-ethers';
 import {setBalance} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
-import {BigNumber, ContractTransaction} from 'ethers';
-import {LogDescription, defaultAbiCoder, keccak256} from 'ethers/lib/utils';
-import {ethers} from 'hardhat';
+import {BigNumber, ContractTransaction, ethers} from 'ethers';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 
 export function isLocal(hre: HardhatRuntimeEnvironment): boolean {
@@ -112,7 +110,7 @@ export async function findPluginRepo(
 }
 
 export type EventWithBlockNumber = {
-  event: LogDescription;
+  event: ethers.utils.LogDescription;
   blockNumber: number;
 };
 
@@ -134,10 +132,6 @@ export async function getPastVersionCreatedEvents(
       blockNumber: logs[index].blockNumber,
     };
   });
-}
-
-export function hashHelpers(helpers: string[]) {
-  return keccak256(defaultAbiCoder.encode(['address[]'], [helpers]));
 }
 
 export type LatestVersion = {
