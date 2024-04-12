@@ -187,8 +187,6 @@ class TokenVotingVoterMethods extends TokenVotingVoter {
 }
 
 class TokenVotingProposalMethods extends TokenVotingProposal {
-  votingModeIndex: string = '';
-
   withDefaultValues(
     votingModeIndex: string = VOTING_MODE_ONE
   ): TokenVotingProposalMethods {
@@ -369,7 +367,6 @@ class TokenVotingVoteMethods extends TokenVotingVote {
 }
 
 class TokenVotingPluginMethods extends TokenVotingPlugin {
-  votingModeIndex: string = '';
   // build entity
   // if id not changed it will update
   withDefaultValues(
