@@ -58,6 +58,7 @@ type TokenVotingPlugin implements IPlugin @entity {
 
   proposals: [TokenVotingProposal!]! @derivedFrom(field: "plugin")
   votingMode: VotingMode
+  votingModeIndex: Int
   supportThreshold: BigInt
   minParticipation: BigInt
   minDuration: BigInt
@@ -111,6 +112,7 @@ type TokenVotingProposal implements IProposal @entity {
   metadata: String
 
   votingMode: VotingMode!
+  votingModeIndex: Int!
   supportThreshold: BigInt!
   minVotingPower: BigInt!
   snapshotBlock: BigInt!
