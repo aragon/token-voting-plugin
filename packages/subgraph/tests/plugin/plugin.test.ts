@@ -77,7 +77,6 @@ describe('handleProposalCreated', () => {
     // checks
     // expected changes
     proposal.creationBlockNumber = BigInt.fromString(ONE);
-    proposal.votingMode = VOTING_MODES.get(parseInt(VOTING_MODE)) as string;
 
     // check the proposal and the plugin
     assert.entityCount('TokenVotingPlugin', 1);
@@ -98,14 +97,14 @@ describe('handleProposalCreated', () => {
 
     // create state
     let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues(
-      '11'
+      11
     );
     tokenVotingPlugin.buildOrUpdate();
 
     // check before handle event
     tokenVotingPlugin.assertEntity();
 
-    let proposal = new ExtendedTokenVotingProposal().withDefaultValues('11');
+    let proposal = new ExtendedTokenVotingProposal().withDefaultValues(11);
     let action = new ExtendedAction().withDefaultValues();
 
     // create event
@@ -126,7 +125,6 @@ describe('handleProposalCreated', () => {
     assert.entityCount('TokenVotingProposal', 1);
 
     proposal.creationBlockNumber = BigInt.fromString(ONE);
-    proposal.votingMode = VOTING_MODES.get(parseInt(VOTING_MODE)) as string;
     proposal.assertEntity();
 
     tokenVotingPlugin.proposalCount = BigInt.fromString(ONE);
@@ -341,7 +339,7 @@ describe('handleVotingSettingsUpdated', () => {
     tokenVotingPlugin.buildOrUpdate();
 
     // update plugin configuration
-    tokenVotingPlugin.setNewPluginSetting('7');
+    tokenVotingPlugin.setNewPluginSetting(7);
 
     // create event
     let event = tokenVotingPlugin.createEvent_VotingSettingsUpdated();
