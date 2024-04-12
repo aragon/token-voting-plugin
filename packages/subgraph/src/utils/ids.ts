@@ -1,33 +1,10 @@
-import {bigIntToBytes32} from './bytes';
 import {
-  generateEntityIdFromAddress,
-  generateEntityIdFromBytes,
+  generateEntityIdFromAddress, // generateEntityIdFromBytes,
 } from '@aragon/osx-commons-subgraph';
-import {Address, BigInt, Bytes} from '@graphprotocol/graph-ts';
+import {Address} from '@graphprotocol/graph-ts';
 
 export function generateTokenEntityId(tokenAddress: Address): string {
   return generateEntityIdFromAddress(tokenAddress);
-}
-
-export function generateERC1155TransferEntityId(
-  txHash: Bytes,
-  logIndex: BigInt,
-  actionIndex: number,
-  batchIndex: number
-): string {
-  return [
-    generateEntityIdFromBytes(txHash),
-    logIndex.toString(),
-    actionIndex.toString(),
-    batchIndex.toString(),
-  ].join('_');
-}
-
-export function generateVoterEntityId(
-  memberEntityId: string,
-  proposalId: string
-): string {
-  return [memberEntityId, proposalId].join('_');
 }
 
 export function generateMemberEntityId(
@@ -45,14 +22,4 @@ export function generateVoteEntityId(
   proposalId: string
 ): string {
   return [generateEntityIdFromAddress(memberAddress), proposalId].join('_');
-}
-
-export function getProposalId(
-  plugin: Address,
-  pluginProposalId: BigInt
-): string {
-  return plugin
-    .toHexString()
-    .concat('_')
-    .concat(bigIntToBytes32(pluginProposalId));
 }

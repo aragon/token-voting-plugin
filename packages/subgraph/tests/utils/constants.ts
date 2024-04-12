@@ -1,7 +1,4 @@
-import {
-  generatePluginEntityId,
-  generateProposalEntityId,
-} from '@aragon/osx-commons-subgraph';
+import {generateProposalEntityId} from '@aragon/osx-commons-subgraph';
 import {Address, BigInt} from '@graphprotocol/graph-ts';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
@@ -28,14 +25,8 @@ export const PLUGIN_PROPOSAL_ID = ZERO;
 export const STRING_DATA = 'Some String Data ...';
 
 export const ONE_ETH = '1000000000000000000';
-export const HALF_ETH = '500000000000000000';
 
-export const ERC20_AMOUNT_HALF = '10000';
 export const ERC20_AMOUNT_FULL = '20000';
-export const ERC20_TOTAL_SUPPLY = '10';
-export const ERC20_DECIMALS = '6';
-export const TOKEN_SYMBOL = 'symbol';
-export const TOKEN_NAME = 'name';
 
 export const HOUR = '3600';
 export const TWO_HOURS = '7200';
@@ -62,28 +53,10 @@ export const MIN_VOTING_POWER = TWO;
 export const TOTAL_VOTING_POWER = THREE;
 export const CREATED_AT = ONE;
 
-export const ZERO_BYTES32 =
-  '0x0000000000000000000000000000000000000000000000000000000000000000';
-export const ONE_BYTES32 =
-  '0x0000000000000000000000000000000000000000000000000000000000000001';
-export const HALF_UINT256_BYTES32 =
-  '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
-export const MAX_UINT256_BYTES32 =
-  '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
-
-export const MAX_UINT256_NUMBER_STRING =
-  '115792089237316195423570985008687907853269984665640564039457584007913129639935';
-
 export const PLUGIN_SETUP_ID =
   '0xfb3fd2c4cd4e19944dd3f8437e67476240cd9e3efb2294ebd10c59c8f1d6817c';
-export const APPLIED_PLUGIN_SETUP_ID =
-  '0x00000000cd4e19944dd3f8437e67476240cd9e3efb2294ebd10c59c8f1d6817c';
 
 export const PROPOSAL_ENTITY_ID = generateProposalEntityId(
   Address.fromString(CONTRACT_ADDRESS),
   BigInt.fromString(PLUGIN_PROPOSAL_ID)
-);
-
-export const PLUGIN_ENTITY_ID = generatePluginEntityId(
-  Address.fromString(CONTRACT_ADDRESS)
 );
