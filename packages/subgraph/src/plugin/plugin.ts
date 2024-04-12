@@ -18,7 +18,7 @@ import {
   RATIO_BASE,
   VOTER_OPTIONS,
   VOTING_MODES,
-  VOTING_MODE_UNDEFINED_INDEX,
+  VOTING_MODE_UNDEFINED,
 } from '../utils/constants';
 import {identifyAndFetchOrCreateERC20TokenEntity} from '../utils/erc20';
 import {generateMemberEntityId, generateVoteEntityId} from '../utils/ids';
@@ -78,7 +78,7 @@ export function _handleProposalCreated(
     let votingMode = parameters.votingMode;
     if (!VOTING_MODES.has(votingMode)) {
       // if the voting mode is not defined, set it to 'Undefined'
-      votingMode = VOTING_MODE_UNDEFINED_INDEX;
+      votingMode = VOTING_MODE_UNDEFINED;
     }
 
     proposalEntity.votingMode = VOTING_MODES.get(votingMode) as string;
@@ -276,7 +276,7 @@ export function handleVotingSettingsUpdated(
     let votingMode = event.params.votingMode;
     if (!VOTING_MODES.has(votingMode)) {
       // if the voting mode is not defined, set it to 'Undefined'
-      votingMode = VOTING_MODE_UNDEFINED_INDEX;
+      votingMode = VOTING_MODE_UNDEFINED;
     }
 
     pluginEntity.votingMode = VOTING_MODES.get(votingMode) as string;

@@ -17,7 +17,7 @@ export enum TransferType {
   Deposit,
 }
 
-export const VOTING_MODE_UNDEFINED_INDEX = 10;
+export const VOTING_MODE_UNDEFINED = 10;
 
 export const DECODE_OFFSET =
   '0x0000000000000000000000000000000000000000000000000000000000000020';
@@ -42,7 +42,7 @@ export const VOTING_MODES = new Map<number, string>()
   .set(0, 'Standard')
   .set(1, 'EarlyExecution')
   .set(2, 'VoteReplacement')
-  .set(VOTING_MODE_UNDEFINED_INDEX, 'Undefined');
+  .set(VOTING_MODE_UNDEFINED, 'Undefined');
 
 export const TOKEN_VOTING_INTERFACE_ID = '0x50eb001e';
 export const ADDRESSLIST_VOTING_INTERFACE_ID = '0x5f21eb8b';

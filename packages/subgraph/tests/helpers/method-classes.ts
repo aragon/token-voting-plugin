@@ -28,7 +28,7 @@ import {
   VOTER_OPTIONS,
   VOTE_OPTIONS,
   VOTING_MODES,
-  VOTING_MODE_UNDEFINED_INDEX,
+  VOTING_MODE_UNDEFINED,
 } from '../../src/utils/constants';
 import {generateMemberEntityId} from '../../src/utils/ids';
 import {
@@ -206,7 +206,7 @@ class TokenVotingProposalMethods extends TokenVotingProposal {
     this.votingModeIndex = votingModeIndex;
     this.votingMode = VOTING_MODES.has(parseInt(votingModeIndex))
       ? (VOTING_MODES.get(parseInt(votingModeIndex)) as string)
-      : (VOTING_MODES.get(VOTING_MODE_UNDEFINED_INDEX) as string);
+      : (VOTING_MODES.get(VOTING_MODE_UNDEFINED) as string);
 
     this.supportThreshold = BigInt.fromString(SUPPORT_THRESHOLD);
     this.minVotingPower = BigInt.fromString(MIN_VOTING_POWER);
@@ -385,7 +385,7 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
     this.votingModeIndex = votingModeIndex; // for event we need the index of the mapping to simulate the contract event
     this.votingMode = VOTING_MODES.has(parseInt(votingModeIndex))
       ? (VOTING_MODES.get(parseInt(votingModeIndex)) as string)
-      : (VOTING_MODES.get(VOTING_MODE_UNDEFINED_INDEX) as string);
+      : (VOTING_MODES.get(VOTING_MODE_UNDEFINED) as string);
 
     this.supportThreshold = BigInt.fromString(SUPPORT_THRESHOLD);
     this.minParticipation = BigInt.fromString(MIN_PARTICIPATION);
@@ -441,7 +441,7 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
     this.votingModeIndex = votingModeIndex;
     this.votingMode = VOTING_MODES.has(parseInt(votingModeIndex))
       ? (VOTING_MODES.get(parseInt(votingModeIndex)) as string)
-      : (VOTING_MODES.get(VOTING_MODE_UNDEFINED_INDEX) as string);
+      : (VOTING_MODES.get(VOTING_MODE_UNDEFINED) as string);
     this.supportThreshold = newSupportThreshold;
     this.minParticipation = newMinParticipation;
     this.minDuration = newMinDuration;
