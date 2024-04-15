@@ -65,9 +65,7 @@ async function fixture(): Promise<FixtureResult> {
   await deployments.fixture(tags);
 
   const [deployer, alice, bob] = await ethers.getSigners();
-  const dummyMetadata = ethers.utils.hexlify(
-    ethers.utils.toUtf8Bytes('0x123456789')
-  );
+  const dummyMetadata = '0x12345678';
   const dao = await createDaoProxy(deployer, dummyMetadata);
 
   const network = getNetworkNameByAlias(productionNetworkName);
