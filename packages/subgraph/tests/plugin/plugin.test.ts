@@ -5,7 +5,6 @@ import {
   _handleProposalCreated,
   handleMembershipContractAnnounced,
 } from '../../src/plugin/plugin';
-import {VOTING_MODES} from '../../src/utils/constants';
 import {GOVERNANCE_WRAPPED_ERC20_INTERFACE_ID} from '../../src/utils/constants';
 import {
   ExtendedERC20Contract,
@@ -18,69 +17,127 @@ import {
 } from '../helpers/extended-schema';
 import {
   STRING_DATA,
-  VOTING_MODE,
   ONE,
   ZERO,
   TWO,
   ERC20_AMOUNT_FULL,
+  UNDEFINED_VOTING_MODE,
 } from '../utils/constants';
 import {bigInt, BigInt} from '@graphprotocol/graph-ts';
 import {
   afterAll,
+  afterEach,
   assert,
   clearStore,
   describe,
   test,
 } from 'matchstick-as/assembly/index';
 
-test('Run TokenVoting (handleProposalCreated) mappings with mock event', () => {
-  // check store is empty before running the test
-  assert.entityCount('TokenVotingPlugin', 0);
-  assert.entityCount('TokenVotingProposal', 0);
-  assert.entityCount('Action', 0);
+describe('handleProposalCreated', () => {
+  afterEach(() => {
+    clearStore();
+  });
 
-  // create state
-  let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
-  tokenVotingPlugin.buildOrUpdate();
-  // assert with default value
-  // eg. proposalCount is `0`.
-  tokenVotingPlugin.assertEntity();
+  test('it should create the plugin, proposal and actions', () => {
+    // check store is empty before running the test
+    assert.entityCount('TokenVotingPlugin', 0);
+    assert.entityCount('TokenVotingProposal', 0);
+    assert.entityCount('Action', 0);
 
-  let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
+    // create state
+    let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
+    tokenVotingPlugin.buildOrUpdate();
+    // assert with default value
+    // eg. proposalCount is `0`.
+    tokenVotingPlugin.assertEntity();
 
-  let action = new ExtendedAction().withDefaultValues();
+    let proposal = new ExtendedTokenVotingProposal().withDefaultValues();
+    let action = new ExtendedAction().withDefaultValues();
 
-  // create calls
-  tokenVotingPlugin.proposalCount = BigInt.fromString(ONE);
-  tokenVotingPlugin.mockCall_getProposalCountCall();
-  proposal.mockCall_getProposal([action.getDummyAction()]);
-  proposal.mockCall_totalVotingPower();
+    // create calls
+    tokenVotingPlugin.proposalCount = BigInt.fromString(ONE);
+    tokenVotingPlugin.mockCall_getProposalCountCall();
+    proposal.mockCall_getProposal([action.getDummyAction()]);
+    proposal.mockCall_totalVotingPower();
 
-  // create event
-  let event = proposal.createEvent_ProposalCreated(
-    [action.getDummyAction()],
-    STRING_DATA
-  );
+    // create event
+    let event = proposal.createEvent_ProposalCreated(
+      [action.getDummyAction()],
+      STRING_DATA
+    );
 
-  // handle event
-  _handleProposalCreated(event, proposal.daoAddress.toHexString(), STRING_DATA);
+    // handle event
+    _handleProposalCreated(
+      event,
+      proposal.daoAddress.toHexString(),
+      STRING_DATA
+    );
 
-  // checks
-  // expected changes
-  proposal.creationBlockNumber = BigInt.fromString(ONE);
-  proposal.votingMode = VOTING_MODES.get(parseInt(VOTING_MODE)) as string;
+    // checks
+    // expected changes
+    proposal.creationBlockNumber = BigInt.fromString(ONE);
 
-  // check the proposal and the plugin
-  assert.entityCount('TokenVotingPlugin', 1);
-  assert.entityCount('TokenVotingProposal', 1);
-  proposal.assertEntity();
-  tokenVotingPlugin.assertEntity();
+    // check the proposal and the plugin
+    assert.entityCount('TokenVotingPlugin', 1);
+    assert.entityCount('TokenVotingProposal', 1);
+    proposal.assertEntity();
+    tokenVotingPlugin.assertEntity();
 
-  // check the actions
-  assert.entityCount('Action', 1);
-  action.assertEntity();
+    // check the actions
+    assert.entityCount('Action', 1);
+    action.assertEntity();
+  });
 
-  clearStore();
+  test('it should create the plugin, proposal and actions (with Undefined VotingMode)', () => {
+    // check store is empty before running the test
+    assert.entityCount('TokenVotingPlugin', 0);
+    assert.entityCount('TokenVotingProposal', 0);
+    assert.entityCount('Action', 0);
+
+    // create state
+    let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues(
+      UNDEFINED_VOTING_MODE
+    );
+    tokenVotingPlugin.buildOrUpdate();
+
+    // check before handle event
+    tokenVotingPlugin.assertEntity();
+
+    let proposal = new ExtendedTokenVotingProposal().withDefaultValues(
+      UNDEFINED_VOTING_MODE
+    );
+    let action = new ExtendedAction().withDefaultValues();
+
+    // mock call because the votingMode is being gotten from the plugin
+    proposal.mockCall_getProposal([action.getDummyAction()]);
+
+    // create event
+    let event = proposal.createEvent_ProposalCreated(
+      [action.getDummyAction()],
+      STRING_DATA
+    );
+
+    // handle event
+    _handleProposalCreated(
+      event,
+      proposal.daoAddress.toHexString(),
+      STRING_DATA
+    );
+
+    // check the proposal and the plugin
+    assert.entityCount('TokenVotingPlugin', 1);
+    assert.entityCount('TokenVotingProposal', 1);
+
+    proposal.creationBlockNumber = BigInt.fromString(ONE);
+    proposal.assertEntity();
+
+    tokenVotingPlugin.proposalCount = BigInt.fromString(ONE);
+    tokenVotingPlugin.assertEntity();
+
+    // check the actions
+    assert.entityCount('Action', 1);
+    action.assertEntity();
+  });
 });
 
 test('Run TokenVoting (handleVoteCast) mappings with mock event', () => {
@@ -257,24 +314,46 @@ test('Run TokenVoting (handleProposalExecuted) mappings with mock event', () => 
   clearStore();
 });
 
-test('Run TokenVoting (handleVotingSettingsUpdated) mappings with mock event', () => {
-  // create state
-  let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
-  tokenVotingPlugin.buildOrUpdate();
+describe('handleVotingSettingsUpdated', () => {
+  afterAll(() => {
+    clearStore();
+  });
 
-  // update plugin configuration
-  tokenVotingPlugin.setNewPluginSetting();
+  test('it should update the plugin setting', () => {
+    // create state
+    let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
+    tokenVotingPlugin.buildOrUpdate();
 
-  // create event
-  let event = tokenVotingPlugin.createEvent_VotingSettingsUpdated();
+    // update plugin configuration
+    tokenVotingPlugin.setNewPluginSetting();
 
-  // handle event
-  handleVotingSettingsUpdated(event);
+    // create event
+    let event = tokenVotingPlugin.createEvent_VotingSettingsUpdated();
 
-  // checks
-  tokenVotingPlugin.assertEntity();
+    // handle event
+    handleVotingSettingsUpdated(event);
 
-  clearStore();
+    // checks
+    tokenVotingPlugin.assertEntity();
+  });
+
+  test('it should update the plugin setting (with Undefined VotingMode)', () => {
+    // create state
+    let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues();
+    tokenVotingPlugin.buildOrUpdate();
+
+    // update plugin configuration
+    tokenVotingPlugin.setNewPluginSetting(UNDEFINED_VOTING_MODE);
+
+    // create event
+    let event = tokenVotingPlugin.createEvent_VotingSettingsUpdated();
+
+    // handle event
+    handleVotingSettingsUpdated(event);
+
+    // checks
+    tokenVotingPlugin.assertEntity();
+  });
 });
 
 describe('handleMembershipContractAnnounced', () => {

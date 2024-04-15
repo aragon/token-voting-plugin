@@ -1,5 +1,7 @@
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 
+export const VOTING_MODE_UNDEFINED = 10;
+
 // AS does not support initializing Map with data, a chain of sets is used instead
 export const VOTER_OPTIONS = new Map<number, string>()
   .set(0, 'None')
@@ -16,12 +18,8 @@ export const VOTE_OPTIONS = new Map<string, string>()
 export const VOTING_MODES = new Map<number, string>()
   .set(0, 'Standard')
   .set(1, 'EarlyExecution')
-  .set(2, 'VoteReplacement');
-
-export const VOTING_MODE_INDEXES = new Map<string, string>()
-  .set('Standard', '0')
-  .set('EarlyExecution', '1')
-  .set('VoteReplacement', '2');
+  .set(2, 'VoteReplacement')
+  .set(VOTING_MODE_UNDEFINED, 'Undefined');
 
 export const TOKEN_VOTING_INTERFACE_ID = '0x50eb001e';
 export const GOVERNANCE_WRAPPED_ERC20_INTERFACE_ID = '0x0f13099a';

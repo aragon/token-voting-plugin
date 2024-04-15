@@ -14,7 +14,12 @@ import {
   MembershipContractAnnounced,
   TokenVoting,
 } from '../../generated/templates/TokenVoting/TokenVoting';
-import {RATIO_BASE, VOTER_OPTIONS, VOTING_MODES} from '../utils/constants';
+import {
+  RATIO_BASE,
+  VOTER_OPTIONS,
+  VOTING_MODES,
+  VOTING_MODE_UNDEFINED,
+} from '../utils/constants';
 import {identifyAndFetchOrCreateERC20TokenEntity} from '../utils/erc20';
 import {generateMemberEntityId, generateVoteEntityId} from '../utils/ids';
 import {
@@ -70,9 +75,13 @@ export function _handleProposalCreated(
 
     // ProposalParameters
     const parameters = proposal.value.value2;
-    const votingMode = VOTING_MODES.get(parameters.votingMode);
-
-    proposalEntity.votingMode = votingMode as string;
+    let votingModeIndex = parameters.votingMode;
+    proposalEntity.votingModeIndex = votingModeIndex;
+    if (!VOTING_MODES.has(votingModeIndex)) {
+      // if the voting mode is not defined, set it to 'Undefined'
+      votingModeIndex = VOTING_MODE_UNDEFINED;
+    }
+    proposalEntity.votingMode = VOTING_MODES.get(votingModeIndex) as string;
     proposalEntity.supportThreshold = parameters.supportThreshold;
     proposalEntity.snapshotBlock = parameters.snapshotBlock;
     proposalEntity.minVotingPower = parameters.minVotingPower;
@@ -264,9 +273,14 @@ export function handleVotingSettingsUpdated(
     generatePluginEntityId(event.address)
   );
   if (pluginEntity) {
-    const votingMode = VOTING_MODES.get(event.params.votingMode);
+    let votingModeIndex = event.params.votingMode;
+    pluginEntity.votingModeIndex = votingModeIndex;
+    if (!VOTING_MODES.has(votingModeIndex)) {
+      // if the voting mode is not defined, set it to 'Undefined'
+      votingModeIndex = VOTING_MODE_UNDEFINED;
+    }
 
-    pluginEntity.votingMode = votingMode as string;
+    pluginEntity.votingMode = VOTING_MODES.get(votingModeIndex) as string;
     pluginEntity.supportThreshold = event.params.supportThreshold;
     pluginEntity.minParticipation = event.params.minParticipation;
     pluginEntity.minDuration = event.params.minDuration;
