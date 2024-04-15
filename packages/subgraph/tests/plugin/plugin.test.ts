@@ -5,7 +5,6 @@ import {
   _handleProposalCreated,
   handleMembershipContractAnnounced,
 } from '../../src/plugin/plugin';
-import {VOTING_MODES} from '../../src/utils/constants';
 import {GOVERNANCE_WRAPPED_ERC20_INTERFACE_ID} from '../../src/utils/constants';
 import {
   ExtendedERC20Contract,
@@ -18,7 +17,6 @@ import {
 } from '../helpers/extended-schema';
 import {
   STRING_DATA,
-  VOTING_MODE,
   ONE,
   ZERO,
   TWO,
