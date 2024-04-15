@@ -403,7 +403,7 @@ class TokenVotingPluginMethods extends TokenVotingPlugin {
 
   createEvent_VotingSettingsUpdated(): VotingSettingsUpdated {
     let event = createNewVotingSettingsUpdatedEvent(
-      this.votingModeIndex.toString(), // we need the index for simulate the event
+      this.votingModeIndex.toString(), // we need the index to simulate the event
       (this.supportThreshold as BigInt).toString(),
       (this.minParticipation as BigInt).toString(),
       (this.minDuration as BigInt).toString(),
