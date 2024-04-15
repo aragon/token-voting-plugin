@@ -23,6 +23,7 @@ import {
   ZERO,
   TWO,
   ERC20_AMOUNT_FULL,
+  UNDEFINED_VOTING_MODE,
 } from '../utils/constants';
 import {bigInt, BigInt} from '@graphprotocol/graph-ts';
 import {
@@ -97,14 +98,16 @@ describe('handleProposalCreated', () => {
 
     // create state
     let tokenVotingPlugin = new ExtendedTokenVotingPlugin().withDefaultValues(
-      11
+      UNDEFINED_VOTING_MODE
     );
     tokenVotingPlugin.buildOrUpdate();
 
     // check before handle event
     tokenVotingPlugin.assertEntity();
 
-    let proposal = new ExtendedTokenVotingProposal().withDefaultValues(11);
+    let proposal = new ExtendedTokenVotingProposal().withDefaultValues(
+      UNDEFINED_VOTING_MODE
+    );
     let action = new ExtendedAction().withDefaultValues();
 
     // mock call because the votingMode is being gotten from the plugin
@@ -342,7 +345,7 @@ describe('handleVotingSettingsUpdated', () => {
     tokenVotingPlugin.buildOrUpdate();
 
     // update plugin configuration
-    tokenVotingPlugin.setNewPluginSetting(7);
+    tokenVotingPlugin.setNewPluginSetting(UNDEFINED_VOTING_MODE);
 
     // create event
     let event = tokenVotingPlugin.createEvent_VotingSettingsUpdated();
