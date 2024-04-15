@@ -466,7 +466,7 @@ describe('Governance ERC20', () => {
       assert.entityCount('TokenVotingMember', 2);
     });
 
-    test("it should initialize with the user's existing voting power and delegation, if has any", () => {
+    test("it should initialize with the user's existing voting power and delegation, if they have any", () => {
       let memberOne = new ExtendedTokenVotingMember().withDefaultValues(
         fromAddress,
         pluginAddress
