@@ -167,11 +167,3 @@ type ERC20WrapperContract implements Token @entity(immutable: true) {
   decimals: Int!
   underlyingToken: ERC20Contract!
 }
-
-type IAction @entity {
-    id: ID! #action entity id
-    daoAddress: Bytes!
-    to: Bytes!
-    value: BigInt!
-    data: Bytes!
-}
