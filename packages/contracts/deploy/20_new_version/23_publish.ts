@@ -13,8 +13,8 @@ import {
   pluginEnsDomain,
 } from '../../utils/helpers';
 import {PLUGIN_REPO_PERMISSIONS, uploadToIPFS} from '@aragon/osx-commons-sdk';
-import {ethers} from 'hardhat';
 import {writeFile} from 'fs/promises';
+import {ethers} from 'hardhat';
 import {DeployFunction} from 'hardhat-deploy/types';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import path from 'path';
@@ -111,9 +111,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       .createVersion(
         VERSION.release,
         setup.address,
-      ethers.utils.hexlify(ethers.utils.toUtf8Bytes(buildMetadataURI)),
-      ethers.utils.hexlify(ethers.utils.toUtf8Bytes(releaseMetadataURI))
-    );
+        ethers.utils.hexlify(ethers.utils.toUtf8Bytes(buildMetadataURI)),
+        ethers.utils.hexlify(ethers.utils.toUtf8Bytes(releaseMetadataURI))
+      );
 
     await tx.wait();
 

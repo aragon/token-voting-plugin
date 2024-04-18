@@ -6,11 +6,6 @@ import {
 } from '@aragon/osx-commons-configs';
 import {UnsupportedNetworkError, findEvent} from '@aragon/osx-commons-sdk';
 import {
-  UnsupportedNetworkError,
-  VersionTag,
-  findEvent,
-} from '@aragon/osx-commons-sdk';
-import {
   DAO,
   DAO__factory,
   ENSSubdomainRegistrar__factory,
