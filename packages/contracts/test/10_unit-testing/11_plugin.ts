@@ -1,4 +1,4 @@
-import {createDaoProxy} from '../../20_integration-testing/test-helpers';
+import {createDaoProxy} from '../20_integration-testing/test-helpers';
 import {
   TestGovernanceERC20,
   TestGovernanceERC20__factory,
@@ -9,33 +9,33 @@ import {
   IProposal__factory,
   IProtocolVersion__factory,
   ProxyFactory__factory,
-} from '../../../typechain';
-import {ProxyCreatedEvent} from '../../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
-import {MajorityVotingBase} from '../../../typechain/src/MajorityVotingBase';
+} from '../../typechain';
+import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
+import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {
   ProposalCreatedEvent,
   ProposalExecutedEvent,
-} from '../../../typechain/src/TokenVoting';
-import {ExecutedEvent} from '../../../typechain/src/mocks/DAOMock';
+} from '../../typechain/src/TokenVoting';
+import {ExecutedEvent} from '../../typechain/src/mocks/DAOMock';
 import {
   MAJORITY_VOTING_BASE_INTERFACE,
   VOTING_EVENTS,
-} from '../../test-utils/majority-voting-constants';
+} from '../test-utils/majority-voting-constants';
 import {
   TOKEN_VOTING_INTERFACE,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
-} from '../../test-utils/token-voting-constants';
+} from '../test-utils/token-voting-constants';
 import {
   TokenVoting__factory,
   TokenVoting,
-} from '../../test-utils/typechain-versions';
+} from '../test-utils/typechain-versions';
 import {
   VoteOption,
   VotingMode,
   voteWithSigners,
   setBalances,
   setTotalSupply,
-} from '../../test-utils/voting-helpers';
+} from '../test-utils/voting-helpers';
 import {
   findEvent,
   findEventTopicLog,
