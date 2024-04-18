@@ -1,13 +1,13 @@
 ## interfaces
 
 interface IPlugin {
-  id: ID! # plugin address
+  id: ID! # Plugin address
   daoAddress: Bytes!
   pluginAddress: Bytes!
 }
 
 interface IProposal {
-  id: ID! # package + proposalId
+  id: ID! # Plugin address + Proposal ID (padded)
   daoAddress: Bytes!
   creator: Bytes!
   metadata: String
@@ -21,13 +21,13 @@ interface IProposal {
 }
 
 interface Token {
-  id: ID! # use address as id
+  id: ID! # Token contract address
   name: String
   symbol: String
 }
 
 interface IAction {
-  id: ID! # ActionEntityId
+  id: ID! # # Plugin address + DAO address + Plugin proposal ID + Action index
   to: Bytes!
   value: BigInt!
   data: Bytes!
@@ -52,7 +52,7 @@ enum VotingMode {
 # Types
 
 type TokenVotingPlugin implements IPlugin @entity {
-  id: ID! # Address of the plugin
+  id: ID! # Plugin address
   daoAddress: Bytes!
   pluginAddress: Bytes!
 
@@ -69,7 +69,7 @@ type TokenVotingPlugin implements IPlugin @entity {
 }
 
 type TokenVotingMember @entity {
-  id: ID! # pluginAddress + voterAddress
+  id: ID! # Plugin address + Voter address
   address: Bytes!
   balance: BigInt!
   plugin: TokenVotingPlugin!
@@ -82,7 +82,7 @@ type TokenVotingMember @entity {
 }
 
 type TokenVotingVoter @entity {
-  id: ID! # pluginAddress + voterAddress
+  id: ID! # Plugin address + Voter address
   address: String! # address as string to facilitate filtering by address on the UI
   proposals: [TokenVotingVote!]! @derivedFrom(field: "voter")
   plugin: TokenVotingPlugin!
@@ -91,7 +91,7 @@ type TokenVotingVoter @entity {
 
 type TokenVotingVote @entity {
   "Voter to Proposal  Many-to-Many relationship"
-  id: ID! # voterAddress + proposalEntityId
+  id: ID! # Voter address + Plugin address + Plugin proposal ID
   voter: TokenVotingVoter!
   proposal: TokenVotingProposal!
   voteOption: VoteOption!
@@ -102,7 +102,7 @@ type TokenVotingVote @entity {
 }
 
 type TokenVotingProposal implements IProposal @entity {
-  id: ID! # pluginAddress + proposalId (padded)
+  id: ID! # Plugin address + Proposal ID (padded)
   daoAddress: Bytes!
   actions: [Action!]! @derivedFrom(field: "proposal")
   allowFailureMap: BigInt!
@@ -141,7 +141,7 @@ type TokenVotingProposal implements IProposal @entity {
 # Executions
 
 type Action implements IAction @entity(immutable: true) {
-  id: ID! # proposalId + action index
+  id: ID! # Plugin address + DAO address + Plugin proposal ID + Action index
   to: Bytes!
   value: BigInt!
   data: Bytes!
@@ -154,14 +154,14 @@ type Action implements IAction @entity(immutable: true) {
 # Token Contracts
 
 type ERC20Contract implements Token @entity(immutable: true) {
-  id: ID! # use address as id
+  id: ID! # Token contract address
   name: String
   symbol: String
   decimals: Int!
 }
 
 type ERC20WrapperContract implements Token @entity(immutable: true) {
-  id: ID! # use address as id
+  id: ID! # Token contract address
   name: String
   symbol: String
   decimals: Int!
