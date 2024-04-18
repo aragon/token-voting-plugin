@@ -4,6 +4,7 @@ import {
   getLatestNetworkDeployment,
   getNetworkNameByAlias,
 } from '@aragon/osx-commons-configs';
+import {UnsupportedNetworkError, findEvent} from '@aragon/osx-commons-sdk';
 import {
   UnsupportedNetworkError,
   VersionTag,
@@ -135,7 +136,7 @@ export async function getPastVersionCreatedEvents(
 }
 
 export type LatestVersion = {
-  versionTag: VersionTag;
+  versionTag: PluginRepo.VersionStruct;
   pluginSetupContract: string;
   releaseMetadata: string;
   buildMetadata: string;
@@ -162,14 +163,13 @@ export async function createVersion(
 
   console.log(`Creating build for release ${releaseNumber} with tx ${tx.hash}`);
 
-  await tx.wait();
+  const receipt = await tx.wait();
 
-  const versionCreatedEvent =
-    await findEvent<PluginRepoEvents.VersionCreatedEvent>(
-      tx,
-      pluginRepo.interface.events['VersionCreated(uint8,uint16,address,bytes)']
-        .name
-    );
+  const versionCreatedEvent = findEvent<PluginRepoEvents.VersionCreatedEvent>(
+    receipt,
+    pluginRepo.interface.events['VersionCreated(uint8,uint16,address,bytes)']
+      .name
+  );
 
   // Check if versionCreatedEvent is not undefined
   if (versionCreatedEvent) {

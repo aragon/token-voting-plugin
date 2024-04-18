@@ -37,9 +37,6 @@ import {
   setTotalSupply,
 } from '../../test-utils/voting-helpers';
 import {
-  IDAO_EVENTS,
-  IMEMBERSHIP_EVENTS,
-  IPROPOSAL_EVENTS,
   findEvent,
   findEventTopicLog,
   proposalIdToBytes32,
@@ -130,8 +127,8 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     [dao.address, defaultVotingSettings, token.address]
   );
   const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitdata);
-  const proxyCreatedEvent1 = await findEvent<ProxyCreatedEvent>(
-    deploymentTx1,
+  const proxyCreatedEvent1 = findEvent<ProxyCreatedEvent>(
+    await deploymentTx1.wait(),
     proxyFactory.interface.getEvent('ProxyCreated').name
   );
   const initializedPlugin = TokenVoting__factory.connect(
@@ -159,8 +156,8 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
 
   // Deploy an uninitialized plugin proxy.
   const deploymentTx2 = await proxyFactory.deployUUPSProxy([]);
-  const proxyCreatedEvent2 = await findEvent<ProxyCreatedEvent>(
-    deploymentTx2,
+  const proxyCreatedEvent2 = findEvent<ProxyCreatedEvent>(
+    await deploymentTx2.wait(),
     proxyFactory.interface.getEvent('ProxyCreated').name
   );
   const uninitializedPlugin = TokenVoting__factory.connect(
@@ -228,10 +225,7 @@ describe('TokenVoting', function () {
           token.address
         )
       )
-        .to.emit(
-          uninitializedPlugin,
-          IMEMBERSHIP_EVENTS.MembershipContractAnnounced
-        )
+        .to.emit(uninitializedPlugin, 'MembershipContractAnnounced')
         .withArgs(token.address);
     });
 
@@ -422,8 +416,8 @@ describe('TokenVoting', function () {
           );
 
         const id = 0;
-        const event = await findEvent<ProposalCreatedEvent>(
-          tx,
+        const event = findEvent<ProposalCreatedEvent>(
+          await tx.wait(),
           'ProposalCreated'
         );
         expect(event.args.proposalId).to.equal(id);
@@ -581,8 +575,8 @@ describe('TokenVoting', function () {
         );
 
         // Check the `ProposalCreatedEvent` for the creator and proposalId
-        const event = await findEvent<ProposalCreatedEvent>(
-          tx3,
+        const event = findEvent<ProposalCreatedEvent>(
+          await tx3.wait(),
           'ProposalCreated'
         );
         expect(event.args.proposalId).to.equal(id);
@@ -693,8 +687,8 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-        const event = await findEvent<ProposalCreatedEvent>(
-          tx,
+        const event = findEvent<ProposalCreatedEvent>(
+          await tx.wait(),
           'ProposalCreated'
         );
         expect(event.args.proposalId).to.equal(0);
@@ -989,8 +983,8 @@ describe('TokenVoting', function () {
       expect(proposal.parameters.endDate).to.eq(expectedEndDate);
 
       // Check the event
-      const event = await findEvent<ProposalCreatedEvent>(
-        creationTx,
+      const event = findEvent<ProposalCreatedEvent>(
+        await creationTx.wait(),
         'ProposalCreated'
       );
       expect(event.args.proposalId).to.equal(id);
@@ -1036,8 +1030,8 @@ describe('TokenVoting', function () {
         false
       );
       const id = 0;
-      const event = await findEvent<ProposalCreatedEvent>(
-        tx,
+      const event = findEvent<ProposalCreatedEvent>(
+        await tx.wait(),
         'ProposalCreated'
       );
       expect(event.args.proposalId).to.equal(id);
@@ -1079,8 +1073,8 @@ describe('TokenVoting', function () {
         false
       );
       const id = 0;
-      const event = await findEvent<ProposalCreatedEvent>(
-        tx,
+      const event = findEvent<ProposalCreatedEvent>(
+        await tx.wait(),
         'ProposalCreated'
       );
       expect(event.args.proposalId).to.equal(id);
@@ -1119,13 +1113,13 @@ describe('TokenVoting', function () {
 
       // Check that the `ProposalCreated` event is emitted and `VoteCast` is not.
       await expect(tx)
-        .to.emit(plugin, IPROPOSAL_EVENTS.ProposalCreated)
+        .to.emit(plugin, 'ProposalCreated')
         .to.not.emit(plugin, VOTING_EVENTS.VOTE_CAST);
 
       // Check that `ProposalCreated` event contains the expected data.
-      const event = await findEvent<ProposalCreatedEvent>(
-        tx,
-        IPROPOSAL_EVENTS.ProposalCreated
+      const event = findEvent<ProposalCreatedEvent>(
+        await tx.wait(),
+        'ProposalCreated'
       );
       expect(event.args.proposalId).to.equal(id);
       expect(event.args.creator).to.equal(alice.address);
@@ -1206,13 +1200,13 @@ describe('TokenVoting', function () {
 
       // Check that the `ProposalCreated` and `VoteCast` events are emitted with the expected data.
       await expect(tx)
-        .to.emit(plugin, IPROPOSAL_EVENTS.ProposalCreated)
+        .to.emit(plugin, 'ProposalCreated')
         .to.emit(plugin, VOTING_EVENTS.VOTE_CAST)
         .withArgs(id, alice.address, VoteOption.Yes, 10);
 
-      const event = await findEvent<ProposalCreatedEvent>(
-        tx,
-        IPROPOSAL_EVENTS.ProposalCreated
+      const event = findEvent<ProposalCreatedEvent>(
+        await tx.wait(),
+        'ProposalCreated'
       );
       expect(event.args.proposalId).to.equal(id);
       expect(event.args.creator).to.equal(alice.address);
@@ -1291,8 +1285,8 @@ describe('TokenVoting', function () {
         VoteOption.None,
         false
       );
-      const event = await findEvent<ProposalCreatedEvent>(
-        tx,
+      const event = findEvent<ProposalCreatedEvent>(
+        await tx.wait(),
         'ProposalCreated'
       );
       expect(event.args.proposalId).to.equal(id);
@@ -2120,10 +2114,10 @@ describe('TokenVoting', function () {
         const tx = await plugin.connect(grace).vote(id, VoteOption.Yes, true);
         // Check that this executes the vote as expected.
         {
-          const event = await findEventTopicLog<ExecutedEvent>(
-            tx,
+          const event = findEventTopicLog<ExecutedEvent>(
+            await tx.wait(),
             DAO__factory.createInterface(),
-            IDAO_EVENTS.Executed
+            'Executed'
           );
 
           expect(event.args.actor).to.equal(plugin.address);
@@ -2139,9 +2133,9 @@ describe('TokenVoting', function () {
 
         // check for the `ProposalExecuted` event in the voting contract
         {
-          const event = await findEvent<ProposalExecutedEvent>(
-            tx,
-            IPROPOSAL_EVENTS.ProposalExecuted
+          const event = findEvent<ProposalExecutedEvent>(
+            await tx.wait(),
+            'ProposalExecuted'
           );
           expect(event.args.proposalId).to.equal(id);
         }
