@@ -1,6 +1,6 @@
 {{info}}
 specVersion: 0.0.2
-description: the aragon token voting plugin
+description: The schema for the Token Voting plugin subgraph
 repository: https://github.com/aragon/token-voting-plugin
 schema:
   file: ./schema.graphql

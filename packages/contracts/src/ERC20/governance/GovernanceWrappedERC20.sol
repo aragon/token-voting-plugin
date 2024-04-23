@@ -17,7 +17,7 @@ import {IGovernanceWrappedERC20} from "./IGovernanceWrappedERC20.sol";
 /* solhint-enable max-line-length */
 
 /// @title GovernanceWrappedERC20
-/// @author Aragon Association
+/// @author Aragon X
 /// @notice Wraps an existing [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token by
 /// inheriting from `ERC20WrapperUpgradeable` and allows using it for voting by inheriting from `ERC20VotesUpgradeable`.
 /// The latter is compatible with

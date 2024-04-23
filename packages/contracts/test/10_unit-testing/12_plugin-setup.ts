@@ -1,5 +1,5 @@
-import {createDaoProxy} from '../../20_integration-testing/test-helpers';
-import {METADATA, VERSION} from '../../../plugin-settings';
+import {createDaoProxy} from '../20_integration-testing/test-helpers';
+import {METADATA, VERSION} from '../../plugin-settings';
 import {
   ERC20,
   ERC20__factory,
@@ -7,18 +7,18 @@ import {
   GovernanceERC20__factory,
   GovernanceWrappedERC20,
   GovernanceWrappedERC20__factory,
-} from '../../../typechain';
-import {MajorityVotingBase} from '../../../typechain/src/MajorityVotingBase';
+} from '../../typechain';
+import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {
   MINT_PERMISSION_ID,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
-} from '../../test-utils/token-voting-constants';
+} from '../test-utils/token-voting-constants';
 import {
   TokenVoting__factory,
   TokenVotingSetup,
   TokenVotingSetup__factory,
-} from '../../test-utils/typechain-versions';
-import {VotingMode} from '../../test-utils/voting-helpers';
+} from '../test-utils/typechain-versions';
+import {VotingMode} from '../test-utils/voting-helpers';
 import {
   DAO_PERMISSIONS,
   Operation,
@@ -61,9 +61,7 @@ async function fixture(): Promise<FixtureResult> {
   const [deployer, alice, bob, carol] = await ethers.getSigners();
 
   // Deploy a DAO proxy.
-  const dummyMetadata = ethers.utils.hexlify(
-    ethers.utils.toUtf8Bytes('0x123456789')
-  );
+  const dummyMetadata = '0x12345678';
   const dao = await createDaoProxy(deployer, dummyMetadata);
 
   const defaultTokenSettings = {

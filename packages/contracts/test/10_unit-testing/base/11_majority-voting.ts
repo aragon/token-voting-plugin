@@ -52,8 +52,8 @@ describe('MajorityVotingMock', function () {
       pluginImplementation.address
     );
     const deploymentTx1 = await proxyFactory.deployUUPSProxy([]);
-    const proxyCreatedEvent1 = await findEvent<ProxyCreatedEvent>(
-      deploymentTx1,
+    const proxyCreatedEvent1 = findEvent<ProxyCreatedEvent>(
+      await deploymentTx1.wait(),
       proxyFactory.interface.getEvent('ProxyCreated').name
     );
     votingBase = MajorityVotingMock__factory.connect(

@@ -18,7 +18,7 @@ import {IMajorityVoting} from "./IMajorityVoting.sol";
 /* solhint-enable max-line-length */
 
 /// @title MajorityVotingBase
-/// @author Aragon Association - 2022-2023
+/// @author Aragon X - 2022-2023
 /// @notice The abstract implementation of majority voting plugins.
 ///
 /// ### Parameterization

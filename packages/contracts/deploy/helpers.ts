@@ -202,10 +202,9 @@ export async function createPluginRepo(
   console.log(
     `Creating & registering repo for ${pluginName} with tx ${tx.hash}`
   );
-  await tx.wait();
 
-  const event = await findEventTopicLog<PluginRepoRegisteredEvent>(
-    tx,
+  const event = findEventTopicLog<PluginRepoRegisteredEvent>(
+    await tx.wait(),
     PluginRepoRegistry__factory.createInterface(),
     'PluginRepoRegistered'
   );
@@ -239,10 +238,10 @@ export async function createVersion(
 
   console.log(`Creating build for release ${releaseNumber} with tx ${tx.hash}`);
 
-  await tx.wait();
+  const receipt = await tx.wait();
 
-  const versionCreatedEvent = await findEvent<VersionCreatedEvent>(
-    tx,
+  const versionCreatedEvent = findEvent<VersionCreatedEvent>(
+    receipt,
     'VersionCreated'
   );
 
