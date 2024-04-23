@@ -23,7 +23,7 @@ import {TokenVoting} from "./TokenVoting.sol";
 import {ProxyLib} from "@aragon/osx-commons-contracts/src/utils/deployment/ProxyLib.sol";
 
 /// @title TokenVotingSetup
-/// @author Aragon Association - 2022-2023
+/// @author Aragon X - 2022-2023
 /// @notice The setup contract of the `TokenVoting` plugin.
 /// @dev v1.3 (Release 1, Build 3)
 /// @custom:security-contact sirt@aragon.org

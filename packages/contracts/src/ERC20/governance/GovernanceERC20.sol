@@ -18,7 +18,7 @@ import {IERC20MintableUpgradeable} from "../IERC20MintableUpgradeable.sol";
 /* solhint-enable max-line-length */
 
 /// @title GovernanceERC20
-/// @author Aragon Association
+/// @author Aragon X
 /// @notice An [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
 /// compatible [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token, used for voting and managed by a DAO.
 /// @custom:security-contact sirt@aragon.org

@@ -13,7 +13,7 @@ import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {MajorityVotingBase} from "./MajorityVotingBase.sol";
 
 /// @title TokenVoting
-/// @author Aragon Association - 2021-2023
+/// @author Aragon X - 2021-2023
 /// @notice The majority voting implementation using an
 /// [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
 /// compatible governance token.
