@@ -312,7 +312,7 @@ export async function updateFromBuildTest(
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID
     );
 
-  // Update current build (a previous one) to the latest build
+  // Update from the previous build to the latest build
   await expect(
     updatePlugin(
       deployer,
