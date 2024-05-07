@@ -1,5 +1,5 @@
 import {createDaoProxy} from '../20_integration-testing/test-helpers';
-import {METADATA, VERSION} from '../../plugin-settings';
+import {METADATA} from '../../plugin-settings';
 import {
   ERC20,
   ERC20__factory,
@@ -310,7 +310,7 @@ describe('TokenVotingSetup', function () {
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(1);
       expect(helpers).to.be.deep.equal([anticipatedWrappedTokenAddress]);
-      expect(permissions.length).to.be.equal(3);
+      expect(permissions.length).to.be.equal(2);
       expect(permissions).to.deep.equal([
         [
           Operation.Grant,
@@ -318,13 +318,6 @@ describe('TokenVotingSetup', function () {
           dao.address,
           AddressZero,
           UPDATE_VOTING_SETTINGS_PERMISSION_ID,
-        ],
-        [
-          Operation.Grant,
-          plugin,
-          dao.address,
-          AddressZero,
-          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
         ],
         [
           Operation.Grant,
@@ -423,7 +416,7 @@ describe('TokenVotingSetup', function () {
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(1);
       expect(helpers).to.be.deep.equal([governanceERC20.address]);
-      expect(permissions.length).to.be.equal(3);
+      expect(permissions.length).to.be.equal(2);
       expect(permissions).to.deep.equal([
         [
           Operation.Grant,
@@ -431,13 +424,6 @@ describe('TokenVotingSetup', function () {
           dao.address,
           AddressZero,
           UPDATE_VOTING_SETTINGS_PERMISSION_ID,
-        ],
-        [
-          Operation.Grant,
-          plugin,
-          dao.address,
-          AddressZero,
-          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
         ],
         [
           Operation.Grant,
@@ -490,7 +476,7 @@ describe('TokenVotingSetup', function () {
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(1);
       expect(helpers).to.be.deep.equal([anticipatedTokenAddress]);
-      expect(permissions.length).to.be.equal(4);
+      expect(permissions.length).to.be.equal(3);
       expect(permissions).to.deep.equal([
         [
           Operation.Grant,
@@ -498,13 +484,6 @@ describe('TokenVotingSetup', function () {
           dao.address,
           AddressZero,
           UPDATE_VOTING_SETTINGS_PERMISSION_ID,
-        ],
-        [
-          Operation.Grant,
-          plugin,
-          dao.address,
-          AddressZero,
-          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
         ],
         [
           Operation.Grant,
@@ -595,26 +574,70 @@ describe('TokenVotingSetup', function () {
   });
 
   describe('prepareUpdate', async () => {
-    it('should return nothing', async () => {
+    it('update from build 1 should return correct permissions', async () => {
       const {pluginSetup, dao} = await loadFixture(fixture);
+      const plugin = ethers.Wallet.createRandom().address;
 
       // Make a static call to check that the plugin update data being returned is correct.
-      const prepareUpdateData = await pluginSetup.callStatic.prepareUpdate(
-        dao.address,
-        VERSION.build,
-        {
-          currentHelpers: [
-            ethers.Wallet.createRandom().address,
-            ethers.Wallet.createRandom().address,
-          ],
-          data: [],
-          plugin: ethers.Wallet.createRandom().address,
-        }
-      );
+      // const prepareUpdateData
+      const {
+        initData: initData,
+        preparedSetupData: {helpers, permissions},
+      } = await pluginSetup.callStatic.prepareUpdate(dao.address, 1, {
+        currentHelpers: [
+          ethers.Wallet.createRandom().address,
+          ethers.Wallet.createRandom().address,
+        ],
+        data: [],
+        plugin,
+      });
+
       // Check the return data.
-      expect(prepareUpdateData.initData).to.be.eq('0x');
-      expect(prepareUpdateData.preparedSetupData.permissions).to.be.eql([]);
-      expect(prepareUpdateData.preparedSetupData.helpers).to.be.eql([]);
+      expect(initData).to.be.eq('0x');
+      expect(helpers).to.be.eql([]);
+      expect(permissions.length).to.be.eql(1);
+      expect(permissions).to.deep.equal([
+        [
+          Operation.Revoke,
+          plugin,
+          dao.address,
+          AddressZero,
+          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
+        ],
+      ]);
+    });
+
+    it('update from build 2 should return correct permissions', async () => {
+      const {pluginSetup, dao} = await loadFixture(fixture);
+      const plugin = ethers.Wallet.createRandom().address;
+
+      // Make a static call to check that the plugin update data being returned is correct.
+      // const prepareUpdateData
+      const {
+        initData: initData,
+        preparedSetupData: {helpers, permissions},
+      } = await pluginSetup.callStatic.prepareUpdate(dao.address, 2, {
+        currentHelpers: [
+          ethers.Wallet.createRandom().address,
+          ethers.Wallet.createRandom().address,
+        ],
+        data: [],
+        plugin,
+      });
+
+      // Check the return data.
+      expect(initData).to.be.eq('0x');
+      expect(helpers).to.be.eql([]);
+      expect(permissions.length).to.be.eql(1);
+      expect(permissions).to.deep.equal([
+        [
+          Operation.Revoke,
+          plugin,
+          dao.address,
+          AddressZero,
+          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
+        ],
+      ]);
     });
   });
 
@@ -697,13 +720,6 @@ describe('TokenVotingSetup', function () {
         ],
         [
           Operation.Revoke,
-          plugin,
-          dao.address,
-          AddressZero,
-          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
-        ],
-        [
-          Operation.Revoke,
           dao.address,
           plugin,
           AddressZero,
@@ -711,7 +727,7 @@ describe('TokenVotingSetup', function () {
         ],
       ];
 
-      expect(permissions1.length).to.be.equal(3);
+      expect(permissions1.length).to.be.equal(2);
       expect(permissions1).to.deep.equal(essentialPermissions);
 
       const permissions2 = await pluginSetup.callStatic.prepareUninstallation(
@@ -723,7 +739,7 @@ describe('TokenVotingSetup', function () {
         }
       );
 
-      expect(permissions2.length).to.be.equal(4);
+      expect(permissions2.length).to.be.equal(3);
       expect(permissions2).to.deep.equal([
         ...essentialPermissions,
         [

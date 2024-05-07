@@ -1,6 +1,6 @@
 {
   "ui": {},
-  "change": "v1.3\n - TODO TODO.",
+  "change": "v1.3\n - Stop granting Upgrade Plugin permission to the Dao since it is not needed.\n",
   "pluginSetup": {
     "prepareInstallation": {
       "description": "The information required for the installation.",
