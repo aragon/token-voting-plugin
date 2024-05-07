@@ -607,7 +607,7 @@ describe('TokenVotingSetup', function () {
       ]);
     });
 
-    it('update from build 2 should return correct permissions', async () => {
+    it('returns the permissions expected for the update from build 2', async () => {
       const {pluginSetup, dao} = await loadFixture(fixture);
       const plugin = ethers.Wallet.createRandom().address;
 
