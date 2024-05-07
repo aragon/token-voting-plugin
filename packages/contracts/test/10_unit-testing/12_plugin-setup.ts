@@ -579,7 +579,6 @@ describe('TokenVotingSetup', function () {
       const plugin = ethers.Wallet.createRandom().address;
 
       // Make a static call to check that the plugin update data being returned is correct.
-      // const prepareUpdateData
       const {
         initData: initData,
         preparedSetupData: {helpers, permissions},
