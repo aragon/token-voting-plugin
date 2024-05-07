@@ -103,11 +103,12 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             );
 
         address token = tokenSettings.addr;
+        bool tokenAddressNotZero = token != address(0);
 
         // Prepare helpers.
         address[] memory helpers = new address[](1);
 
-        if (token != address(0)) {
+        if (tokenAddressNotZero) {
             if (!token.isContract()) {
                 revert TokenNotContract(token);
             }
@@ -162,7 +163,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
         // Prepare permissions
         PermissionLib.MultiTargetPermission[]
             memory permissions = new PermissionLib.MultiTargetPermission[](
-                tokenSettings.addr != address(0) ? 3 : 4
+                tokenAddressNotZero ? 2 : 3
             );
 
         // Set plugin permissions to be granted.
@@ -175,16 +176,8 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             permissionId: tokenVotingBase.UPDATE_VOTING_SETTINGS_PERMISSION_ID()
         });
 
-        permissions[1] = PermissionLib.MultiTargetPermission({
-            operation: PermissionLib.Operation.Grant,
-            where: plugin,
-            who: _dao,
-            condition: PermissionLib.NO_CONDITION,
-            permissionId: tokenVotingBase.UPGRADE_PLUGIN_PERMISSION_ID()
-        });
-
         // Grant `EXECUTE_PERMISSION` of the DAO to the plugin.
-        permissions[2] = PermissionLib.MultiTargetPermission({
+        permissions[1] = PermissionLib.MultiTargetPermission({
             operation: PermissionLib.Operation.Grant,
             where: _dao,
             who: plugin,
@@ -192,10 +185,10 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             permissionId: EXECUTE_PERMISSION_ID
         });
 
-        if (tokenSettings.addr == address(0)) {
+        if (!tokenAddressNotZero) {
             bytes32 tokenMintPermission = GovernanceERC20(token).MINT_PERMISSION_ID();
 
-            permissions[3] = PermissionLib.MultiTargetPermission({
+            permissions[2] = PermissionLib.MultiTargetPermission({
                 operation: PermissionLib.Operation.Grant,
                 where: token,
                 who: _dao,
@@ -209,19 +202,32 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     }
 
     /// @inheritdoc IPluginSetup
-    /// @dev Nothing needs to happen for the update.
+    /// @dev Revoke the upgrade plugin permission to the DAO for all builds prior the current one (3).
     function prepareUpdate(
         address _dao,
-        uint16 _currentBuild,
+        uint16 _fromBuild,
         SetupPayload calldata _payload
     )
         external
-        pure
+        view
         override
         returns (bytes memory initData, PreparedSetupData memory preparedSetupData)
-    // solhint-disable-next-line no-empty-blocks
     {
+        (initData);
+        if (_fromBuild < 3) {
+            PermissionLib.MultiTargetPermission[]
+                memory permissions = new PermissionLib.MultiTargetPermission[](1);
 
+            permissions[0] = PermissionLib.MultiTargetPermission({
+                operation: PermissionLib.Operation.Revoke,
+                where: _payload.plugin,
+                who: _dao,
+                condition: PermissionLib.NO_CONDITION,
+                permissionId: tokenVotingBase.UPGRADE_PLUGIN_PERMISSION_ID()
+            });
+
+            preparedSetupData.permissions = permissions;
+        }
     }
 
     /// @inheritdoc IPluginSetup
@@ -243,7 +249,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
 
         bool isGovernanceERC20 = supportedIds[0] && supportedIds[1] && !supportedIds[2];
 
-        permissions = new PermissionLib.MultiTargetPermission[](isGovernanceERC20 ? 4 : 3);
+        permissions = new PermissionLib.MultiTargetPermission[](isGovernanceERC20 ? 3 : 2);
 
         // Set permissions to be Revoked.
         permissions[0] = PermissionLib.MultiTargetPermission({
@@ -256,14 +262,6 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
 
         permissions[1] = PermissionLib.MultiTargetPermission({
             operation: PermissionLib.Operation.Revoke,
-            where: _payload.plugin,
-            who: _dao,
-            condition: PermissionLib.NO_CONDITION,
-            permissionId: tokenVotingBase.UPGRADE_PLUGIN_PERMISSION_ID()
-        });
-
-        permissions[2] = PermissionLib.MultiTargetPermission({
-            operation: PermissionLib.Operation.Revoke,
             where: _dao,
             who: _payload.plugin,
             condition: PermissionLib.NO_CONDITION,
@@ -274,7 +272,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
         // as GovernanceWrapped does not possess this permission. Only return the following
         // if it's type of GovernanceERC20, otherwise revoking this permission wouldn't have any effect.
         if (isGovernanceERC20) {
-            permissions[3] = PermissionLib.MultiTargetPermission({
+            permissions[2] = PermissionLib.MultiTargetPermission({
                 operation: PermissionLib.Operation.Revoke,
                 where: token,
                 who: _dao,
