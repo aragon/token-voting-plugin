@@ -727,6 +727,18 @@ describe('TokenVotingSetup', function () {
 
       expect(permissions1.length).to.be.equal(2);
       expect(permissions1).to.deep.equal(essentialPermissions);
+
+      const permissions2 = await pluginSetup.callStatic.prepareUninstallation(
+        dao.address,
+        {
+          plugin,
+          currentHelpers: [governanceERC20.address],
+          data: prepareUninstallationInputs,
+        }
+      );
+
+      expect(permissions2.length).to.be.equal(2);
+      expect(permissions2).to.deep.equal(essentialPermissions);
     });
   });
 });
