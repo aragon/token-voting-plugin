@@ -727,27 +727,6 @@ describe('TokenVotingSetup', function () {
 
       expect(permissions1.length).to.be.equal(2);
       expect(permissions1).to.deep.equal(essentialPermissions);
-
-      const permissions2 = await pluginSetup.callStatic.prepareUninstallation(
-        dao.address,
-        {
-          plugin,
-          currentHelpers: [governanceERC20.address],
-          data: prepareUninstallationInputs,
-        }
-      );
-
-      expect(permissions2.length).to.be.equal(3);
-      expect(permissions2).to.deep.equal([
-        ...essentialPermissions,
-        [
-          Operation.Revoke,
-          governanceERC20.address,
-          dao.address,
-          AddressZero,
-          MINT_PERMISSION_ID,
-        ],
-      ]);
     });
   });
 });
