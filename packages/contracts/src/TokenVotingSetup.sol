@@ -241,15 +241,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             revert WrongHelpersArrayLength({length: helperLength});
         }
 
-        // token can be either GovernanceERC20, GovernanceWrappedERC20, or IVotesUpgradeable, which
-        // does not follow the GovernanceERC20 and GovernanceWrappedERC20 standard.
-        address token = _payload.currentHelpers[0];
-
-        bool[] memory supportedIds = _getTokenInterfaceIds(token);
-
-        bool isGovernanceERC20 = supportedIds[0] && supportedIds[1] && !supportedIds[2];
-
-        permissions = new PermissionLib.MultiTargetPermission[](isGovernanceERC20 ? 3 : 2);
+        permissions = new PermissionLib.MultiTargetPermission[](2);
 
         // Set permissions to be Revoked.
         permissions[0] = PermissionLib.MultiTargetPermission({
