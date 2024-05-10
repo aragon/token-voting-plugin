@@ -22,8 +22,9 @@ echo ''
 echo '> Building subgraph'
 ./scripts/build-subgraph.sh
 
-if [ "$SUBGRAPH_NETWORK_NAME" == 'localhost' ]; then
-    SUBGRAPH_NETWORK_NAME='goerli'
+if [ "$SUBGRAPH_NETWORK_NAME" == 'localhost' ]
+then
+  SUBGRAPH_NETWORK_NAME='sepolia'
 fi
 
 # Prepare subgraph name
