@@ -16,3 +16,5 @@ and this project adheres to the [Aragon OSx Plugin Versioning Convention](https:
 - Bumped OpenZepplin to `4.9.6`.
 - Used `ProxyLib` from `osx-commons-contracts` for the UUPS proxy deployment in `TokenVotingSetup`.
 - Hard-coded the `bytes32 internal constant EXECUTE_PERMISSION_ID` constant in `TokenVotingSetup` until it is available in `PermissionLib`.
+- Changed the `prepareInstallation` function in `TokenVotingSetup` to not unnecessarily grant the `UPGRADE_PLUGIN_PERMISSION_ID` permission to the installing DAO.
+- Changed the `prepareUpdate` function in `TokenVotingSetup` to revoke the previously unnecessarily granted `UPGRADE_PLUGIN_PERMISSION_ID` permission from the installing DAO.

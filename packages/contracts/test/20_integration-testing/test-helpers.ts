@@ -264,8 +264,8 @@ export async function updateFromBuildTest(
     .connect(deployer)
     .grant(dao.address, psp.address, DAO_PERMISSIONS.ROOT_PERMISSION_ID);
 
-  // Install build 1.
-  const pluginSetupRefBuild1 = {
+  // Install a previous build with build number `build`
+  const pluginSetupRefPreviousBuild = {
     versionTag: {
       release: VERSION.release,
       build: build,
@@ -276,7 +276,7 @@ export async function updateFromBuildTest(
     deployer,
     psp,
     dao,
-    pluginSetupRefBuild1,
+    pluginSetupRefPreviousBuild,
     ethers.utils.defaultAbiCoder.encode(
       getNamedTypesFromMetadata(
         METADATA.build.pluginSetup.prepareInstallation.inputs
@@ -292,15 +292,16 @@ export async function updateFromBuildTest(
   );
 
   // Check that the implementation of the plugin proxy matches the latest build
-  const implementationBuild1 = await PluginUpgradeableSetup__factory.connect(
-    (
-      await pluginRepo['getVersion((uint8,uint16))'](
-        pluginSetupRefBuild1.versionTag
-      )
-    ).pluginSetup,
-    deployer
-  ).implementation();
-  expect(await plugin.implementation()).to.equal(implementationBuild1);
+  const implementationPreviousBuild =
+    await PluginUpgradeableSetup__factory.connect(
+      (
+        await pluginRepo['getVersion((uint8,uint16))'](
+          pluginSetupRefPreviousBuild.versionTag
+        )
+      ).pluginSetup,
+      deployer
+    ).implementation();
+  expect(await plugin.implementation()).to.equal(implementationPreviousBuild);
 
   // Grant the PSP the permission to upgrade the plugin implementation.
   await dao
@@ -311,7 +312,7 @@ export async function updateFromBuildTest(
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID
     );
 
-  // Update build 1 to the latest build
+  // Update from the previous build to the latest build
   await expect(
     updatePlugin(
       deployer,
@@ -319,7 +320,7 @@ export async function updateFromBuildTest(
       dao,
       plugin,
       installationResults.preparedEvent.args.preparedSetupData.helpers,
-      pluginSetupRefBuild1,
+      pluginSetupRefPreviousBuild,
       pluginSetupRefLatestBuild,
       ethers.utils.defaultAbiCoder.encode(
         getNamedTypesFromMetadata(
