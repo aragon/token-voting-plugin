@@ -267,19 +267,6 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             condition: PermissionLib.NO_CONDITION,
             permissionId: EXECUTE_PERMISSION_ID
         });
-
-        // Revocation of permission is necessary only if the deployed token is GovernanceERC20,
-        // as GovernanceWrapped does not possess this permission. Only return the following
-        // if it's type of GovernanceERC20, otherwise revoking this permission wouldn't have any effect.
-        if (isGovernanceERC20) {
-            permissions[2] = PermissionLib.MultiTargetPermission({
-                operation: PermissionLib.Operation.Revoke,
-                where: token,
-                who: _dao,
-                condition: PermissionLib.NO_CONDITION,
-                permissionId: GovernanceERC20(token).MINT_PERMISSION_ID()
-            });
-        }
     }
 
     /// @notice Retrieves the interface identifiers supported by the token contract.
