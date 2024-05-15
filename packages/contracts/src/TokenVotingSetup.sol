@@ -241,15 +241,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             revert WrongHelpersArrayLength({length: helperLength});
         }
 
-        // token can be either GovernanceERC20, GovernanceWrappedERC20, or IVotesUpgradeable, which
-        // does not follow the GovernanceERC20 and GovernanceWrappedERC20 standard.
-        address token = _payload.currentHelpers[0];
-
-        bool[] memory supportedIds = _getTokenInterfaceIds(token);
-
-        bool isGovernanceERC20 = supportedIds[0] && supportedIds[1] && !supportedIds[2];
-
-        permissions = new PermissionLib.MultiTargetPermission[](isGovernanceERC20 ? 3 : 2);
+        permissions = new PermissionLib.MultiTargetPermission[](2);
 
         // Set permissions to be Revoked.
         permissions[0] = PermissionLib.MultiTargetPermission({
@@ -267,19 +259,6 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             condition: PermissionLib.NO_CONDITION,
             permissionId: EXECUTE_PERMISSION_ID
         });
-
-        // Revocation of permission is necessary only if the deployed token is GovernanceERC20,
-        // as GovernanceWrapped does not possess this permission. Only return the following
-        // if it's type of GovernanceERC20, otherwise revoking this permission wouldn't have any effect.
-        if (isGovernanceERC20) {
-            permissions[2] = PermissionLib.MultiTargetPermission({
-                operation: PermissionLib.Operation.Revoke,
-                where: token,
-                who: _dao,
-                condition: PermissionLib.NO_CONDITION,
-                permissionId: GovernanceERC20(token).MINT_PERMISSION_ID()
-            });
-        }
     }
 
     /// @notice Retrieves the interface identifiers supported by the token contract.

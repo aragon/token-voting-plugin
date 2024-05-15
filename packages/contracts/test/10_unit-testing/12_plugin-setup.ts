@@ -737,17 +737,8 @@ describe('TokenVotingSetup', function () {
         }
       );
 
-      expect(permissions2.length).to.be.equal(3);
-      expect(permissions2).to.deep.equal([
-        ...essentialPermissions,
-        [
-          Operation.Revoke,
-          governanceERC20.address,
-          dao.address,
-          AddressZero,
-          MINT_PERMISSION_ID,
-        ],
-      ]);
+      expect(permissions2.length).to.be.equal(2);
+      expect(permissions2).to.deep.equal(essentialPermissions);
     });
   });
 });
