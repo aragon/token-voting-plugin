@@ -44,6 +44,10 @@ contract TokenVoting is
     using TallyMath for Tally;
     using ProposalIdCodec for uint256;
 
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /// ---------- STATE ----------
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     /// @notice The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contract.
     bytes4 internal constant TOKEN_VOTING_INTERFACE_ID =
         this.initialize.selector ^
@@ -71,6 +75,10 @@ contract TokenVoting is
     /// compatible contract referencing the token being used for voting.
     IVotesUpgradeable private votingToken;
 
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /// --------- ERRORS ----------
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     /// @notice Thrown if a date is out of bounds.
     /// @param limit The limit value.
     /// @param actual The actual value.
@@ -89,7 +97,7 @@ contract TokenVoting is
     /// - has not started,
     /// - has ended,
     /// - was executed, or
-    /// - the account doesn't have voting powers.
+    /// - the account doesn't have sufficient voting power.
     /// @param proposalId The ID of the proposal.
     /// @param account The address of the _account.
     /// @param votes The chosen vote allocation.
@@ -101,6 +109,10 @@ contract TokenVoting is
 
     /// @notice Thrown if the voting power is zero
     error NoVotingPower();
+
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /// --------- EVENTS ----------
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     /// @notice Emitted when the voting settings are updated.
     /// @param votingMode A parameter to select the vote mode.
@@ -128,6 +140,10 @@ contract TokenVoting is
         uint256 votingPower
     );
 
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /// ------- INITIALIZER -------
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     /// @notice Initializes the component.
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
     /// @param _dao The IDAO interface of the associated DAO.
@@ -145,6 +161,10 @@ contract TokenVoting is
 
         emit MembershipContractAnnounced({definingContract: address(_token)});
     }
+
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /// ------ INTROSPECTION ------
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
     /// @param _interfaceId The ID of the interface.
@@ -165,6 +185,54 @@ contract TokenVoting is
             super.supportsInterface(_interfaceId);
     }
 
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /// -------- SETTINGS ---------
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    /// @inheritdoc ITokenVoting
+    function updateVotingSettings(
+        VotingSettings calldata _votingSettings
+    ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
+        _updateVotingSettings(_votingSettings);
+    }
+
+    /// @notice Internal function to update the plugin-wide proposal vote settings.
+    /// @param _votingSettings The voting settings to be validated and updated.
+    function _updateVotingSettings(VotingSettings calldata _votingSettings) internal virtual {
+        // Require the support threshold value to be in the interval [0, 10^6-1],
+        // because `>` comparision is used in the support criterion and >100% could never be reached.
+        if (_votingSettings.supportThreshold > RATIO_BASE - 1) {
+            revert RatioOutOfBounds({
+                limit: RATIO_BASE - 1,
+                actual: _votingSettings.supportThreshold
+            });
+        }
+
+        // Require the minimum participation value to be in the interval [0, 10^6],
+        // because `>=` comparision is used in the participation criterion.
+        if (_votingSettings.minParticipation > RATIO_BASE) {
+            revert RatioOutOfBounds({limit: RATIO_BASE, actual: _votingSettings.minParticipation});
+        }
+
+        if (_votingSettings.minDuration < 60 minutes) {
+            revert MinDurationOutOfBounds({limit: 60 minutes, actual: _votingSettings.minDuration});
+        }
+
+        if (_votingSettings.minDuration > 365 days) {
+            revert MinDurationOutOfBounds({limit: 365 days, actual: _votingSettings.minDuration});
+        }
+
+        votingSettings = _votingSettings;
+
+        emit VotingSettingsUpdated({
+            votingMode: _votingSettings.votingMode,
+            supportThreshold: _votingSettings.supportThreshold,
+            minParticipation: _votingSettings.minParticipation,
+            minDuration: _votingSettings.minDuration,
+            minProposerVotingPower: _votingSettings.minProposerVotingPower
+        });
+    }
+
     /// @inheritdoc ITokenVoting
     function getVotingToken() public view returns (IVotesUpgradeable) {
         return votingToken;
@@ -174,6 +242,38 @@ contract TokenVoting is
     function totalVotingPower(uint256 _blockNumber) public view returns (uint256) {
         return votingToken.getPastTotalSupply(_blockNumber);
     }
+
+    /// @inheritdoc ITokenVoting
+    function supportThreshold() public view virtual returns (uint32) {
+        return votingSettings.supportThreshold;
+    }
+
+    /// @inheritdoc ITokenVoting
+    function minParticipation() public view virtual returns (uint32) {
+        return votingSettings.minParticipation;
+    }
+
+    /// @notice Returns the minimum duration parameter stored in the voting settings.
+    /// @return The minimum duration parameter.
+    function minDuration() public view virtual returns (uint64) {
+        return votingSettings.minDuration;
+    }
+
+    /// @notice Returns the minimum voting power required to create a proposal stored in the voting settings.
+    /// @return The minimum voting power required to create a proposal.
+    function minProposerVotingPower() public view virtual returns (uint256) {
+        return votingSettings.minProposerVotingPower;
+    }
+
+    /// @notice Returns the vote mode stored in the voting settings.
+    /// @return The vote mode parameter.
+    function votingMode() public view virtual returns (VotingMode) {
+        return votingSettings.votingMode;
+    }
+
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /// -------- PROPOSALS --------
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     /// @inheritdoc ITokenVoting
     function createProposal(
@@ -312,6 +412,10 @@ contract TokenVoting is
         _createProposalId();
     }
 
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /// --------- VOTING ----------
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     /// @inheritdoc ITokenVoting
     function vote(
         uint256 _proposalId,
@@ -326,20 +430,42 @@ contract TokenVoting is
         _vote(_proposalId, _votes, account, _tryEarlyExecution);
     }
 
-    /// @inheritdoc ITokenVoting
-    function execute(uint256 _proposalId) public virtual {
-        if (!_canExecute(_proposalId)) {
-            revert ProposalExecutionForbidden(_proposalId);
-        }
-        _execute(_proposalId);
-    }
-
-    /// @inheritdoc ITokenVoting
-    function getVotes(
+    /// @notice Internal function to cast a vote. It assumes the queried vote exists.
+    /// @param _proposalId The ID of the proposal.
+    /// @param _votes The chosen vote allocation to be casted on the proposal.
+    /// @param _tryEarlyExecution If `true`,  early execution is tried after the vote cast.
+    /// The call does not revert if early execution is not possible.
+    function _vote(
         uint256 _proposalId,
-        address _voter
-    ) public view virtual returns (Tally memory) {
-        return proposals[_proposalId].voters[_voter];
+        Tally memory _votes,
+        address _voter,
+        bool _tryEarlyExecution
+    ) internal {
+        Proposal storage proposal_ = proposals[_proposalId];
+        Tally storage lastVotes = proposal_.voters[_voter];
+
+        // Remove the previous vote of the voter if it exists
+        if (!lastVotes.isZero()) proposal_.tally = proposal_.tally.sub(lastVotes);
+
+        // Update the total votes of the proposal
+        proposal_.tally = proposal_.tally.add(_votes);
+
+        // write the updated/new vote for the voter.
+        // done by field due to memory vs storage constraints
+        lastVotes.yes = _votes.yes;
+        lastVotes.no = _votes.no;
+        lastVotes.abstain = _votes.abstain;
+
+        emit VoteCast({
+            proposalId: _proposalId,
+            voter: _voter,
+            votes: _votes,
+            votingPower: _votes.sum()
+        });
+
+        if (_tryEarlyExecution && _canExecute(_proposalId)) {
+            _execute(_proposalId);
+        }
     }
 
     /// @inheritdoc ITokenVoting
@@ -351,9 +477,151 @@ contract TokenVoting is
         return _canVote(_proposalId, _voter, _votes);
     }
 
+    /// @notice Internal function to check if a voter can vote. It assumes the queried proposal exists.
+    /// @param _proposalId The ID of the proposal.
+    /// @param _account The address of the voter to check.
+    /// @param  _votes To what degree the voter abstains, supports or opposes the proposal.
+    /// @return Returns `true` if the given voter can vote on a certain proposal and `false` otherwise.
+    function _canVote(
+        uint256 _proposalId,
+        address _account,
+        Tally memory _votes
+    ) internal view returns (bool) {
+        Proposal storage proposal_ = proposals[_proposalId];
+
+        // The proposal vote hasn't started or has already ended.
+        if (!_isProposalOpen(proposal_)) {
+            return false;
+        }
+
+        // The voter votes with zero votes which is not allowed.
+        if (_votes.isZero()) {
+            return false;
+        }
+
+        // The voter has insufficient voting power.
+        if (votingToken.getPastVotes(_account, proposal_.parameters.snapshotBlock) < _votes.sum()) {
+            return false;
+        }
+
+        // The voter has already voted but vote replacment is not allowed.
+        if (
+            !proposal_.voters[_account].isZero() &&
+            proposal_.parameters.votingMode != VotingMode.VoteReplacement
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /// -------- EXECUTION --------
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    /// @inheritdoc ITokenVoting
+    function execute(uint256 _proposalId) public virtual {
+        if (!_canExecute(_proposalId)) {
+            revert ProposalExecutionForbidden(_proposalId);
+        }
+        _execute(_proposalId);
+    }
+
+    /// @notice Internal function to execute a vote. It assumes the queried proposal exists.
+    /// @param _proposalId The ID of the proposal.
+    function _execute(uint256 _proposalId) internal virtual {
+        proposals[_proposalId].executed = true;
+
+        _executeProposal(
+            dao(),
+            _proposalId,
+            proposals[_proposalId].actions,
+            proposals[_proposalId].allowFailureMap
+        );
+    }
+
     /// @inheritdoc ITokenVoting
     function canExecute(uint256 _proposalId) public view virtual returns (bool) {
         return _canExecute(_proposalId);
+    }
+
+    /// @notice Internal function to check if a proposal can be executed. It assumes the queried proposal exists.
+    /// @param _proposalId The ID of the proposal.
+    /// @return True if the proposal can be executed, false otherwise.
+    /// @dev Threshold and minimal values are compared with `>` and `>=` comparators, respectively.
+    function _canExecute(uint256 _proposalId) internal view virtual returns (bool) {
+        Proposal storage proposal_ = proposals[_proposalId];
+
+        // Verify that the vote has not been executed already.
+        if (proposal_.executed) {
+            return false;
+        }
+
+        if (_isProposalOpen(proposal_)) {
+            // Early execution
+            if (proposal_.parameters.votingMode != VotingMode.EarlyExecution) {
+                return false;
+            }
+            if (!isSupportThresholdReachedEarly(_proposalId)) {
+                return false;
+            }
+        } else {
+            // Normal execution
+            if (!isSupportThresholdReached(_proposalId)) {
+                return false;
+            }
+        }
+        if (!isMinParticipationReached(_proposalId)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /// --------- GETTERS ---------
+    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    /// @inheritdoc IMembership
+    function isMember(address _account) external view returns (bool) {
+        // A member must own at least one token or have at least one token delegated to her/him.
+        return
+            votingToken.getVotes(_account) > 0 ||
+            IERC20Upgradeable(address(votingToken)).balanceOf(_account) > 0;
+    }
+
+    /// @inheritdoc ITokenVoting
+    function getVotes(
+        uint256 _proposalId,
+        address _voter
+    ) public view virtual returns (Tally memory) {
+        return proposals[_proposalId].voters[_voter];
+    }
+
+    /// @inheritdoc ITokenVoting
+    function getProposal(
+        uint256 _proposalId
+    )
+        public
+        view
+        virtual
+        returns (
+            bool open,
+            bool executed,
+            ProposalParameters memory parameters,
+            Tally memory tally,
+            IDAO.Action[] memory actions,
+            uint256 allowFailureMap
+        )
+    {
+        Proposal storage proposal_ = proposals[_proposalId];
+
+        open = _isProposalOpen(proposal_);
+        executed = proposal_.executed;
+        parameters = proposal_.parameters;
+        tally = proposal_.tally;
+        actions = proposal_.actions;
+        allowFailureMap = proposal_.allowFailureMap;
     }
 
     /// @inheritdoc ITokenVoting
@@ -397,121 +665,6 @@ contract TokenVoting is
             proposal_.parameters.minVotingPower;
     }
 
-    /// @inheritdoc ITokenVoting
-    function supportThreshold() public view virtual returns (uint32) {
-        return votingSettings.supportThreshold;
-    }
-
-    /// @inheritdoc ITokenVoting
-    function minParticipation() public view virtual returns (uint32) {
-        return votingSettings.minParticipation;
-    }
-
-    /// @notice Returns the minimum duration parameter stored in the voting settings.
-    /// @return The minimum duration parameter.
-    function minDuration() public view virtual returns (uint64) {
-        return votingSettings.minDuration;
-    }
-
-    /// @notice Returns the minimum voting power required to create a proposal stored in the voting settings.
-    /// @return The minimum voting power required to create a proposal.
-    function minProposerVotingPower() public view virtual returns (uint256) {
-        return votingSettings.minProposerVotingPower;
-    }
-
-    /// @notice Returns the vote mode stored in the voting settings.
-    /// @return The vote mode parameter.
-    function votingMode() public view virtual returns (VotingMode) {
-        return votingSettings.votingMode;
-    }
-
-    /// @notice Returns all information for a proposal vote by its ID.
-    /// @param _proposalId The ID of the proposal.
-    /// @return open Whether the proposal is open or not.
-    /// @return executed Whether the proposal is executed or not.
-    /// @return parameters The parameters of the proposal vote.
-    /// @return tally The current tally of the proposal vote.
-    /// @return actions The actions to be executed in the associated DAO after the proposal has passed.
-    /// @return allowFailureMap The bit map representations of which actions are allowed to revert so tx still succeeds.
-    function getProposal(
-        uint256 _proposalId
-    )
-        public
-        view
-        virtual
-        returns (
-            bool open,
-            bool executed,
-            ProposalParameters memory parameters,
-            Tally memory tally,
-            IDAO.Action[] memory actions,
-            uint256 allowFailureMap
-        )
-    {
-        Proposal storage proposal_ = proposals[_proposalId];
-
-        open = _isProposalOpen(proposal_);
-        executed = proposal_.executed;
-        parameters = proposal_.parameters;
-        tally = proposal_.tally;
-        actions = proposal_.actions;
-        allowFailureMap = proposal_.allowFailureMap;
-    }
-
-    /// @notice Updates the voting settings.
-    /// @param _votingSettings The new voting settings.
-    function updateVotingSettings(
-        VotingSettings calldata _votingSettings
-    ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
-        _updateVotingSettings(_votingSettings);
-    }
-
-    /// @notice Internal function to execute a vote. It assumes the queried proposal exists.
-    /// @param _proposalId The ID of the proposal.
-    function _execute(uint256 _proposalId) internal virtual {
-        proposals[_proposalId].executed = true;
-
-        _executeProposal(
-            dao(),
-            _proposalId,
-            proposals[_proposalId].actions,
-            proposals[_proposalId].allowFailureMap
-        );
-    }
-
-    /// @notice Internal function to check if a proposal can be executed. It assumes the queried proposal exists.
-    /// @param _proposalId The ID of the proposal.
-    /// @return True if the proposal can be executed, false otherwise.
-    /// @dev Threshold and minimal values are compared with `>` and `>=` comparators, respectively.
-    function _canExecute(uint256 _proposalId) internal view virtual returns (bool) {
-        Proposal storage proposal_ = proposals[_proposalId];
-
-        // Verify that the vote has not been executed already.
-        if (proposal_.executed) {
-            return false;
-        }
-
-        if (_isProposalOpen(proposal_)) {
-            // Early execution
-            if (proposal_.parameters.votingMode != VotingMode.EarlyExecution) {
-                return false;
-            }
-            if (!isSupportThresholdReachedEarly(_proposalId)) {
-                return false;
-            }
-        } else {
-            // Normal execution
-            if (!isSupportThresholdReached(_proposalId)) {
-                return false;
-            }
-        }
-        if (!isMinParticipationReached(_proposalId)) {
-            return false;
-        }
-
-        return true;
-    }
-
     /// @notice Internal function to check if a proposal vote is still open.
     /// @param proposal_ The proposal struct.
     /// @return True if the proposal vote is open, false otherwise.
@@ -522,43 +675,6 @@ contract TokenVoting is
             proposal_.parameters.startDate <= currentTime &&
             currentTime < proposal_.parameters.endDate &&
             !proposal_.executed;
-    }
-
-    /// @notice Internal function to update the plugin-wide proposal vote settings.
-    /// @param _votingSettings The voting settings to be validated and updated.
-    function _updateVotingSettings(VotingSettings calldata _votingSettings) internal virtual {
-        // Require the support threshold value to be in the interval [0, 10^6-1],
-        // because `>` comparision is used in the support criterion and >100% could never be reached.
-        if (_votingSettings.supportThreshold > RATIO_BASE - 1) {
-            revert RatioOutOfBounds({
-                limit: RATIO_BASE - 1,
-                actual: _votingSettings.supportThreshold
-            });
-        }
-
-        // Require the minimum participation value to be in the interval [0, 10^6],
-        // because `>=` comparision is used in the participation criterion.
-        if (_votingSettings.minParticipation > RATIO_BASE) {
-            revert RatioOutOfBounds({limit: RATIO_BASE, actual: _votingSettings.minParticipation});
-        }
-
-        if (_votingSettings.minDuration < 60 minutes) {
-            revert MinDurationOutOfBounds({limit: 60 minutes, actual: _votingSettings.minDuration});
-        }
-
-        if (_votingSettings.minDuration > 365 days) {
-            revert MinDurationOutOfBounds({limit: 365 days, actual: _votingSettings.minDuration});
-        }
-
-        votingSettings = _votingSettings;
-
-        emit VotingSettingsUpdated({
-            votingMode: _votingSettings.votingMode,
-            supportThreshold: _votingSettings.supportThreshold,
-            minParticipation: _votingSettings.minParticipation,
-            minDuration: _votingSettings.minDuration,
-            minProposerVotingPower: _votingSettings.minProposerVotingPower
-        });
     }
 
     /// @notice Validates and returns the proposal vote dates.
@@ -596,94 +712,6 @@ contract TokenVoting is
                 revert DateOutOfBounds({limit: earliestEndDate, actual: endDate});
             }
         }
-    }
-
-    /// @inheritdoc IMembership
-    function isMember(address _account) external view returns (bool) {
-        // A member must own at least one token or have at least one token delegated to her/him.
-        return
-            votingToken.getVotes(_account) > 0 ||
-            IERC20Upgradeable(address(votingToken)).balanceOf(_account) > 0;
-    }
-
-    /// @notice Internal function to cast a vote. It assumes the queried vote exists.
-    /// @param _proposalId The ID of the proposal.
-    /// @param _votes The chosen vote allocation to be casted on the proposal.
-    /// @param _tryEarlyExecution If `true`,  early execution is tried after the vote cast.
-    /// The call does not revert if early execution is not possible.
-    function _vote(
-        uint256 _proposalId,
-        Tally memory _votes,
-        address _voter,
-        bool _tryEarlyExecution
-    ) internal {
-        Proposal storage proposal_ = proposals[_proposalId];
-        Tally storage lastVotes = proposal_.voters[_voter];
-
-        // This could re-enter, though we can assume the governance token is not malicious
-        // TODO: remove this
-        uint256 votingPower = votingToken.getPastVotes(_voter, proposal_.parameters.snapshotBlock);
-
-        // Remove the previous vote of the voter if it exists
-        if (!lastVotes.isZero()) proposal_.tally = proposal_.tally.sub(lastVotes);
-
-        // Update the total votes of the proposal
-        proposal_.tally = proposal_.tally.add(_votes);
-
-        // write the updated/new vote for the voter.
-        // done by field due to memory vs storage constraints
-        lastVotes.yes = _votes.yes;
-        lastVotes.no = _votes.no;
-        lastVotes.abstain = _votes.abstain;
-
-        emit VoteCast({
-            proposalId: _proposalId,
-            voter: _voter,
-            votes: _votes,
-            votingPower: votingPower
-        });
-
-        if (_tryEarlyExecution && _canExecute(_proposalId)) {
-            _execute(_proposalId);
-        }
-    }
-
-    /// @notice Internal function to check if a voter can vote. It assumes the queried proposal exists.
-    /// @param _proposalId The ID of the proposal.
-    /// @param _account The address of the voter to check.
-    /// @param  _votes To what degree the voter abstains, supports or opposes the proposal.
-    /// @return Returns `true` if the given voter can vote on a certain proposal and `false` otherwise.
-    function _canVote(
-        uint256 _proposalId,
-        address _account,
-        Tally memory _votes
-    ) internal view returns (bool) {
-        Proposal storage proposal_ = proposals[_proposalId];
-
-        // The proposal vote hasn't started or has already ended.
-        if (!_isProposalOpen(proposal_)) {
-            return false;
-        }
-
-        // The voter votes with zero votes which is not allowed.
-        if (_votes.isZero()) {
-            return false;
-        }
-
-        // The voter has no voting power.
-        if (votingToken.getPastVotes(_account, proposal_.parameters.snapshotBlock) == 0) {
-            return false;
-        }
-
-        // The voter has already voted but vote replacment is not allowed.
-        if (
-            !proposal_.voters[_account].isZero() &&
-            proposal_.parameters.votingMode != VotingMode.VoteReplacement
-        ) {
-            return false;
-        }
-
-        return true;
     }
 
     /// @dev This empty reserved space is put in place to allow future versions to add new

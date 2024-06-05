@@ -14,7 +14,7 @@ import {expect} from 'chai';
 import {BigNumber} from 'ethers';
 import {ethers} from 'hardhat';
 
-describe('Proposal creation', async () => {
+describe.only('Proposal creation', async () => {
   let voteSettingsWithMinProposerVotingPower: MajorityVotingBase.VotingSettingsStruct;
 
   before(async () => {
