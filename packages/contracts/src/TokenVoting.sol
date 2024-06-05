@@ -13,6 +13,7 @@ import {IProtocolVersion} from "@aragon/osx-commons-contracts/src/utils/versioni
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 import {ProposalUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/ProposalUpgradeable.sol";
 import {RATIO_BASE, RatioOutOfBounds} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
@@ -21,6 +22,7 @@ import {_applyRatioCeiled} from "@aragon/osx-commons-contracts/src/utils/math/Ra
 
 import {ITokenVoting} from "./ITokenVoting.sol";
 import {TallyMath} from "./libs/TallyMath.sol";
+import {ProposalIdCodec} from "./libs/ProposalIdCodec.sol";
 
 /// @title TokenVoting
 /// @author Aragon X - 2021-2024
@@ -38,7 +40,9 @@ contract TokenVoting is
     ProposalUpgradeable
 {
     using SafeCastUpgradeable for uint256;
+    using SafeMathUpgradeable for uint256;
     using TallyMath for Tally;
+    using ProposalIdCodec for uint256;
 
     /// @notice The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contract.
     bytes4 internal constant TOKEN_VOTING_INTERFACE_ID =
@@ -250,6 +254,62 @@ contract TokenVoting is
         if (!_votes.isZero()) {
             vote(proposalId, _votes, _tryEarlyExecution);
         }
+    }
+
+    /// @notice Internal function to create a proposal.
+    /// @param _metadata The proposal metadata.
+    /// @param _startDate The start date of the proposal in seconds.
+    /// @param _endDate The end date of the proposal in seconds.
+    /// @param _allowFailureMap A bitmap allowing the proposal to succeed, even if individual actions might revert. If the bit at index `i` is 1, the proposal succeeds even if the `i`th action reverts. A failure map value of 0 requires every action to not revert.
+    /// @param _actions The actions that will be executed after the proposal passes.
+    /// @return proposalId The ID of the proposal.
+    function _createProposal(
+        address _creator,
+        bytes calldata _metadata,
+        uint64 _startDate,
+        uint64 _endDate,
+        IDAO.Action[] calldata _actions,
+        uint256 _allowFailureMap
+    ) internal override returns (uint256 proposalId) {
+        proposalId = _createProposalId({_startDate: _startDate, _endDate: _endDate});
+
+        emit ProposalCreated({
+            proposalId: proposalId,
+            creator: _creator,
+            metadata: _metadata,
+            startDate: _startDate,
+            endDate: _endDate,
+            actions: _actions,
+            allowFailureMap: _allowFailureMap
+        });
+    }
+
+    /// @notice Creates a propsalId with timestamp and plugin data encoded. Also increases the proposal count.
+    /// @dev This is a useful reference for timestamp based clocks on other chains.
+    /// @param _startDate The start date of the proposal in seconds.
+    /// @param _endDate The end date of the proposal in seconds.
+    /// @return proposalId The ID of the proposal, encoded as plugin+timestamps.
+    /// @dev The block timestamp is used rather than the block number as the block number is saved
+    /// in the Propsal struct and only has meaning on this chain.
+    function _createProposalId(
+        uint64 _startDate,
+        uint64 _endDate
+    ) internal returns (uint256 proposalId) {
+        _incrementProposalCount();
+
+        return
+            ProposalIdCodec.encode({
+                _plugin: address(this),
+                _proposalStartTimestamp: uint(_startDate).toUint32(),
+                _proposalEndTimestamp: uint(_endDate).toUint32(),
+                _proposalBlockSnapshotTimestamp: block.timestamp.toUint32()
+            });
+    }
+
+    /// @notice Increases the total proposal count by one.
+    /// @dev We cannot override `_createProposalId`, so this is a more idomatic way to increment the proposal count.
+    function _incrementProposalCount() private {
+        _createProposalId();
     }
 
     /// @inheritdoc ITokenVoting
