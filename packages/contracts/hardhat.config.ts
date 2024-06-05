@@ -24,6 +24,11 @@ import 'solidity-coverage';
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || '../../.env';
 dotenvConfig({path: resolve(__dirname, dotenvConfigPath), override: true});
 
+const testPath = '10_unit-testing';
+if (testPath)
+  // make bold and yellow
+  console.warn('\x1b[33m%s\x1b[0m', `Test running only from dir ${testPath}`);
+
 // check alchemy Api key existence
 if (process.env.ALCHEMY_API_KEY) {
   addRpcUrlToNetwork(process.env.ALCHEMY_API_KEY);
@@ -152,7 +157,7 @@ const config: HardhatUserConfig = {
     artifacts: './artifacts',
     cache: './cache',
     sources: './src',
-    tests: './test',
+    tests: './test/' + testPath,
     deploy: './deploy',
   },
   mocha: {
