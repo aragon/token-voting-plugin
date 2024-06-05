@@ -6,13 +6,9 @@ import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
-import {IMembership} from "@aragon/osx-commons-contracts/src/plugin/extensions/membership/IMembership.sol";
-import {_applyRatioCeiled} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
-import {IProtocolVersion} from "@aragon/osx-commons-contracts/src/utils/versioning/IProtocolVersion.sol";
-
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
-
-import {ITokenVoting} from "./ITokenVoting.sol";
+import {IMembership} from "@aragon/osx-commons-contracts/src/plugin/extensions/membership/IMembership.sol";
+import {IProtocolVersion} from "@aragon/osx-commons-contracts/src/utils/versioning/IProtocolVersion.sol";
 
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -21,7 +17,10 @@ import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/mat
 import {ProposalUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/ProposalUpgradeable.sol";
 import {RATIO_BASE, RatioOutOfBounds} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
 import {PluginUUPSUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/PluginUUPSUpgradeable.sol";
-import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {_applyRatioCeiled} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
+
+import {ITokenVoting} from "./ITokenVoting.sol";
+import {TallyMath} from "./libs/TallyMath.sol";
 
 /// @title TokenVoting
 /// @author Aragon X - 2021-2024
@@ -39,6 +38,7 @@ contract TokenVoting is
     ProposalUpgradeable
 {
     using SafeCastUpgradeable for uint256;
+    using TallyMath for Tally;
 
     /// @notice The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contract.
     bytes4 internal constant TOKEN_VOTING_INTERFACE_ID =
@@ -88,8 +88,8 @@ contract TokenVoting is
     /// - the account doesn't have voting powers.
     /// @param proposalId The ID of the proposal.
     /// @param account The address of the _account.
-    /// @param voteOption The chosen vote option.
-    error VoteCastForbidden(uint256 proposalId, address account, VoteOption voteOption);
+    /// @param votes The chosen vote allocation.
+    error VoteCastForbidden(uint256 proposalId, address account, Tally votes);
 
     /// @notice Thrown if the proposal execution is forbidden.
     /// @param proposalId The ID of the proposal.
@@ -115,12 +115,12 @@ contract TokenVoting is
     /// @notice Emitted when a vote is cast by a voter.
     /// @param proposalId The ID of the proposal.
     /// @param voter The voter casting the vote.
-    /// @param voteOption The casted vote option.
+    /// @param votes The casted votes.
     /// @param votingPower The voting power behind this vote.
     event VoteCast(
         uint256 indexed proposalId,
         address indexed voter,
-        VoteOption voteOption,
+        Tally votes,
         uint256 votingPower
     );
 
@@ -141,8 +141,6 @@ contract TokenVoting is
 
         emit MembershipContractAnnounced({definingContract: address(_token)});
     }
-
-    function v2() external {}
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
     /// @param _interfaceId The ID of the interface.
@@ -180,7 +178,7 @@ contract TokenVoting is
         uint256 _allowFailureMap,
         uint64 _startDate,
         uint64 _endDate,
-        VoteOption _voteOption,
+        Tally memory _votes,
         bool _tryEarlyExecution
     ) external returns (uint256 proposalId) {
         // Check that either `_msgSender` owns enough tokens or has enough voting power from being a delegatee.
@@ -249,27 +247,23 @@ contract TokenVoting is
             }
         }
 
-        if (_voteOption != VoteOption.None) {
-            vote(proposalId, _voteOption, _tryEarlyExecution);
+        if (!_votes.isZero()) {
+            vote(proposalId, _votes, _tryEarlyExecution);
         }
     }
 
     /// @inheritdoc ITokenVoting
     function vote(
         uint256 _proposalId,
-        VoteOption _voteOption,
+        Tally memory _votes,
         bool _tryEarlyExecution
     ) public virtual {
         address account = _msgSender();
 
-        if (!_canVote(_proposalId, account, _voteOption)) {
-            revert VoteCastForbidden({
-                proposalId: _proposalId,
-                account: account,
-                voteOption: _voteOption
-            });
+        if (!_canVote(_proposalId, account, _votes)) {
+            revert VoteCastForbidden({proposalId: _proposalId, account: account, votes: _votes});
         }
-        _vote(_proposalId, _voteOption, account, _tryEarlyExecution);
+        _vote(_proposalId, _votes, account, _tryEarlyExecution);
     }
 
     /// @inheritdoc ITokenVoting
@@ -281,10 +275,10 @@ contract TokenVoting is
     }
 
     /// @inheritdoc ITokenVoting
-    function getVoteOption(
+    function getVotes(
         uint256 _proposalId,
         address _voter
-    ) public view virtual returns (VoteOption) {
+    ) public view virtual returns (Tally memory) {
         return proposals[_proposalId].voters[_voter];
     }
 
@@ -292,9 +286,9 @@ contract TokenVoting is
     function canVote(
         uint256 _proposalId,
         address _voter,
-        VoteOption _voteOption
+        Tally memory _votes
     ) public view virtual returns (bool) {
-        return _canVote(_proposalId, _voter, _voteOption);
+        return _canVote(_proposalId, _voter, _votes);
     }
 
     /// @inheritdoc ITokenVoting
@@ -554,45 +548,38 @@ contract TokenVoting is
 
     /// @notice Internal function to cast a vote. It assumes the queried vote exists.
     /// @param _proposalId The ID of the proposal.
-    /// @param _voteOption The chosen vote option to be casted on the proposal vote.
+    /// @param _votes The chosen vote allocation to be casted on the proposal.
     /// @param _tryEarlyExecution If `true`,  early execution is tried after the vote cast.
     /// The call does not revert if early execution is not possible.
     function _vote(
         uint256 _proposalId,
-        VoteOption _voteOption,
+        Tally memory _votes,
         address _voter,
         bool _tryEarlyExecution
     ) internal {
         Proposal storage proposal_ = proposals[_proposalId];
+        Tally storage lastVotes = proposal_.voters[_voter];
 
         // This could re-enter, though we can assume the governance token is not malicious
+        // TODO: remove this
         uint256 votingPower = votingToken.getPastVotes(_voter, proposal_.parameters.snapshotBlock);
-        VoteOption state = proposal_.voters[_voter];
 
-        // If voter had previously voted, decrease count
-        if (state == VoteOption.Yes) {
-            proposal_.tally.yes = proposal_.tally.yes - votingPower;
-        } else if (state == VoteOption.No) {
-            proposal_.tally.no = proposal_.tally.no - votingPower;
-        } else if (state == VoteOption.Abstain) {
-            proposal_.tally.abstain = proposal_.tally.abstain - votingPower;
-        }
+        // Remove the previous vote of the voter if it exists
+        if (!lastVotes.isZero()) proposal_.tally = proposal_.tally.sub(lastVotes);
+
+        // Update the total votes of the proposal
+        proposal_.tally = proposal_.tally.add(_votes);
 
         // write the updated/new vote for the voter.
-        if (_voteOption == VoteOption.Yes) {
-            proposal_.tally.yes = proposal_.tally.yes + votingPower;
-        } else if (_voteOption == VoteOption.No) {
-            proposal_.tally.no = proposal_.tally.no + votingPower;
-        } else if (_voteOption == VoteOption.Abstain) {
-            proposal_.tally.abstain = proposal_.tally.abstain + votingPower;
-        }
-
-        proposal_.voters[_voter] = _voteOption;
+        // done by field due to memory vs storage constraints
+        lastVotes.yes = _votes.yes;
+        lastVotes.no = _votes.no;
+        lastVotes.abstain = _votes.abstain;
 
         emit VoteCast({
             proposalId: _proposalId,
             voter: _voter,
-            voteOption: _voteOption,
+            votes: _votes,
             votingPower: votingPower
         });
 
@@ -604,12 +591,12 @@ contract TokenVoting is
     /// @notice Internal function to check if a voter can vote. It assumes the queried proposal exists.
     /// @param _proposalId The ID of the proposal.
     /// @param _account The address of the voter to check.
-    /// @param  _voteOption Whether the voter abstains, supports or opposes the proposal.
+    /// @param  _votes To what degree the voter abstains, supports or opposes the proposal.
     /// @return Returns `true` if the given voter can vote on a certain proposal and `false` otherwise.
     function _canVote(
         uint256 _proposalId,
         address _account,
-        VoteOption _voteOption
+        Tally memory _votes
     ) internal view returns (bool) {
         Proposal storage proposal_ = proposals[_proposalId];
 
@@ -618,8 +605,8 @@ contract TokenVoting is
             return false;
         }
 
-        // The voter votes `None` which is not allowed.
-        if (_voteOption == VoteOption.None) {
+        // The voter votes with zero votes which is not allowed.
+        if (_votes.isZero()) {
             return false;
         }
 
@@ -630,7 +617,7 @@ contract TokenVoting is
 
         // The voter has already voted but vote replacment is not allowed.
         if (
-            proposal_.voters[_account] != VoteOption.None &&
+            !proposal_.voters[_account].isZero() &&
             proposal_.parameters.votingMode != VotingMode.VoteReplacement
         ) {
             return false;
