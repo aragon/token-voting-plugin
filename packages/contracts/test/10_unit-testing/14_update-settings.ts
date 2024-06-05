@@ -1,13 +1,5 @@
 import {createDaoProxy} from '../20_integration-testing/test-helpers';
-import {
-  IERC165Upgradeable__factory,
-  IPlugin__factory,
-  IProposal__factory,
-  IProtocolVersion__factory,
-  ProxyFactory__factory,
-  ITokenVoting__factory,
-  ITokenVoting,
-} from '../../typechain';
+import {ProxyFactory__factory, ITokenVoting} from '../../typechain';
 import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {
   TokenVoting,

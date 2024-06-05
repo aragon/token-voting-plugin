@@ -8,7 +8,7 @@ import {
   GovernanceWrappedERC20,
   GovernanceWrappedERC20__factory,
 } from '../../typechain';
-import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
+import {ITokenVoting as MajorityVotingBase} from '../../typechain';
 import {
   MINT_PERMISSION_ID,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
