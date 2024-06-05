@@ -5,6 +5,10 @@ import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
 import {IMembership} from "@aragon/osx-commons-contracts/src/plugin/extensions/membership/IMembership.sol";
 
+/// @title ITokenVoting
+/// @author Aragon X - 2024
+/// @notice Interface for Aragon IVotes-based voting and proposal plugin "TokenVoting".
+/// @custom:security-contact sirt@aragon.org
 interface ITokenVoting {
     /// @notice Vote options that a voter can chose from.
     /// @param None The default option state of a voter indicating the absence from the vote.

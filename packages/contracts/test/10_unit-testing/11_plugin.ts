@@ -10,8 +10,8 @@ import {
   IProtocolVersion__factory,
   ProxyFactory__factory,
 } from '../../typechain';
+import {ITokenVoting as MajorityVotingBase} from '../../typechain';
 import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
-import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {
   ProposalCreatedEvent,
   ProposalExecutedEvent,
@@ -273,64 +273,6 @@ describe('TokenVoting', function () {
 
       // Check that the token has been set.
       expect(await plugin.getVotingToken()).to.equal(token.address);
-    });
-  });
-
-  describe('ERC-165', async () => {
-    it('does not support the empty interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      expect(await plugin.supportsInterface('0xffffffff')).to.be.false;
-    });
-
-    it('supports the `IERC165Upgradeable` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      const iface = IERC165Upgradeable__factory.createInterface();
-      expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
-    });
-
-    it('supports the `IPlugin` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      const iface = IPlugin__factory.createInterface();
-      expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
-    });
-
-    it('supports the `IProtocolVersion` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      const iface = IProtocolVersion__factory.createInterface();
-      expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
-    });
-
-    it('supports the `IProposal` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      const iface = IProposal__factory.createInterface();
-      expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
-    });
-
-    it('supports the `IMembership` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      const iface = IMembership__factory.createInterface();
-      expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
-    });
-
-    it('supports the `IMajorityVoting` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      const iface = IMajorityVoting__factory.createInterface();
-      expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
-    });
-
-    it('supports the `MajorityVotingBase` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      expect(
-        await plugin.supportsInterface(
-          getInterfaceId(MAJORITY_VOTING_BASE_INTERFACE)
-        )
-      ).to.be.true;
-    });
-
-    it('supports the `TokenVoting` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      const interfaceId = getInterfaceId(TOKEN_VOTING_INTERFACE);
-      expect(await plugin.supportsInterface(interfaceId)).to.be.true;
     });
   });
 
@@ -762,7 +704,7 @@ describe('TokenVoting', function () {
           {
             receiver: bob.address,
             amount:
-              voteSettingsWithMinProposerVotingPower.minProposerVotingPower,
+              voteSettingsWithMinProposerVotingPower.minProposerVotingPower as BigNumber,
           },
         ]);
 

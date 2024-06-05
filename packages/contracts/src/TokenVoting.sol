@@ -8,6 +8,7 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 
 import {IMembership} from "@aragon/osx-commons-contracts/src/plugin/extensions/membership/IMembership.sol";
 import {_applyRatioCeiled} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
+import {IProtocolVersion} from "@aragon/osx-commons-contracts/src/utils/versioning/IProtocolVersion.sol";
 
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 
@@ -41,11 +42,9 @@ contract TokenVoting is
 
     /// @notice The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contract.
     bytes4 internal constant TOKEN_VOTING_INTERFACE_ID =
-        this.initialize.selector ^ this.getVotingToken.selector;
-
-    /// @notice The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contract.
-    bytes4 internal constant MAJORITY_VOTING_BASE_INTERFACE_ID =
-        this.minDuration.selector ^
+        this.initialize.selector ^
+            this.getVotingToken.selector ^
+            this.minDuration.selector ^
             this.minProposerVotingPower.selector ^
             this.votingMode.selector ^
             this.totalVotingPower.selector ^
@@ -143,6 +142,8 @@ contract TokenVoting is
         emit MembershipContractAnnounced({definingContract: address(_token)});
     }
 
+    function v2() external {}
+
     /// @notice Checks if this or the parent contract supports an interface by its ID.
     /// @param _interfaceId The ID of the interface.
     /// @return Returns `true` if the interface is supported.
@@ -158,6 +159,7 @@ contract TokenVoting is
         return
             _interfaceId == TOKEN_VOTING_INTERFACE_ID ||
             _interfaceId == type(IMembership).interfaceId ||
+            _interfaceId == type(ITokenVoting).interfaceId ||
             super.supportsInterface(_interfaceId);
     }
 
