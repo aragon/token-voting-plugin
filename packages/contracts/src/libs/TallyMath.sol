@@ -58,8 +58,8 @@ library TallyMath {
     }
 
     /// @return The difference of two tallies inside a new tally.
-    /// @dev This can revert ib overflow if the total exceeds the maximum uint.
-    function sum(IVoteContainer.Tally memory tally) public pure returns (uint) {
+    /// @dev This can revert if overflow if the total exceeds the maximum uint.
+    function sum(IVoteContainer.Tally memory tally) internal pure returns (uint256) {
         return tally.abstain + tally.yes + tally.no;
     }
 
@@ -67,17 +67,5 @@ library TallyMath {
     /// @dev Checking if each vote is zero is safer than summing due to potential overflow.
     function isZero(IVoteContainer.Tally memory tally) internal pure returns (bool) {
         return tally.yes == 0 && tally.no == 0 && tally.abstain == 0;
-    }
-}
-
-library OverflowChecker {
-    function overflows(IVoteContainer.Tally memory tally) internal pure returns (bool) {
-        try TallyMath.sum(tally) {} catch Error(string memory) {
-            return true;
-        } catch (bytes memory) {
-            return true;
-        }
-
-        return false;
     }
 }

@@ -1,21 +1,21 @@
-import {ITokenVoting as MajorityVotingBase} from '../../typechain';
+import {ITokenVoting} from '../../typechain';
 import {ProposalCreatedEvent} from '../../typechain/src/TokenVoting';
 import {globalFixture} from '../test-utils/fixture';
 import {VOTING_EVENTS} from '../test-utils/majority-voting-constants';
 import {
-  VoteOption,
+  Tally,
   VotingMode,
   setBalances,
   setTotalSupply,
 } from '../test-utils/voting-helpers';
-import {findEvent, TIME, pctToRatio, RATIO_BASE} from '@aragon/osx-commons-sdk';
+import {findEvent, TIME, pctToRatio} from '@aragon/osx-commons-sdk';
 import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
 import {ethers} from 'hardhat';
 
-describe.only('Proposal creation', async () => {
-  let voteSettingsWithMinProposerVotingPower: MajorityVotingBase.VotingSettingsStruct;
+describe('Proposal creation', async () => {
+  let voteSettingsWithMinProposerVotingPower: ITokenVoting.VotingSettingsStruct;
 
   before(async () => {
     voteSettingsWithMinProposerVotingPower = {
@@ -41,7 +41,7 @@ describe.only('Proposal creation', async () => {
 
       // Create a proposal with Alice despite her having no voting power.
       const endDate = (await time.latest()) + TIME.DAY;
-      const tx = await plugin
+      await plugin
         .connect(alice)
         .createProposal(
           dummyMetadata,
@@ -49,16 +49,12 @@ describe.only('Proposal creation', async () => {
           0,
           0,
           endDate,
-          VoteOption.None,
+          Tally.empty(),
           false
         );
 
-      const id = 0;
-      const event = findEvent<ProposalCreatedEvent>(
-        await tx.wait(),
-        'ProposalCreated'
-      );
-      expect(event.args.proposalId).to.equal(id);
+      const proposalCount = await plugin.proposalCount();
+      expect(proposalCount).to.equal(1);
     });
   });
 
@@ -96,7 +92,7 @@ describe.only('Proposal creation', async () => {
             0,
             0,
             endDate,
-            VoteOption.None,
+            Tally.empty(),
             false
           )
       )
@@ -113,7 +109,7 @@ describe.only('Proposal creation', async () => {
             0,
             0,
             endDate,
-            VoteOption.None,
+            Tally.empty(),
             false
           )
       ).not.to.be.reverted;
@@ -167,7 +163,7 @@ describe.only('Proposal creation', async () => {
             0,
             0,
             endDate,
-            VoteOption.None,
+            Tally.empty(),
             false
           )
       )
@@ -183,10 +179,9 @@ describe.only('Proposal creation', async () => {
           0,
           0,
           endDate,
-          VoteOption.None,
+          Tally.empty(),
           false
         );
-      const id = 0;
 
       // Check the balances before the block is mined. Note that `balanceOf` is a view function,
       // whose result will be immediately available and does not rely on the block to be mined.
@@ -198,8 +193,10 @@ describe.only('Proposal creation', async () => {
       // Mine the block. This will result in the transactions 1 to 3 to be executed.
       // Transaction 1 and 3 will produce a receipt whereas transaction 2 will revert with an error as expected.
       await ethers.provider.send('evm_mine', []);
-      const minedBlockNumber = (await ethers.provider.getBlock('latest'))
-        .number;
+      const minedBlock = await ethers.provider.getBlock('latest');
+
+      const minedBlockNumber = minedBlock.number;
+      const minedBlockTimestamp = minedBlock.timestamp;
 
       // Expect the transaction receipts to be in the same block after the snapshot block.
       expect((await tx1.wait()).blockNumber).to.equal(minedBlockNumber);
@@ -217,11 +214,18 @@ describe.only('Proposal creation', async () => {
         await tx3.wait(),
         'ProposalCreated'
       );
-      expect(event.args.proposalId).to.equal(id);
+      const proposalCount = await plugin.proposalCount();
+      const expectedProposalId = await plugin.getProposalId(
+        time.latest(),
+        endDate,
+        minedBlockTimestamp
+      );
+      expect(proposalCount).to.equal(1);
+      expect(event.args.proposalId).to.equal(expectedProposalId);
       expect(event.args.creator).to.equal(bob.address);
 
       // Check that the snapshot block stored in the proposal struct is as expected.
-      const proposal = await plugin.getProposal(id);
+      const proposal = await plugin.getProposal(expectedProposalId);
       expect(proposal.parameters.snapshotBlock).to.equal(
         expectedSnapshotBlockNumber
       );
@@ -264,7 +268,7 @@ describe.only('Proposal creation', async () => {
             0,
             0,
             endDate,
-            VoteOption.None,
+            Tally.empty(),
             false
           )
       )
@@ -281,7 +285,7 @@ describe.only('Proposal creation', async () => {
             0,
             0,
             endDate,
-            VoteOption.None,
+            Tally.empty(),
             false
           )
       ).not.to.be.reverted;
@@ -314,6 +318,7 @@ describe.only('Proposal creation', async () => {
 
       // Check that Alice can create a proposal although she delegated to Bob.
       const endDate = (await time.latest()) + TIME.DAY;
+      const blockTs = (await plugin.provider.getBlock('latest')).timestamp;
       const tx = await plugin
         .connect(alice)
         .createProposal(
@@ -322,14 +327,21 @@ describe.only('Proposal creation', async () => {
           0,
           0,
           endDate,
-          VoteOption.None,
+          Tally.empty(),
           false
         );
       const event = findEvent<ProposalCreatedEvent>(
         await tx.wait(),
         'ProposalCreated'
       );
-      expect(event.args.proposalId).to.equal(0);
+      const proposalCount = await plugin.proposalCount();
+      const expectedProposalId = await plugin.getProposalId(
+        time.latest(),
+        endDate,
+        blockTs
+      );
+      expect(proposalCount).to.equal(1);
+      expect(event.args.proposalId).to.equal(expectedProposalId);
     });
 
     it('creates a proposal if `_msgSender` owns no tokens but has enough tokens delegated to her/him in the current block', async () => {
@@ -369,7 +381,7 @@ describe.only('Proposal creation', async () => {
             0,
             0,
             endDate,
-            VoteOption.None,
+            Tally.empty(),
             false
           )
       ).not.to.be.reverted;
@@ -416,7 +428,7 @@ describe.only('Proposal creation', async () => {
             0,
             0,
             endDate,
-            VoteOption.None,
+            Tally.empty(),
             false
           )
       )
@@ -436,7 +448,7 @@ describe.only('Proposal creation', async () => {
             0,
             0,
             endDate,
-            VoteOption.None,
+            Tally.empty(),
             false
           )
       )
@@ -466,7 +478,7 @@ describe.only('Proposal creation', async () => {
           0,
           0,
           0,
-          VoteOption.None,
+          Tally.empty(),
           false
         )
     ).to.be.revertedWithCustomError(plugin, 'NoVotingPower');
@@ -499,7 +511,7 @@ describe.only('Proposal creation', async () => {
           0,
           startDateInThePast,
           endDate,
-          VoteOption.None,
+          Tally.empty(),
           false
         )
     )
@@ -538,7 +550,7 @@ describe.only('Proposal creation', async () => {
           0,
           tooLateStartDate,
           endDate,
-          VoteOption.None,
+          Tally.empty(),
           false
         )
     ).to.be.revertedWithPanic(0x11);
@@ -573,7 +585,7 @@ describe.only('Proposal creation', async () => {
           0,
           startDate,
           tooEarlyEndDate,
-          VoteOption.None,
+          Tally.empty(),
           false
         )
     )
@@ -605,10 +617,23 @@ describe.only('Proposal creation', async () => {
         0,
         startDate,
         endDate,
-        VoteOption.None,
+        Tally.empty(),
         false
       );
-    const id = 0;
+
+    // Check the event
+    const event = findEvent<ProposalCreatedEvent>(
+      await creationTx.wait(),
+      'ProposalCreated'
+    );
+
+    const id = await plugin.getProposalId(
+      event.args.startDate,
+      event.args.endDate,
+      (
+        await event.getBlock()
+      ).timestamp
+    );
 
     const expectedStartDate = BigNumber.from(await time.latest());
     const expectedEndDate = expectedStartDate.add(
@@ -620,11 +645,6 @@ describe.only('Proposal creation', async () => {
     expect(proposal.parameters.startDate).to.eq(expectedStartDate);
     expect(proposal.parameters.endDate).to.eq(expectedEndDate);
 
-    // Check the event
-    const event = findEvent<ProposalCreatedEvent>(
-      await creationTx.wait(),
-      'ProposalCreated'
-    );
     expect(event.args.proposalId).to.equal(id);
     expect(event.args.creator).to.equal(alice.address);
     expect(event.args.startDate).to.equal(expectedStartDate);
@@ -647,7 +667,7 @@ describe.only('Proposal creation', async () => {
     await setTotalSupply(token, 10);
 
     // Set the `minParticipation` value to have a remainder that will get dropped when calculating `minVotingPower`.
-    const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
+    const votingSettings: ITokenVoting.VotingSettingsStruct = {
       votingMode: VotingMode.EarlyExecution,
       supportThreshold: pctToRatio(50),
       minParticipation: pctToRatio(30).add(1), // 30.0001 %, which will result in the `minVotingPower` getting ceiled to 4.
@@ -664,13 +684,20 @@ describe.only('Proposal creation', async () => {
       0,
       0,
       endDate,
-      VoteOption.None,
+      Tally.empty(),
       false
     );
-    const id = 0;
     const event = findEvent<ProposalCreatedEvent>(
       await tx.wait(),
       'ProposalCreated'
+    );
+
+    const id = await plugin.getProposalId(
+      event.args.startDate,
+      event.args.endDate,
+      (
+        await event.getBlock()
+      ).timestamp
     );
     expect(event.args.proposalId).to.equal(id);
 
@@ -690,7 +717,7 @@ describe.only('Proposal creation', async () => {
     await setTotalSupply(token, 10);
 
     // Set the `minParticipation` to value without a remainder that won't get ceiled when calculating `minVotingPower`.
-    const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
+    const votingSettings: ITokenVoting.VotingSettingsStruct = {
       votingMode: VotingMode.EarlyExecution,
       supportThreshold: pctToRatio(50),
       minParticipation: pctToRatio(30), // 30.0000 %, which will result in the `minVotingPower` being 3.
@@ -707,13 +734,19 @@ describe.only('Proposal creation', async () => {
       0,
       0,
       endDate,
-      VoteOption.None,
+      Tally.empty(),
       false
     );
-    const id = 0;
     const event = findEvent<ProposalCreatedEvent>(
       await tx.wait(),
       'ProposalCreated'
+    );
+    const id = await plugin.getProposalId(
+      event.args.startDate,
+      event.args.endDate,
+      (
+        await event.getBlock()
+      ).timestamp
     );
     expect(event.args.proposalId).to.equal(id);
 
@@ -744,10 +777,9 @@ describe.only('Proposal creation', async () => {
         allowFailureMap,
         0,
         0,
-        VoteOption.None,
+        Tally.empty(),
         false
       );
-    const id = 0;
 
     // Check that the `ProposalCreated` event is emitted and `VoteCast` is not.
     await expect(tx)
@@ -758,6 +790,13 @@ describe.only('Proposal creation', async () => {
     const event = findEvent<ProposalCreatedEvent>(
       await tx.wait(),
       'ProposalCreated'
+    );
+    const id = await plugin.getProposalId(
+      event.args.startDate,
+      event.args.endDate,
+      (
+        await event.getBlock()
+      ).timestamp
     );
     expect(event.args.proposalId).to.equal(id);
     expect(event.args.creator).to.equal(alice.address);
@@ -797,7 +836,7 @@ describe.only('Proposal creation', async () => {
     expect(proposal.tally.no).to.equal(0);
     expect(proposal.tally.abstain).to.equal(0);
 
-    expect(await plugin.canVote(1, alice.address, VoteOption.Yes)).to.equal(
+    expect(await plugin.canVote(1, alice.address, Tally.no(100))).to.equal(
       false
     );
 
@@ -812,38 +851,40 @@ describe.only('Proposal creation', async () => {
       alice,
       initializedPlugin: plugin,
       token,
-      defaultVotingSettings,
       dummyActions,
       dummyMetadata,
+      defaultVotingSettings,
     } = await loadFixture(globalFixture);
 
+    const aliceBalance = 10;
+
     // Set Alice's balance to 10.
-    await token.setBalance(alice.address, 10);
+    await token.setBalance(alice.address, aliceBalance);
+
+    const aliceTally = Tally.yes(aliceBalance);
 
     // Create a proposal as Alice.
     const tx = await plugin
       .connect(alice)
-      .createProposal(
-        dummyMetadata,
-        dummyActions,
-        0,
-        0,
-        0,
-        VoteOption.Yes,
-        false
-      );
-    const id = 0;
-
-    // Check that the `ProposalCreated` and `VoteCast` events are emitted with the expected data.
-    await expect(tx)
-      .to.emit(plugin, 'ProposalCreated')
-      .to.emit(plugin, VOTING_EVENTS.VOTE_CAST)
-      .withArgs(id, alice.address, VoteOption.Yes, 10);
+      .createProposal(dummyMetadata, dummyActions, 0, 0, 0, aliceTally, false);
 
     const event = findEvent<ProposalCreatedEvent>(
       await tx.wait(),
       'ProposalCreated'
     );
+    const id = await plugin.getProposalId(
+      event.args.startDate,
+      event.args.endDate,
+      (
+        await event.getBlock()
+      ).timestamp
+    );
+    // Check that the `ProposalCreated` and `VoteCast` events are emitted with the expected data.
+    await expect(tx)
+      .to.emit(plugin, 'ProposalCreated')
+      .to.emit(plugin, VOTING_EVENTS.VOTE_CAST)
+      .withArgs(id, alice.address, aliceTally.toArray(), aliceBalance);
+
     expect(event.args.proposalId).to.equal(id);
     expect(event.args.creator).to.equal(alice.address);
     expect(event.args.metadata).to.equal(dummyMetadata);
@@ -872,8 +913,8 @@ describe.only('Proposal creation', async () => {
 
     expect(
       await plugin.totalVotingPower(proposal.parameters.snapshotBlock)
-    ).to.equal(10);
-    expect(proposal.tally.yes).to.equal(10);
+    ).to.equal(aliceBalance);
+    expect(proposal.tally.yes).to.equal(aliceBalance);
     expect(proposal.tally.no).to.equal(0);
     expect(proposal.tally.abstain).to.equal(0);
   });
@@ -894,7 +935,14 @@ describe.only('Proposal creation', async () => {
     const startDate = (await time.latest()) + TIME.HOUR;
     const endDate = startDate + TIME.DAY;
     expect(await time.latest()).to.be.lessThan(startDate);
-    const id = 0;
+    const id = await plugin.getProposalId(
+      startDate,
+      endDate,
+      (
+        await plugin.provider.getBlock('latest')
+      ).timestamp
+    );
+    const votes = Tally.yes(100);
     await expect(
       plugin
         .connect(alice)
@@ -904,27 +952,27 @@ describe.only('Proposal creation', async () => {
           0,
           startDate,
           endDate,
-          VoteOption.Yes,
+          votes,
           false
         )
     )
       .to.be.revertedWithCustomError(plugin, 'VoteCastForbidden')
-      .withArgs(id, alice.address, VoteOption.Yes);
+      .withArgs(id, alice.address, votes.toArray());
 
-    // Check that the proposal can be created without voting (by setting `_voteOption` to `VoteOption.None`).
-    const tx = await plugin.createProposal(
+    let proposalCount = await plugin.proposalCount();
+    expect(proposalCount).to.equal(0);
+
+    // Check that the proposal can be created without voting (by setting `_voteOption` to `Tally.empty()`).
+    await plugin.createProposal(
       dummyMetadata,
       dummyActions,
       0,
       startDate,
       endDate,
-      VoteOption.None,
+      Tally.empty(),
       false
     );
-    const event = findEvent<ProposalCreatedEvent>(
-      await tx.wait(),
-      'ProposalCreated'
-    );
-    expect(event.args.proposalId).to.equal(id);
+    proposalCount = await plugin.proposalCount();
+    expect(proposalCount).to.equal(1);
   });
 });

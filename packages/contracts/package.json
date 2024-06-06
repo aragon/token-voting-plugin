@@ -8,6 +8,7 @@
     "lint:sol": "cd ../../ && yarn run lint:contracts:sol",
     "lint:ts": "cd ../../ && yarn run lint:contracts:ts",
     "test": "hardhat test",
+    "test:watch": "hardhat watch test",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
     "clean": "rimraf ./artifacts ./cache ./coverage ./typechain ./types ./coverage.json && yarn typechain"
   },
@@ -52,7 +53,8 @@
     "tmp-promise": "^3.0.3",
     "ts-node": "^10.9.1",
     "typechain": "^8.3.2",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "hardhat-watcher": "^2.5.0"
   },
   "files": [
     "/src"

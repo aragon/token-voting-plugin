@@ -22,7 +22,7 @@ import {DAO, DAOStructs} from '@aragon/osx-ethers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {ethers} from 'hardhat';
 
-type GlobalFixtureResult = {
+export type GlobalFixtureResult = {
   deployer: SignerWithAddress;
   alice: SignerWithAddress;
   bob: SignerWithAddress;

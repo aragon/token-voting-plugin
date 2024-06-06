@@ -398,11 +398,10 @@ contract TokenVoting is
         _incrementProposalCount();
 
         return
-            ProposalIdCodec.encode({
-                _plugin: address(this),
-                _proposalStartTimestamp: uint(_startDate).toUint32(),
-                _proposalEndTimestamp: uint(_endDate).toUint32(),
-                _proposalBlockSnapshotTimestamp: block.timestamp.toUint32()
+            getProposalId({
+                _startDate: _startDate,
+                _endDate: _endDate,
+                _snapshotBlockTimestamp: block.timestamp
             });
     }
 
@@ -712,6 +711,21 @@ contract TokenVoting is
                 revert DateOutOfBounds({limit: earliestEndDate, actual: endDate});
             }
         }
+    }
+
+    /// @inheritdoc ITokenVoting
+    function getProposalId(
+        uint256 _startDate,
+        uint256 _endDate,
+        uint256 _snapshotBlockTimestamp
+    ) public view returns (uint256 proposalId) {
+        return
+            ProposalIdCodec.encode({
+                _plugin: address(this),
+                _proposalStartTimestamp: uint(_startDate).toUint32(),
+                _proposalEndTimestamp: uint(_endDate).toUint32(),
+                _proposalBlockSnapshotTimestamp: uint(_snapshotBlockTimestamp).toUint32()
+            });
     }
 
     /// @dev This empty reserved space is put in place to allow future versions to add new
