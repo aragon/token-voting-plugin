@@ -68,6 +68,9 @@ contract TokenVoting is
     // solhint-disable-next-line named-parameters-mapping
     mapping(uint256 => Proposal) internal proposals;
 
+    /// @dev TODO: added during offsite to allow aragonette to fetch via incrementing proposal IDs
+    uint256[] public proposalIdsByCount;
+
     /// @notice The struct storing the voting settings.
     VotingSettings private votingSettings;
 
@@ -396,6 +399,9 @@ contract TokenVoting is
         uint64 _endDate
     ) internal returns (uint256 proposalId) {
         _incrementProposalCount();
+
+        // TODO: added to allow querying by count
+        proposalIdsByCount.push(proposalId);
 
         return
             getProposalId({
