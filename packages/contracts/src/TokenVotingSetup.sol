@@ -22,6 +22,8 @@ import {ITokenVoting} from "./ITokenVoting.sol";
 
 import {ProxyLib} from "@aragon/osx-commons-contracts/src/utils/deployment/ProxyLib.sol";
 
+import "hardhat/console.sol";
+
 /// @title TokenVotingSetup
 /// @author Aragon X - 2022-2023
 /// @notice The setup contract of the `TokenVoting` plugin.
@@ -96,19 +98,23 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             ITokenVoting.VotingSettings memory votingSettings,
             TokenSettings memory tokenSettings,
             // only used for GovernanceERC20(token is not passed)
-            GovernanceERC20.MintSettings memory mintSettings
+            GovernanceERC20.MintSettings memory mintSettings,
+            bool bypassTokenValidation
         ) = abi.decode(
                 _data,
-                (ITokenVoting.VotingSettings, TokenSettings, GovernanceERC20.MintSettings)
+                (ITokenVoting.VotingSettings, TokenSettings, GovernanceERC20.MintSettings, bool)
             );
 
         address token = tokenSettings.addr;
         bool tokenAddressNotZero = token != address(0);
+        bool deployedAragonToken = false;
 
         // Prepare helpers.
         address[] memory helpers = new address[](1);
 
-        if (tokenAddressNotZero) {
+        if (bypassTokenValidation) {
+            // do noting, essentially GOTO setting helpers
+        } else if (tokenAddressNotZero) {
             if (!token.isContract()) {
                 revert TokenNotContract(token);
             }
@@ -117,18 +123,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                 revert TokenNotERC20(token);
             }
 
-            // [0] = IERC20Upgradeable, [1] = IVotesUpgradeable, [2] = IGovernanceWrappedERC20
-            bool[] memory supportedIds = _getTokenInterfaceIds(token);
-
-            if (
-                // If token supports none of them
-                // it's simply ERC20 which gets checked by _isERC20
-                // Currently, not a satisfiable check.
-                (!supportedIds[0] && !supportedIds[1] && !supportedIds[2]) ||
-                // If token supports IERC20, but neither
-                // IVotes nor IGovernanceWrappedERC20, it needs wrapping.
-                (supportedIds[0] && !supportedIds[1] && !supportedIds[2])
-            ) {
+            if (missingInterface(token)) {
                 token = governanceWrappedERC20Base.clone();
                 // User already has a token. We need to wrap it in
                 // GovernanceWrappedERC20 in order to make the token
@@ -138,6 +133,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                     tokenSettings.name,
                     tokenSettings.symbol
                 );
+                deployedAragonToken = true;
             }
         } else {
             // Clone a `GovernanceERC20`.
@@ -148,6 +144,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                 tokenSettings.symbol,
                 mintSettings
             );
+            deployedAragonToken = true;
         }
 
         helpers[0] = token;
@@ -185,15 +182,15 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             permissionId: EXECUTE_PERMISSION_ID
         });
 
-        if (!tokenAddressNotZero) {
-            bytes32 tokenMintPermission = GovernanceERC20(token).MINT_PERMISSION_ID();
-
+        // If the token was our Governance ERC20, grant mint permission to the DAO.
+        // if we didn't deploy an aragon token, we can't guarantee mint permission will exist on the token.
+        if (deployedAragonToken) {
             permissions[2] = PermissionLib.MultiTargetPermission({
                 operation: PermissionLib.Operation.Grant,
                 where: token,
                 who: _dao,
                 condition: PermissionLib.NO_CONDITION,
-                permissionId: tokenMintPermission
+                permissionId: GovernanceERC20(token).MINT_PERMISSION_ID()
             });
         }
 
@@ -202,33 +199,17 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     }
 
     /// @inheritdoc IPluginSetup
-    /// @dev Revoke the upgrade plugin permission to the DAO for all builds prior the current one (3).
+    /// @dev This is a new release, so there is nothing to update to.
     function prepareUpdate(
-        address _dao,
-        uint16 _fromBuild,
-        SetupPayload calldata _payload
+        address,
+        uint16,
+        SetupPayload calldata
     )
         external
         view
         override
         returns (bytes memory initData, PreparedSetupData memory preparedSetupData)
-    {
-        (initData);
-        if (_fromBuild < 3) {
-            PermissionLib.MultiTargetPermission[]
-                memory permissions = new PermissionLib.MultiTargetPermission[](1);
-
-            permissions[0] = PermissionLib.MultiTargetPermission({
-                operation: PermissionLib.Operation.Revoke,
-                where: _payload.plugin,
-                who: _dao,
-                condition: PermissionLib.NO_CONDITION,
-                permissionId: tokenVotingBase.UPGRADE_PLUGIN_PERMISSION_ID()
-            });
-
-            preparedSetupData.permissions = permissions;
-        }
-    }
+    {}
 
     /// @inheritdoc IPluginSetup
     function prepareUninstallation(
@@ -280,5 +261,25 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             abi.encodeCall(IERC20Upgradeable.balanceOf, (address(this)))
         );
         return success && data.length == 0x20;
+    }
+
+    /// @notice Uses ERC-165 checks to see if a passed token appears to support
+    /// the required interfaces for governance.
+    /// @dev As an unsatisfactory check, this can be skipped.
+    /// @param token The address of the governance token passed to 'prepareInstallation'.
+    function missingInterface(address token) public view returns (bool) {
+        // [0] = IERC20Upgradeable, [1] = IVotesUpgradeable, [2] = IGovernanceWrappedERC20
+        bool[] memory supportedIds = _getTokenInterfaceIds(token);
+
+        // If token supports none of them
+        // it's simply ERC20 which gets checked by _isERC20
+        // Currently, not a satisfiable check.
+        bool isVanillaERC20 = (!supportedIds[0] && !supportedIds[1] && !supportedIds[2]);
+
+        // If token supports IERC20, but neither
+        // IVotes nor IGovernanceWrappedERC20, it needs wrapping.
+        bool missingGovernance = (supportedIds[0] && !supportedIds[1] && !supportedIds[2]);
+
+        return isVanillaERC20 || missingGovernance;
     }
 }

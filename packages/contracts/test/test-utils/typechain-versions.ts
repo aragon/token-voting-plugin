@@ -9,8 +9,8 @@ export {TokenVoting__factory} from '../../typechain/factories/src/TokenVoting__f
 export {TokenVoting} from '../../typechain/src/TokenVoting';
 
 /* TokenVotingSetup */
-export {TokenVotingSetup__factory} from '../../typechain';
-export {TokenVotingSetup} from '../../typechain';
+export {TokenVotingSetup__factory} from '../../typechain/factories/src/TokenVotingSetup__factory';
+export {TokenVotingSetup} from '../../typechain/src/TokenVotingSetup';
 
 /* Governance ERC20 */
 export {GovernanceERC20__factory as GovernanceERC20_V1_0_0__factory} from '../../typechain/factories/@aragon/osx-v1.0.0/token/ERC20/governance/GovernanceERC20__factory';

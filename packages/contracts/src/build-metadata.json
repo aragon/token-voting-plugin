@@ -1,6 +1,6 @@
 {
   "ui": {},
-  "change": "v1.3\n - Removed an unneccessary permission that allowed the Dao to upgrade the plugin, because this is supposed to happens as part of the update itself. The unnecessary permission, which was granted on installation of previous versions, will be automatically removed with the update to this version.\n - Allowed the DAO to still mint new tokens after uninstallation by not revoking the associated permission.",
+  "change": "v2.0 - Allow for split voting, partial voting and encode proposal data in proposal IDs",
   "pluginSetup": {
     "prepareInstallation": {
       "description": "The information required for the installation.",
@@ -88,6 +88,12 @@
           "name": "mintSettings",
           "type": "tuple",
           "description": "The token mint settings struct containing the `receivers` and `amounts`."
+        },
+        {
+          "internalType": "bool",
+          "name": "skipTokenValidation",
+          "type": "bool",
+          "description": "If passing a token address, do not run validation checks including for wrapping."
         }
       ]
     },

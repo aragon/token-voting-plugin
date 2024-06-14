@@ -5,24 +5,23 @@ import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
 import {IMembership} from "@aragon/osx-commons-contracts/src/plugin/extensions/membership/IMembership.sol";
 
+interface IVoteContainer {
+    /// @notice A container for the proposal vote tally.
+    /// @param abstain The number of abstain votes casted.
+    /// @param yes The number of yes votes casted.
+    /// @param no The number of no votes casted.
+    struct Tally {
+        uint256 abstain;
+        uint256 yes;
+        uint256 no;
+    }
+}
+
 /// @title ITokenVoting
 /// @author Aragon X - 2024
 /// @notice Interface for Aragon IVotes-based voting and proposal plugin "TokenVoting".
 /// @custom:security-contact sirt@aragon.org
-interface ITokenVoting {
-    /// @notice Vote options that a voter can chose from.
-    /// @param None The default option state of a voter indicating the absence from the vote.
-    /// This option neither influences support nor participation.
-    /// @param Abstain This option does not influence the support but counts towards participation.
-    /// @param Yes This option increases the support and counts towards participation.
-    /// @param No This option decreases the support and counts towards participation.
-    enum VoteOption {
-        None,
-        Abstain,
-        Yes,
-        No
-    }
-
+interface ITokenVoting is IVoteContainer {
     /// @notice The different voting modes available.
     /// @param Standard In standard mode, early execution and vote replacement are disabled.
     /// @param EarlyExecution In early execution mode, a proposal can be executed
@@ -60,7 +59,7 @@ interface ITokenVoting {
     /// @param executed Whether the proposal is executed or not.
     /// @param parameters The proposal parameters at the time of the proposal creation.
     /// @param tally The vote tally of the proposal.
-    /// @param voters The votes casted by the voters.
+    /// @param voters The votes casted by the voters. In the case of replacement will be the most recent votes.
     /// @param actions The actions to be executed when the proposal passes.
     /// @param allowFailureMap A bitmap allowing the proposal to succeed, even if individual actions might revert.
     /// If the bit at index `i` is 1, the proposal succeeds even if the `i`th action reverts.
@@ -69,7 +68,7 @@ interface ITokenVoting {
         bool executed;
         ProposalParameters parameters;
         Tally tally;
-        mapping(address => VoteOption) voters;
+        mapping(address => Tally) voters;
         IDAO.Action[] actions;
         uint256 allowFailureMap;
     }
@@ -91,16 +90,6 @@ interface ITokenVoting {
         uint256 minVotingPower;
     }
 
-    /// @notice A container for the proposal vote tally.
-    /// @param abstain The number of abstain votes casted.
-    /// @param yes The number of yes votes casted.
-    /// @param no The number of no votes casted.
-    struct Tally {
-        uint256 abstain;
-        uint256 yes;
-        uint256 no;
-    }
-
     /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
     /// --------- SETTERS ---------
     /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,7 +105,7 @@ interface ITokenVoting {
     /// If 0, the current timestamp is used and the vote starts immediately.
     /// @param _endDate The end date of the proposal vote.
     /// If 0, `_startDate + minDuration` is used.
-    /// @param _voteOption The chosen vote option to be casted on proposal creation.
+    /// @param _votes The chosen votes to be casted on proposal creation.
     /// @param _tryEarlyExecution If `true`,  early execution is tried after the vote cast.
     /// The call does not revert if early execution is not possible.
     /// @return proposalId The ID of the proposal.
@@ -126,17 +115,17 @@ interface ITokenVoting {
         uint256 _allowFailureMap,
         uint64 _startDate,
         uint64 _endDate,
-        VoteOption _voteOption,
+        Tally memory _votes,
         bool _tryEarlyExecution
     ) external returns (uint256 proposalId);
 
     /// @notice Votes for a vote option and, optionally, executes the proposal.
     /// @dev `_voteOption`, 1 -> abstain, 2 -> yes, 3 -> no
     /// @param _proposalId The ID of the proposal.
-    /// @param _voteOption The chosen vote option.
+    /// @param _votes The chosen vote option.
     /// @param _tryEarlyExecution If `true`,  early execution is tried after the vote cast.
     /// The call does not revert if early execution is not possible.
-    function vote(uint256 _proposalId, VoteOption _voteOption, bool _tryEarlyExecution) external;
+    function vote(uint256 _proposalId, Tally memory _votes, bool _tryEarlyExecution) external;
 
     /// @notice Executes a proposal.
     /// @param _proposalId The ID of the proposal to be executed.
@@ -160,11 +149,11 @@ interface ITokenVoting {
     /// Note, that this does not check if the account has voting power.
     /// @param _proposalId The ID of the proposal.
     /// @param _account The account address to be checked.
-    /// @return The vote option cast by a voter for a certain proposal.
-    function getVoteOption(
+    /// @return votes cast by a voter for a certain proposal.
+    function getVotes(
         uint256 _proposalId,
         address _account
-    ) external view returns (VoteOption);
+    ) external view returns (Tally memory votes);
 
     /// @notice Returns all information for a proposal vote by its ID.
     /// @param _proposalId The ID of the proposal.
@@ -241,17 +230,28 @@ interface ITokenVoting {
     /// - the voter doesn't have voting powers.
     /// @param _proposalId The proposal Id.
     /// @param _account The account address to be checked.
-    /// @param  _voteOption Whether the voter abstains, supports or opposes the proposal.
+    /// @param  _votes Voting allocation to verify against.
     /// @return Returns true if the account is allowed to vote.
     /// @dev The function assumes the queried proposal exists.
     function canVote(
         uint256 _proposalId,
         address _account,
-        VoteOption _voteOption
+        Tally memory _votes
     ) external view returns (bool);
 
     /// @notice Checks if a proposal can be executed.
     /// @param _proposalId The ID of the proposal to be checked.
     /// @return True if the proposal can be executed, false otherwise.
     function canExecute(uint256 _proposalId) external view returns (bool);
+
+    /// @notice Returns the proposal ID for a given proposal.
+    /// @param _startDate The start date of the proposal vote.
+    /// @param _endDate The end date of the proposal vote.
+    /// @param _snapshotBlockTimestamp The block timestamp when the proposal was created.
+    /// @return proposalId The ID of the proposal encoded as (plugin, startTimestamp, endTimestamp, blockSnapshotTimestamp)
+    function getProposalId(
+        uint256 _startDate,
+        uint256 _endDate,
+        uint256 _snapshotBlockTimestamp
+    ) external view returns (uint256 proposalId);
 }

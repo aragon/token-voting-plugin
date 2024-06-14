@@ -49,6 +49,7 @@ type FixtureResult = {
     symbol: string;
   };
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
+  defaultSkipTokenValidation: boolean;
   prepareInstallationInputs: string;
   prepareUninstallationInputs: string;
   dao: DAO;
@@ -70,6 +71,7 @@ async function fixture(): Promise<FixtureResult> {
     symbol: 'SYMB',
   };
   const defaultMintSettings = {receivers: [], amounts: []};
+  const defaultSkipTokenValidation = false;
 
   const erc20 = await new ERC20__factory(deployer).deploy('erc20', 'ERC20');
 
@@ -106,6 +108,7 @@ async function fixture(): Promise<FixtureResult> {
       Object.values(defaultVotingSettings),
       Object.values(defaultTokenSettings),
       Object.values(defaultMintSettings),
+      defaultSkipTokenValidation,
     ]
   );
 
@@ -126,6 +129,7 @@ async function fixture(): Promise<FixtureResult> {
     defaultVotingSettings,
     defaultTokenSettings,
     defaultMintSettings,
+    defaultSkipTokenValidation,
     prepareInstallationInputs,
     prepareUninstallationInputs,
     dao,
@@ -184,6 +188,7 @@ describe('TokenVotingSetup', function () {
         dao,
         defaultVotingSettings,
         defaultTokenSettings,
+        defaultSkipTokenValidation,
       } = await loadFixture(fixture);
 
       const receivers: string[] = [AddressZero];
@@ -196,6 +201,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           Object.values(defaultTokenSettings),
           {receivers, amounts},
+          defaultSkipTokenValidation,
         ]
       );
 
@@ -226,6 +232,7 @@ describe('TokenVotingSetup', function () {
         dao,
         defaultVotingSettings,
         defaultMintSettings,
+        defaultSkipTokenValidation,
       } = await loadFixture(fixture);
 
       const data = abiCoder.encode(
@@ -236,6 +243,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [alice.address, '', ''], // Instead of a token address, we pass Alice's address here.
           Object.values(defaultMintSettings),
+          defaultSkipTokenValidation,
         ]
       );
 
@@ -245,8 +253,13 @@ describe('TokenVotingSetup', function () {
     });
 
     it('fails if passed token address is not ERC20', async () => {
-      const {pluginSetup, dao, defaultVotingSettings, defaultMintSettings} =
-        await loadFixture(fixture);
+      const {
+        pluginSetup,
+        dao,
+        defaultVotingSettings,
+        defaultMintSettings,
+        defaultSkipTokenValidation,
+      } = await loadFixture(fixture);
 
       const data = abiCoder.encode(
         getNamedTypesFromMetadata(
@@ -256,6 +269,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [dao.address, '', ''],
           Object.values(defaultMintSettings),
+          defaultSkipTokenValidation,
         ]
       );
 
@@ -271,6 +285,7 @@ describe('TokenVotingSetup', function () {
         defaultVotingSettings,
         defaultTokenSettings,
         defaultMintSettings,
+        defaultSkipTokenValidation,
         erc20,
       } = await loadFixture(fixture);
 
@@ -299,6 +314,7 @@ describe('TokenVotingSetup', function () {
             defaultTokenSettings.symbol,
           ],
           Object.values(defaultMintSettings),
+          defaultSkipTokenValidation,
         ]
       );
 
@@ -336,6 +352,7 @@ describe('TokenVotingSetup', function () {
         dao,
         defaultVotingSettings,
         defaultMintSettings,
+        defaultSkipTokenValidation,
         erc20,
       } = await loadFixture(fixture);
 
@@ -355,6 +372,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [erc20.address, 'myName', 'mySymb'],
           Object.values(defaultMintSettings),
+          defaultSkipTokenValidation,
         ]
       );
 
@@ -375,12 +393,85 @@ describe('TokenVotingSetup', function () {
       );
     });
 
+    it('Skips all checks when we choose to bypass the token validation', async () => {
+      const {
+        deployer,
+        pluginSetup,
+        dao,
+        defaultVotingSettings,
+        defaultMintSettings,
+        erc20,
+
+        governanceERC20Base,
+      } = await loadFixture(fixture);
+
+      const nonce = await ethers.provider.getTransactionCount(
+        pluginSetup.address
+      );
+      const anticipatedWrappedTokenAddress = ethers.utils.getContractAddress({
+        from: pluginSetup.address,
+        nonce: nonce,
+      });
+
+      const data = abiCoder.encode(
+        getNamedTypesFromMetadata(
+          METADATA.build.pluginSetup.prepareInstallation.inputs
+        ),
+        [
+          Object.values(defaultVotingSettings),
+          [erc20.address, 'myName', 'mySymb'],
+          Object.values(defaultMintSettings),
+          true,
+        ]
+      );
+
+      await pluginSetup.prepareInstallation(dao.address, data);
+
+      // we should have the name of the erc20 token
+      const GovernanceWrappedERC20Factory = new GovernanceWrappedERC20__factory(
+        deployer
+      );
+      const governanceWrappedERC20Contract =
+        GovernanceWrappedERC20Factory.attach(erc20.address);
+
+      expect(await governanceWrappedERC20Contract.name()).to.be.equal('erc20');
+      expect(await governanceWrappedERC20Contract.symbol()).to.be.equal(
+        'ERC20'
+      );
+
+      // this won't work because it was never wrapped
+      await expect(governanceWrappedERC20Contract.underlying()).to.be.reverted;
+
+      const mintPermission = await governanceERC20Base.MINT_PERMISSION_ID();
+
+      // finally check that mint permission was not granted
+      const p1 = dao.isGranted(
+        erc20.address, // where
+        dao.address, // who
+        mintPermission, // id
+        '0x' // data
+      );
+
+      const p2 = dao.isGranted(
+        anticipatedWrappedTokenAddress, // where
+        dao.address, // who
+        mintPermission, // id
+        '0x' // data
+      );
+
+      const [isGranted0, isGranted1] = await Promise.all([p1, p2]);
+
+      expect(isGranted0).to.be.false;
+      expect(isGranted1).to.be.false;
+    });
+
     it('correctly returns plugin, helpers and permissions, when a governance token address is supplied', async () => {
       const {
         deployer,
         pluginSetup,
         dao,
         defaultVotingSettings,
+        defaultSkipTokenValidation,
         defaultMintSettings,
       } = await loadFixture(fixture);
 
@@ -405,6 +496,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [governanceERC20.address, '', ''],
           Object.values(defaultMintSettings),
+          defaultSkipTokenValidation,
         ]
       );
 
@@ -442,6 +534,7 @@ describe('TokenVotingSetup', function () {
         defaultVotingSettings,
         defaultTokenSettings,
         defaultMintSettings,
+        defaultSkipTokenValidation,
       } = await loadFixture(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
@@ -465,6 +558,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           Object.values(defaultTokenSettings),
           Object.values(defaultMintSettings),
+          defaultSkipTokenValidation,
         ]
       );
 
@@ -510,6 +604,7 @@ describe('TokenVotingSetup', function () {
         defaultVotingSettings,
         defaultTokenSettings,
         defaultMintSettings,
+        defaultSkipTokenValidation,
       } = await loadFixture(fixture);
 
       const daoAddress = dao.address;
@@ -522,6 +617,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [AddressZero, defaultTokenSettings.name, defaultTokenSettings.symbol],
           Object.values(defaultMintSettings),
+          defaultSkipTokenValidation,
         ]
       );
 
@@ -570,72 +666,6 @@ describe('TokenVotingSetup', function () {
       expect(await token.dao()).to.be.equal(daoAddress);
       expect(await token.name()).to.be.equal(defaultTokenSettings.name);
       expect(await token.symbol()).to.be.equal(defaultTokenSettings.symbol);
-    });
-  });
-
-  describe('prepareUpdate', async () => {
-    it('returns the permissions expected for the update from build 1', async () => {
-      const {pluginSetup, dao} = await loadFixture(fixture);
-      const plugin = ethers.Wallet.createRandom().address;
-
-      // Make a static call to check that the plugin update data being returned is correct.
-      const {
-        initData: initData,
-        preparedSetupData: {helpers, permissions},
-      } = await pluginSetup.callStatic.prepareUpdate(dao.address, 1, {
-        currentHelpers: [
-          ethers.Wallet.createRandom().address,
-          ethers.Wallet.createRandom().address,
-        ],
-        data: [],
-        plugin,
-      });
-
-      // Check the return data.
-      expect(initData).to.be.eq('0x');
-      expect(helpers).to.be.eql([]);
-      expect(permissions.length).to.be.eql(1);
-      expect(permissions).to.deep.equal([
-        [
-          Operation.Revoke,
-          plugin,
-          dao.address,
-          AddressZero,
-          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
-        ],
-      ]);
-    });
-
-    it('returns the permissions expected for the update from build 2', async () => {
-      const {pluginSetup, dao} = await loadFixture(fixture);
-      const plugin = ethers.Wallet.createRandom().address;
-
-      // Make a static call to check that the plugin update data being returned is correct.
-      const {
-        initData: initData,
-        preparedSetupData: {helpers, permissions},
-      } = await pluginSetup.callStatic.prepareUpdate(dao.address, 2, {
-        currentHelpers: [
-          ethers.Wallet.createRandom().address,
-          ethers.Wallet.createRandom().address,
-        ],
-        data: [],
-        plugin,
-      });
-
-      // Check the return data.
-      expect(initData).to.be.eq('0x');
-      expect(helpers).to.be.eql([]);
-      expect(permissions.length).to.be.eql(1);
-      expect(permissions).to.deep.equal([
-        [
-          Operation.Revoke,
-          plugin,
-          dao.address,
-          AddressZero,
-          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
-        ],
-      ]);
     });
   });
 

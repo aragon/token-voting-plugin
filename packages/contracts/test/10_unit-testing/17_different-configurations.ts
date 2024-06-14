@@ -1,44 +1,27 @@
 import {TestGovernanceERC20} from '../../typechain';
 import {ITokenVoting as MajorityVotingBase} from '../../typechain';
-import {globalFixture} from '../test-utils/fixture';
+import {GlobalFixtureResult, globalFixture} from '../test-utils/fixture';
 import {TokenVoting} from '../test-utils/typechain-versions';
 import {
-  VoteOption,
   VotingMode,
   voteWithSigners,
   setBalances,
   setTotalSupply,
+  Tally,
+  getProposalIdFromTx,
 } from '../test-utils/voting-helpers';
 import {TIME, pctToRatio, RATIO_BASE} from '@aragon/osx-commons-sdk';
 import {DAO, DAOStructs} from '@aragon/osx-ethers';
 import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
-import {BigNumber} from 'ethers';
+import {BigNumber, BigNumberish} from 'ethers';
 import {ethers} from 'hardhat';
 
 describe('Different configurations:', async () => {
   describe('A simple majority vote with >50% support and >=25% participation required', async () => {
-    type LocalFixtureResult = {
-      deployer: SignerWithAddress;
-      alice: SignerWithAddress;
-      bob: SignerWithAddress;
-      carol: SignerWithAddress;
-      dave: SignerWithAddress;
-      eve: SignerWithAddress;
-      frank: SignerWithAddress;
-      grace: SignerWithAddress;
-      harold: SignerWithAddress;
-      ivan: SignerWithAddress;
-      judy: SignerWithAddress;
-      mallory: SignerWithAddress;
-      initializedPlugin: TokenVoting;
-      defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct;
-      token: TestGovernanceERC20;
-      dao: DAO;
-      dummyActions: DAOStructs.ActionStruct[];
-      dummyMetadata: string;
-    };
+    type LocalFixtureResult = Omit<GlobalFixtureResult, 'uninitializedPlugin'>;
+
     async function localFixture(): Promise<LocalFixtureResult> {
       const {
         deployer,
@@ -121,18 +104,18 @@ describe('Different configurations:', async () => {
 
       const endDate = (await time.latest()) + TIME.DAY;
 
-      await plugin.createProposal(
+      const tx = await plugin.createProposal(
         dummyMetadata,
         dummyActions,
         0,
         0,
         endDate,
-        VoteOption.None,
+        Tally.empty(),
         false
       );
-      const id = 0;
+      const id = await getProposalIdFromTx(plugin, tx);
 
-      await plugin.connect(alice).vote(id, VoteOption.Yes, false);
+      await plugin.connect(alice).vote(id, Tally.yes(10), false);
 
       expect(await plugin.isMinParticipationReached(id)).to.be.false;
       expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
@@ -157,16 +140,16 @@ describe('Different configurations:', async () => {
       } = await loadFixture(localFixture);
       const endDate = (await time.latest()) + TIME.DAY;
 
-      await plugin.createProposal(
+      const tx = await plugin.createProposal(
         dummyMetadata,
         dummyActions,
         0,
         0,
         endDate,
-        VoteOption.None,
+        Tally.empty(),
         false
       );
-      const id = 0;
+      const id = await getProposalIdFromTx(plugin, tx);
 
       await voteWithSigners(plugin, id, {
         yes: [alice], // 10 votes
@@ -196,16 +179,16 @@ describe('Different configurations:', async () => {
       } = await loadFixture(localFixture);
       const endDate = (await time.latest()) + TIME.DAY;
 
-      await plugin.createProposal(
+      const tx = await plugin.createProposal(
         dummyMetadata,
         dummyActions,
         0,
         0,
         endDate,
-        VoteOption.None,
+        Tally.empty(),
         false
       );
-      const id = 0;
+      const id = await getProposalIdFromTx(plugin, tx);
 
       await voteWithSigners(plugin, id, {
         yes: [alice, bob, carol], // 30 votes
@@ -238,16 +221,16 @@ describe('Different configurations:', async () => {
       } = await loadFixture(localFixture);
       const endDate = (await time.latest()) + TIME.DAY;
 
-      await plugin.createProposal(
+      const tx = await plugin.createProposal(
         dummyMetadata,
         dummyActions,
         0,
         0,
         endDate,
-        VoteOption.None,
+        Tally.empty(),
         false
       );
-      const id = 0;
+      const id = await getProposalIdFromTx(plugin, tx);
 
       await voteWithSigners(plugin, id, {
         yes: [alice, bob, carol, dave, eve], // 50 votes
@@ -259,7 +242,7 @@ describe('Different configurations:', async () => {
       expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
       expect(await plugin.canExecute(id)).to.equal(false);
 
-      await plugin.connect(frank).vote(id, VoteOption.Yes, false);
+      await plugin.connect(frank).vote(id, Tally.yes(10), false);
       expect(await plugin.isMinParticipationReached(id)).to.be.true;
       expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
       expect(await plugin.canExecute(id)).to.equal(true);
@@ -331,16 +314,16 @@ describe('Different configurations:', async () => {
       } = await loadFixture(localFixture);
       const endDate = (await time.latest()) + TIME.DAY;
 
-      await plugin.createProposal(
+      const tx = await plugin.createProposal(
         dummyMetadata,
         dummyActions,
         0,
         0,
         endDate,
-        VoteOption.None,
+        Tally.empty(),
         false
       );
-      const id = 0;
+      const id = await getProposalIdFromTx(plugin, tx);
 
       // does not execute early
       expect(await plugin.isMinParticipationReached(id)).to.be.true;
@@ -364,18 +347,18 @@ describe('Different configurations:', async () => {
       } = await loadFixture(localFixture);
       const endDate = (await time.latest()) + TIME.DAY;
 
-      await plugin.createProposal(
+      const tx = await plugin.createProposal(
         dummyMetadata,
         dummyActions,
         0,
         0,
         endDate,
-        VoteOption.None,
+        Tally.empty(),
         false
       );
-      const id = 0;
+      const id = await getProposalIdFromTx(plugin, tx);
 
-      await plugin.connect(alice).vote(id, VoteOption.Yes, false);
+      await plugin.connect(alice).vote(id, Tally.yes(1), false);
 
       // Check if the proposal can execute early
       expect(await plugin.isMinParticipationReached(id)).to.be.true;
@@ -404,6 +387,7 @@ describe('Different configurations:', async () => {
         dao: DAO;
         dummyActions: DAOStructs.ActionStruct[];
         dummyMetadata: string;
+        balances: {[key: string]: BigNumberish};
       };
 
       async function localFixture(): Promise<LocalFixtureResult> {
@@ -422,13 +406,18 @@ describe('Different configurations:', async () => {
         // Set the balances of alice, bob, and carol.
         const totalSupply = ethers.BigNumber.from(10).pow(18);
         const delta = totalSupply.div(RATIO_BASE); // 10^6
+        const balances = {
+          alice: totalSupply.sub(delta), // 99.9999% of the total supply
+          bob: 1, // 1 vote (10^-16 % = 0.0000000000000001%)
+          carol: delta.sub(1), // 1 vote less than 0.0001% of the total supply (99.9999% - 10^-16% = 0.00009999999999999%)
+        };
         await setBalances(token, [
           {
             receiver: alice.address,
-            amount: totalSupply.sub(delta), // 99.9999% of the total supply
+            amount: balances.alice, // 99.9999% of the total supply
           },
-          {receiver: bob.address, amount: 1}, // 1 vote (10^-16 % = 0.0000000000000001%)
-          {receiver: carol.address, amount: delta.sub(1)}, // 1 vote less than 0.0001% of the total supply (99.9999% - 10^-16% = 0.00009999999999999%)
+          {receiver: bob.address, amount: balances.bob}, // 1 vote (10^-16 % = 0.0000000000000001%)
+          {receiver: carol.address, amount: balances.carol}, // 1 vote less than 0.0001% of the total supply (99.9999% - 10^-16% = 0.00009999999999999%)
         ]);
 
         // Update Voting settings
@@ -447,6 +436,7 @@ describe('Different configurations:', async () => {
         return {
           deployer,
           alice,
+          balances,
           bob,
           carol,
           initializedPlugin,
@@ -463,6 +453,7 @@ describe('Different configurations:', async () => {
           alice,
           bob,
           carol,
+          balances,
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
@@ -470,19 +461,19 @@ describe('Different configurations:', async () => {
         const endDate = (await time.latest()) + TIME.DAY;
 
         // Create a proposal.
-        await plugin.createProposal(
+        const tx = await plugin.createProposal(
           dummyMetadata,
           dummyActions,
           0,
           0,
           endDate,
-          VoteOption.None,
+          Tally.empty(),
           false
         );
-        const id = 0;
+        const id = await getProposalIdFromTx(plugin, tx);
 
         // Vote `Yes` with Alice who has 99.9999% of the voting power.
-        await plugin.connect(alice).vote(id, VoteOption.Yes, false);
+        await plugin.connect(alice).vote(id, Tally.yes(balances.alice), false);
 
         // Check that the `supportThreshold` is not met early yet (because if Bob votes `No` with his remaining 1 vote, the support threshold is not met).
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
@@ -499,20 +490,21 @@ describe('Different configurations:', async () => {
         ).to.eq(totalVotingPower.div(RATIO_BASE));
 
         // Vote `Yes` with Bob who has 1 vote.
-        await plugin.connect(bob).vote(id, VoteOption.Yes, false);
+        await plugin.connect(bob).vote(id, Tally.yes(balances.bob), false);
 
         // Check that the `supportThreshold` is now met early.
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
 
         // Check that Carol voting with the remaining votes does not change the vote outcome.
-        await plugin.connect(carol).vote(id, VoteOption.Yes, false);
+        await plugin.connect(carol).vote(id, Tally.yes(balances.carol), false);
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
       });
 
       it('participation criterion is sharp by 1 vote', async () => {
         const {
+          balances,
           alice,
           bob,
           carol,
@@ -523,21 +515,21 @@ describe('Different configurations:', async () => {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        await plugin.createProposal(
+        const tx = await plugin.createProposal(
           dummyMetadata,
           dummyActions,
           0,
           0,
           endDate,
-          VoteOption.None,
+          Tally.empty(),
           false
         );
-        const id = 0;
+        const id = await getProposalIdFromTx(plugin, tx);
 
         //Vote `Yes` with Alice who has 99.9999% of the total supply.
-        await plugin.connect(alice).vote(id, VoteOption.Yes, false);
+        await plugin.connect(alice).vote(id, Tally.yes(balances.alice), false);
         // Vote `yes` with Carol who has close to 0.0001% of the total supply (only 1 vote is missing that Bob has).
-        await plugin.connect(carol).vote(id, VoteOption.Yes, false);
+        await plugin.connect(carol).vote(id, Tally.yes(balances.carol), false);
 
         // Check that only 1 vote is missing to meet 100% particpiation.
         const proposal = await plugin.getProposal(id);
@@ -551,7 +543,7 @@ describe('Different configurations:', async () => {
         expect(await plugin.isMinParticipationReached(id)).to.be.false;
 
         // Cast the last vote as Bob so that 100% participation is met.
-        await plugin.connect(bob).vote(id, VoteOption.Yes, false);
+        await plugin.connect(bob).vote(id, Tally.yes(balances.bob), false);
         // Check that the `minParticipation` value is now reached.
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
       });
@@ -559,6 +551,7 @@ describe('Different configurations:', async () => {
 
     describe('tokens balances are in the magnitude of 10^6', async () => {
       type LocalFixtureResult = {
+        balances: {[key: string]: BigNumberish};
         deployer: SignerWithAddress;
         alice: SignerWithAddress;
         bob: SignerWithAddress;
@@ -586,9 +579,14 @@ describe('Different configurations:', async () => {
         const totalSupply = ethers.BigNumber.from(10).pow(6);
         const delta = 1; // 0.0001% of the total supply
 
+        const balances = {
+          alice: totalSupply.sub(delta), // 99.9999%
+          bob: delta, // 0.0001%
+        };
+
         await setBalances(token, [
-          {receiver: alice.address, amount: totalSupply.sub(delta)}, // 99.9999%
-          {receiver: bob.address, amount: delta}, //             0.0001%
+          {receiver: alice.address, amount: balances.alice},
+          {receiver: bob.address, amount: balances.bob},
         ]);
 
         // Update Voting settings
@@ -614,11 +612,13 @@ describe('Different configurations:', async () => {
           dao,
           dummyActions,
           dummyMetadata,
+          balances,
         };
       }
 
       it('early support criterion is sharp by 1 vote', async () => {
         const {
+          balances,
           alice,
           bob,
           initializedPlugin: plugin,
@@ -627,18 +627,18 @@ describe('Different configurations:', async () => {
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
 
-        await plugin.createProposal(
+        const tx = await plugin.createProposal(
           dummyMetadata,
           dummyActions,
           0,
           0,
           endDate,
-          VoteOption.None,
+          Tally.empty(),
           false
         );
-        const id = 0;
+        const id = await getProposalIdFromTx(plugin, tx);
 
-        await plugin.connect(alice).vote(id, VoteOption.Yes, false);
+        await plugin.connect(alice).vote(id, Tally.yes(balances.alice), false);
 
         // 1 vote is still missing to meet >99.9999%
         const proposal = await plugin.getProposal(id);
@@ -654,13 +654,14 @@ describe('Different configurations:', async () => {
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
 
         // cast the last vote so that support = 100%
-        await plugin.connect(bob).vote(id, VoteOption.Yes, false);
+        await plugin.connect(bob).vote(id, Tally.yes(balances.bob), false);
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
       });
 
       it('participation is not met with 1 vote missing', async () => {
         const {
+          balances,
           alice,
           bob,
           initializedPlugin: plugin,
@@ -669,18 +670,18 @@ describe('Different configurations:', async () => {
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
 
-        await plugin.createProposal(
+        const tx = await plugin.createProposal(
           dummyMetadata,
           dummyActions,
           0,
           0,
           endDate,
-          VoteOption.None,
+          Tally.empty(),
           false
         );
-        const id = 0;
+        const id = await getProposalIdFromTx(plugin, tx);
 
-        await plugin.connect(alice).vote(id, VoteOption.Yes, false);
+        await plugin.connect(alice).vote(id, Tally.yes(balances.alice), false);
         expect(await plugin.isMinParticipationReached(id)).to.be.false;
 
         // 1 vote is still missing to meet particpiation = 100%
@@ -695,7 +696,7 @@ describe('Different configurations:', async () => {
         expect(await plugin.isMinParticipationReached(id)).to.be.false;
 
         // cast the last vote so that participation = 100%
-        await plugin.connect(bob).vote(id, VoteOption.Yes, false);
+        await plugin.connect(bob).vote(id, Tally.yes(balances.bob), false);
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
       });
     });
@@ -736,16 +737,16 @@ describe('Different configurations:', async () => {
         expect(balanceAlice.sub(balanceBob)).to.eq(1);
 
         // Create a proposal.
-        await plugin.createProposal(
+        const tx = await plugin.createProposal(
           dummyMetadata,
           dummyActions,
           0,
           0,
           0,
-          VoteOption.None,
+          Tally.empty(),
           false
         );
-        const id = 0;
+        const id = await getProposalIdFromTx(plugin, tx);
 
         // Check that Alice and Bob's balances add up to the total voting power.
         const snapshotBlock = (await plugin.getProposal(id)).parameters
@@ -754,9 +755,9 @@ describe('Different configurations:', async () => {
         expect(totalVotingPower).to.eq(balanceAlice.add(balanceBob));
 
         // Vote `Yes` with Alice.
-        await plugin.connect(alice).vote(id, VoteOption.Yes, false);
+        await plugin.connect(alice).vote(id, Tally.yes(balanceAlice), false);
         // Vote `No` with Bob.
-        await plugin.connect(bob).vote(id, VoteOption.No, false);
+        await plugin.connect(bob).vote(id, Tally.no(balanceBob), false);
 
         // Check that the vote has passed (since Alice has one more vote than Bob).
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;

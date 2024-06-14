@@ -10,8 +10,10 @@ import '@openzeppelin/hardhat-upgrades';
 import '@typechain/hardhat';
 import {config as dotenvConfig} from 'dotenv';
 import {BigNumber, ethers} from 'ethers';
+import {tasks} from 'hardhat';
 import 'hardhat-deploy';
 import 'hardhat-gas-reporter';
+import 'hardhat-watcher';
 import {extendEnvironment, HardhatUserConfig} from 'hardhat/config';
 import {
   HardhatNetworkAccountsUserConfig,
@@ -182,6 +184,15 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: 'typechain',
     target: 'ethers-v5',
+  },
+  watcher: {
+    test: {
+      tasks: [{command: 'test', params: {testFiles: ['{path}']}}],
+      files: ['./test/**/*'],
+      verbose: true,
+      clearOnStart: true,
+      start: 'echo Running my test task now..',
+    },
   },
 };
 
