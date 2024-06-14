@@ -69,7 +69,7 @@ contract TokenVoting is
     mapping(uint256 => Proposal) internal proposals;
 
     /// @dev TODO: added during offsite to allow aragonette to fetch via incrementing proposal IDs
-    uint256[] public proposalIdsByCount;
+    uint256[] private proposalIdsByCount;
 
     /// @notice The struct storing the voting settings.
     VotingSettings private votingSettings;
@@ -628,6 +628,26 @@ contract TokenVoting is
         tally = proposal_.tally;
         actions = proposal_.actions;
         allowFailureMap = proposal_.allowFailureMap;
+    }
+
+    /// @dev TODO Added to keep API same when querying by autoincrementing counter
+    function getProposalByIndex(
+        uint _idx
+    )
+        public
+        view
+        virtual
+        returns (
+            bool open,
+            bool executed,
+            ProposalParameters memory parameters,
+            Tally memory tally,
+            IDAO.Action[] memory actions,
+            uint256 allowFailureMap
+        )
+    {
+        uint proposalId = proposalIdsByCount[_idx];
+        return getProposal(proposalId);
     }
 
     /// @inheritdoc ITokenVoting
