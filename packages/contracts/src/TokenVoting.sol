@@ -69,7 +69,7 @@ contract TokenVoting is
     mapping(uint256 => Proposal) internal proposals;
 
     /// @dev TODO: added during offsite to allow aragonette to fetch via incrementing proposal IDs
-    uint256[] private proposalIdsByCount;
+    uint256[] public proposalIdsByCount;
 
     /// @notice The struct storing the voting settings.
     VotingSettings private votingSettings;
