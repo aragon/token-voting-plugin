@@ -400,15 +400,16 @@ contract TokenVoting is
     ) internal returns (uint256 proposalId) {
         _incrementProposalCount();
 
+        proposalId = getProposalId({
+            _startDate: _startDate,
+            _endDate: _endDate,
+            _snapshotBlockTimestamp: block.timestamp
+        });
+
         // TODO: added to allow querying by count
         proposalIdsByCount.push(proposalId);
 
-        return
-            getProposalId({
-                _startDate: _startDate,
-                _endDate: _endDate,
-                _snapshotBlockTimestamp: block.timestamp
-            });
+        return proposalId;
     }
 
     /// @notice Increases the total proposal count by one.
