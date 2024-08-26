@@ -28,6 +28,7 @@ import {getNamedTypesFromMetadata} from '@aragon/osx-commons-sdk';
 import {TIME} from '@aragon/osx-commons-sdk';
 import {pctToRatio} from '@aragon/osx-commons-sdk';
 import {DAO} from '@aragon/osx-ethers';
+import {BigNumber} from '@ethersproject/bignumber';
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
@@ -49,8 +50,10 @@ type FixtureResult = {
     symbol: string;
   };
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
+  defaultMinApproval: BigNumber;
   prepareInstallationInputs: string;
   prepareUninstallationInputs: string;
+  prepareUpdateBuild3Inputs: string;
   dao: DAO;
   governanceERC20Base: GovernanceERC20;
   governanceWrappedERC20Base: GovernanceWrappedERC20;
@@ -70,6 +73,8 @@ async function fixture(): Promise<FixtureResult> {
     symbol: 'SYMB',
   };
   const defaultMintSettings = {receivers: [], amounts: []};
+  // todo set a different value
+  const defaultMinApproval = BigNumber.from(0);
 
   const erc20 = await new ERC20__factory(deployer).deploy('erc20', 'ERC20');
 
@@ -106,6 +111,7 @@ async function fixture(): Promise<FixtureResult> {
       Object.values(defaultVotingSettings),
       Object.values(defaultTokenSettings),
       Object.values(defaultMintSettings),
+      defaultMinApproval,
     ]
   );
 
@@ -117,6 +123,14 @@ async function fixture(): Promise<FixtureResult> {
     []
   );
 
+  // Provide update inputs
+  const prepareUpdateBuild3Inputs = ethers.utils.defaultAbiCoder.encode(
+    getNamedTypesFromMetadata(
+      METADATA.build.pluginSetup.prepareUpdate[3].inputs
+    ),
+    [defaultMinApproval]
+  );
+
   return {
     deployer,
     alice,
@@ -126,8 +140,10 @@ async function fixture(): Promise<FixtureResult> {
     defaultVotingSettings,
     defaultTokenSettings,
     defaultMintSettings,
+    defaultMinApproval,
     prepareInstallationInputs,
     prepareUninstallationInputs,
+    prepareUpdateBuild3Inputs,
     dao,
     governanceERC20Base,
     governanceWrappedERC20Base,
@@ -184,6 +200,7 @@ describe('TokenVotingSetup', function () {
         dao,
         defaultVotingSettings,
         defaultTokenSettings,
+        defaultMinApproval,
       } = await loadFixture(fixture);
 
       const receivers: string[] = [AddressZero];
@@ -196,6 +213,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           Object.values(defaultTokenSettings),
           {receivers, amounts},
+          defaultMinApproval,
         ]
       );
 
@@ -226,6 +244,7 @@ describe('TokenVotingSetup', function () {
         dao,
         defaultVotingSettings,
         defaultMintSettings,
+        defaultMinApproval,
       } = await loadFixture(fixture);
 
       const data = abiCoder.encode(
@@ -236,6 +255,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [alice.address, '', ''], // Instead of a token address, we pass Alice's address here.
           Object.values(defaultMintSettings),
+          defaultMinApproval,
         ]
       );
 
@@ -245,8 +265,13 @@ describe('TokenVotingSetup', function () {
     });
 
     it('fails if passed token address is not ERC20', async () => {
-      const {pluginSetup, dao, defaultVotingSettings, defaultMintSettings} =
-        await loadFixture(fixture);
+      const {
+        pluginSetup,
+        dao,
+        defaultVotingSettings,
+        defaultMintSettings,
+        defaultMinApproval,
+      } = await loadFixture(fixture);
 
       const data = abiCoder.encode(
         getNamedTypesFromMetadata(
@@ -256,6 +281,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [dao.address, '', ''],
           Object.values(defaultMintSettings),
+          defaultMinApproval,
         ]
       );
 
@@ -272,6 +298,7 @@ describe('TokenVotingSetup', function () {
         defaultTokenSettings,
         defaultMintSettings,
         erc20,
+        defaultMinApproval,
       } = await loadFixture(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
@@ -299,6 +326,7 @@ describe('TokenVotingSetup', function () {
             defaultTokenSettings.symbol,
           ],
           Object.values(defaultMintSettings),
+          defaultMinApproval,
         ]
       );
 
@@ -337,6 +365,7 @@ describe('TokenVotingSetup', function () {
         defaultVotingSettings,
         defaultMintSettings,
         erc20,
+        defaultMinApproval,
       } = await loadFixture(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
@@ -355,6 +384,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [erc20.address, 'myName', 'mySymb'],
           Object.values(defaultMintSettings),
+          defaultMinApproval,
         ]
       );
 
@@ -382,6 +412,7 @@ describe('TokenVotingSetup', function () {
         dao,
         defaultVotingSettings,
         defaultMintSettings,
+        defaultMinApproval,
       } = await loadFixture(fixture);
 
       const governanceERC20 = await new GovernanceERC20__factory(
@@ -405,6 +436,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [governanceERC20.address, '', ''],
           Object.values(defaultMintSettings),
+          defaultMinApproval,
         ]
       );
 
@@ -436,13 +468,9 @@ describe('TokenVotingSetup', function () {
     });
 
     it('correctly returns plugin, helpers and permissions, when a token address is not supplied', async () => {
-      const {
-        pluginSetup,
-        dao,
-        defaultVotingSettings,
-        defaultTokenSettings,
-        defaultMintSettings,
-      } = await loadFixture(fixture);
+      const {pluginSetup, dao, prepareInstallationInputs} = await loadFixture(
+        fixture
+      );
 
       const nonce = await ethers.provider.getTransactionCount(
         pluginSetup.address
@@ -457,21 +485,13 @@ describe('TokenVotingSetup', function () {
         nonce: nonce + 1,
       });
 
-      const data = abiCoder.encode(
-        getNamedTypesFromMetadata(
-          METADATA.build.pluginSetup.prepareInstallation.inputs
-        ),
-        [
-          Object.values(defaultVotingSettings),
-          Object.values(defaultTokenSettings),
-          Object.values(defaultMintSettings),
-        ]
-      );
-
       const {
         plugin,
         preparedSetupData: {helpers, permissions},
-      } = await pluginSetup.callStatic.prepareInstallation(dao.address, data);
+      } = await pluginSetup.callStatic.prepareInstallation(
+        dao.address,
+        prepareInstallationInputs
+      );
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(1);
@@ -510,6 +530,7 @@ describe('TokenVotingSetup', function () {
         defaultVotingSettings,
         defaultTokenSettings,
         defaultMintSettings,
+        defaultMinApproval,
       } = await loadFixture(fixture);
 
       const daoAddress = dao.address;
@@ -522,6 +543,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [AddressZero, defaultTokenSettings.name, defaultTokenSettings.symbol],
           Object.values(defaultMintSettings),
+          defaultMinApproval,
         ]
       );
 
@@ -575,7 +597,9 @@ describe('TokenVotingSetup', function () {
 
   describe('prepareUpdate', async () => {
     it('returns the permissions expected for the update from build 1', async () => {
-      const {pluginSetup, dao} = await loadFixture(fixture);
+      const {pluginSetup, dao, prepareUpdateBuild3Inputs} = await loadFixture(
+        fixture
+      );
       const plugin = ethers.Wallet.createRandom().address;
 
       // Make a static call to check that the plugin update data being returned is correct.
@@ -587,12 +611,17 @@ describe('TokenVotingSetup', function () {
           ethers.Wallet.createRandom().address,
           ethers.Wallet.createRandom().address,
         ],
-        data: [],
+        data: prepareUpdateBuild3Inputs,
         plugin,
       });
 
       // Check the return data.
-      expect(initData).to.be.eq('0x');
+      expect(initData).to.be.eq(
+        TokenVoting__factory.createInterface().encodeFunctionData(
+          'initializeFrom',
+          [prepareUpdateBuild3Inputs]
+        )
+      );
       expect(helpers).to.be.eql([]);
       expect(permissions.length).to.be.eql(1);
       expect(permissions).to.deep.equal([
@@ -607,7 +636,9 @@ describe('TokenVotingSetup', function () {
     });
 
     it('returns the permissions expected for the update from build 2', async () => {
-      const {pluginSetup, dao} = await loadFixture(fixture);
+      const {pluginSetup, dao, prepareUpdateBuild3Inputs} = await loadFixture(
+        fixture
+      );
       const plugin = ethers.Wallet.createRandom().address;
 
       // Make a static call to check that the plugin update data being returned is correct.
@@ -619,12 +650,17 @@ describe('TokenVotingSetup', function () {
           ethers.Wallet.createRandom().address,
           ethers.Wallet.createRandom().address,
         ],
-        data: [],
+        data: prepareUpdateBuild3Inputs,
         plugin,
       });
 
       // Check the return data.
-      expect(initData).to.be.eq('0x');
+      expect(initData).to.be.eq(
+        TokenVoting__factory.createInterface().encodeFunctionData(
+          'initializeFrom',
+          [prepareUpdateBuild3Inputs]
+        )
+      );
       expect(helpers).to.be.eql([]);
       expect(permissions.length).to.be.eql(1);
       expect(permissions).to.deep.equal([

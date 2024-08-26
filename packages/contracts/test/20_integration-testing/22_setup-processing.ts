@@ -34,6 +34,7 @@ import {
   DAO,
   TokenVoting__factory,
 } from '@aragon/osx-ethers';
+import {BigNumber} from '@ethersproject/bignumber';
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
@@ -57,6 +58,10 @@ type FixtureResult = {
     symbol: string;
   };
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
+  defaultMinApproval: BigNumber;
+  prepareInstallationInputs: string;
+  prepareInstallData: any;
+  prepareUpdateData: any;
 };
 
 async function fixture(): Promise<FixtureResult> {
@@ -134,6 +139,32 @@ async function fixture(): Promise<FixtureResult> {
     amounts: [],
   };
 
+  // todo set a different value
+  const defaultMinApproval = BigNumber.from(0);
+
+  // Provide uninstallation inputs
+  const prepareInstallationInputs = ethers.utils.defaultAbiCoder.encode(
+    getNamedTypesFromMetadata(
+      METADATA.build.pluginSetup.prepareInstallation.inputs
+    ),
+    [
+      Object.values(defaultVotingSettings),
+      Object.values(defaultTokenSettings),
+      Object.values(defaultMintSettings),
+      defaultMinApproval,
+    ]
+  );
+
+  const prepareInstallData = {
+    votingSettings: Object.values(defaultVotingSettings),
+    tokenSettings: Object.values(defaultTokenSettings),
+    mintSettings: Object.values(defaultMintSettings),
+    defaultMinApproval,
+  };
+
+  const prepareUpdateData = [defaultMinApproval];
+  // Provide update inputs
+  // const prepareUpdateBuild3Data = [defaultMinApproval];
   return {
     deployer,
     alice,
@@ -146,6 +177,10 @@ async function fixture(): Promise<FixtureResult> {
     defaultVotingSettings,
     defaultTokenSettings,
     defaultMintSettings,
+    defaultMinApproval,
+    prepareInstallationInputs,
+    prepareInstallData,
+    prepareUpdateData,
   };
 }
 
@@ -157,9 +192,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       psp,
       dao,
       pluginSetupRefLatestBuild,
-      defaultVotingSettings,
-      defaultTokenSettings,
-      defaultMintSettings,
+      prepareInstallationInputs,
     } = await loadFixture(fixture);
 
     // Grant deployer all required permissions
@@ -181,25 +214,12 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       .connect(deployer)
       .grant(dao.address, psp.address, DAO_PERMISSIONS.ROOT_PERMISSION_ID);
 
-    const prepareInstallData = {
-      votingSettings: Object.values(defaultVotingSettings),
-      tokenSettings: Object.values(defaultTokenSettings),
-      mintSettings: Object.values(defaultMintSettings),
-    };
-
-    const prepareInstallInputType = getNamedTypesFromMetadata(
-      METADATA.build.pluginSetup.prepareInstallation.inputs
-    );
-
     const results = await installPLugin(
       deployer,
       psp,
       dao,
       pluginSetupRefLatestBuild,
-      ethers.utils.defaultAbiCoder.encode(
-        prepareInstallInputType,
-        Object.values(prepareInstallData)
-      )
+      prepareInstallationInputs
     );
 
     const plugin = TokenVoting__factory.connect(
@@ -239,6 +259,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       dao,
       defaultVotingSettings,
       pluginSetupRefLatestBuild,
+      defaultMinApproval,
     } = await loadFixture(fixture);
 
     // Grant deployer all required permissions
@@ -264,6 +285,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       votingSettings: Object.values(defaultVotingSettings),
       tokenSettings: [ethers.constants.AddressZero, 'testToken', 'TEST'],
       mintSettings: [[alice.address], ['1000']],
+      defaultMinApproval,
     };
 
     const prepareInstallInputType = getNamedTypesFromMetadata(
@@ -315,18 +337,11 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       deployer,
       psp,
       dao,
-      defaultVotingSettings,
-      defaultTokenSettings,
-      defaultMintSettings,
       pluginRepo,
       pluginSetupRefLatestBuild,
+      prepareInstallData,
+      prepareUpdateData,
     } = await loadFixture(fixture);
-
-    const prepareInstallData = {
-      votingSettings: Object.values(defaultVotingSettings),
-      tokenSettings: Object.values(defaultTokenSettings),
-      mintSettings: Object.values(defaultMintSettings),
-    };
 
     await updateFromBuildTest(
       dao,
@@ -336,7 +351,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       pluginSetupRefLatestBuild,
       1,
       Object.values(prepareInstallData),
-      []
+      prepareUpdateData
     );
   });
 
@@ -347,16 +362,10 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       dao,
       pluginRepo,
       pluginSetupRefLatestBuild,
-      defaultVotingSettings,
-      defaultTokenSettings,
-      defaultMintSettings,
-    } = await loadFixture(fixture);
 
-    const prepareInstallData = {
-      votingSettings: Object.values(defaultVotingSettings),
-      tokenSettings: Object.values(defaultTokenSettings),
-      mintSettings: Object.values(defaultMintSettings),
-    };
+      prepareInstallData,
+      prepareUpdateData,
+    } = await loadFixture(fixture);
 
     await updateFromBuildTest(
       dao,
@@ -366,7 +375,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       pluginSetupRefLatestBuild,
       2,
       Object.values(prepareInstallData),
-      []
+      prepareUpdateData
     );
   });
 });
