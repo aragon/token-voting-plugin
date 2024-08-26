@@ -279,10 +279,14 @@ abstract contract MajorityVotingBase is
     // solhint-disable-next-line func-name-mixedcase
     function __MajorityVotingBase_init(
         IDAO _dao,
-        VotingSettings calldata _votingSettings
+        VotingSettings calldata _votingSettings,
+        uint32 _minApproval
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
+        if (_minApproval != 0) {
+            _updateMinApproval(_minApproval);
+        }
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -487,7 +491,7 @@ abstract contract MajorityVotingBase is
     function updateMinApproval(
         uint32 _minApproval
     ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
-        minApprovalValue = _minApproval;
+        _updateMinApproval(_minApproval);
     }
 
     /// @notice Creates a new majority voting proposal.
@@ -635,6 +639,11 @@ abstract contract MajorityVotingBase is
             minDuration: _votingSettings.minDuration,
             minProposerVotingPower: _votingSettings.minProposerVotingPower
         });
+    }
+
+    // todo natspec
+    function _updateMinApproval(uint32 _minApproval) internal virtual {
+        minApprovalValue = _minApproval;
     }
 
     /// @notice Validates and returns the proposal vote dates.
