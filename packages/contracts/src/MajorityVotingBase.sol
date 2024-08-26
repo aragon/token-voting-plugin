@@ -165,6 +165,7 @@ abstract contract MajorityVotingBase is
     /// @param voters The votes casted by the voters.
     /// @param actions The actions to be executed when the proposal passes.
     /// @param allowFailureMap A bitmap allowing the proposal to succeed, even if individual actions might revert.
+    /// @param minApprovalPower The minimum amount of yes votes power needed for the proposal advance.
     /// If the bit at index `i` is 1, the proposal succeeds even if the `i`th action reverts.
     /// A failure map value of 0 requires every action to not revert.
     struct Proposal {
@@ -174,6 +175,7 @@ abstract contract MajorityVotingBase is
         mapping(address => IMajorityVoting.VoteOption) voters;
         IDAO.Action[] actions;
         uint256 allowFailureMap;
+        uint256 minApprovalPower;
     }
 
     /// @notice A container for the proposal parameters at the time of proposal creation.
@@ -211,6 +213,7 @@ abstract contract MajorityVotingBase is
             this.totalVotingPower.selector ^
             this.getProposal.selector ^
             this.updateVotingSettings.selector ^
+            this.updateMinApproval.selector ^
             this.createProposal.selector;
 
     /// @notice The ID of the permission required to call the `updateVotingSettings` function.
@@ -223,6 +226,9 @@ abstract contract MajorityVotingBase is
 
     /// @notice The struct storing the voting settings.
     VotingSettings private votingSettings;
+
+    // todo TBD is this is the best way, can not add it to the voting settings because will break the interface
+    uint32 private minApprovalValue;
 
     /// @notice Thrown if a date is out of bounds.
     /// @param limit The limit value.
@@ -293,7 +299,12 @@ abstract contract MajorityVotingBase is
     {
         return
             _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ||
+            _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ^ this.updateMinApproval.selector ||
             _interfaceId == type(IMajorityVoting).interfaceId ||
+            _interfaceId ==
+            type(IMajorityVoting).interfaceId ^
+                this.isMinApprovalReached.selector ^
+                this.minApproval.selector ||
             super.supportsInterface(_interfaceId);
     }
 
@@ -387,6 +398,17 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IMajorityVoting
+    function isMinApprovalReached(uint256 _proposalId) public view virtual returns (bool) {
+        Proposal storage proposal_ = proposals[_proposalId];
+
+        return proposal_.tally.yes >= proposal_.minApprovalPower;
+    }
+
+    function minApproval() public view virtual returns (uint32) {
+        return minApprovalValue;
+    }
+
+    /// @inheritdoc IMajorityVoting
     function supportThreshold() public view virtual returns (uint32) {
         return votingSettings.supportThreshold;
     }
@@ -458,6 +480,14 @@ abstract contract MajorityVotingBase is
         VotingSettings calldata _votingSettings
     ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
         _updateVotingSettings(_votingSettings);
+    }
+
+    // todo define if permission should be the one as update settings
+    // todo add a new event emission
+    function updateMinApproval(
+        uint32 _minApproval
+    ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
+        minApprovalValue = _minApproval;
     }
 
     /// @notice Creates a new majority voting proposal.
@@ -548,6 +578,10 @@ abstract contract MajorityVotingBase is
             }
         }
         if (!isMinParticipationReached(_proposalId)) {
+            return false;
+        }
+        // ! if the minApproval is zero should ignore it?
+        if (!isMinApprovalReached(_proposalId)) {
             return false;
         }
 
@@ -644,5 +678,6 @@ abstract contract MajorityVotingBase is
     /// new variables without shifting down storage in the inheritance chain
     /// (see [OpenZeppelin's guide about storage gaps]
     /// (https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps)).
-    uint256[47] private __gap;
+    // todo double check the gap is correct
+    uint256[46] private __gap;
 }
