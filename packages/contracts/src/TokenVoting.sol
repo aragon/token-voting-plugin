@@ -23,7 +23,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     using SafeCastUpgradeable for uint256;
 
     /// @notice The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contract.
-    // todo think if there is a strong reason for keeping the initialize function on the interface id
+    // todo double check there is a strong reason for keeping the initialize function on the interface id
     bytes4 internal constant TOKEN_VOTING_INTERFACE_ID = this.getVotingToken.selector;
     bytes4 internal constant OLD_TOKEN_VOTING_INTERFACE_ID =
         bytes4(keccak256("initialize(address,(uint8,uint32,uint32,uint64,uint256),address)")) ^
@@ -36,11 +36,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @notice Thrown if the voting power is zero
     error NoVotingPower();
 
-    /// @notice Initializes the component.
-    /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
-    /// @param _dao The IDAO interface of the associated DAO.
-    /// @param _votingSettings The voting settings.
-    /// @param _token The [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used for voting.
+    /// @dev Deprecated function.
     function initialize(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
@@ -50,7 +46,12 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         _initialize(_dao, _votingSettings, _token, 0);
     }
 
-    // todo natspec
+    /// @notice Initializes the component.
+    /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
+    /// @param _dao The IDAO interface of the associated DAO.
+    /// @param _votingSettings The voting settings.
+    /// @param _token The [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used for voting.
+    /// @param _minApproval The minimal amount of approvals the proposal needs to succeed.
     function initialize(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
@@ -60,7 +61,8 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         _initialize(_dao, _votingSettings, _token, _minApproval);
     }
 
-    // todo natspec
+    /// @notice Initializes the plugin after an upgrade from a previous version.
+    /// @param _minApproval The minimal amount of approvals the proposal needs to succeed.
     function initializeFrom(uint32 _minApproval) external reinitializer(2) {
         _updateMinApproval(_minApproval);
     }
@@ -181,7 +183,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
             IERC20Upgradeable(address(votingToken)).balanceOf(_account) > 0;
     }
 
-    // todo natspec
+    /// @dev Internal function to initialize the contract.
     function _initialize(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
