@@ -36,7 +36,8 @@ interface IMajorityVoting {
     /// @return The support threshold parameter.
     function supportThreshold() external view returns (uint32);
 
-    // todo natspec
+    /// @notice Returns the min approval value stored configured.
+    /// @return The minimal approval value.
     function minApproval() external view returns (uint32);
 
     /// @notice Returns the minimum participation parameter stored in the voting settings.
@@ -64,7 +65,11 @@ interface IMajorityVoting {
     /// @return Returns `true` if the participation is greater than the minimum participation and `false` otherwise.
     function isMinParticipationReached(uint256 _proposalId) external view returns (bool);
 
-    // todo natspec
+    /// @notice Checks if the min approval value defined as:
+    ///$$\texttt{minApproval} = \frac{N_\text{yes}}{N_\text{total}}$$
+    /// for a proposal vote is greater or equal than the minimum approval value.
+    /// @param _proposalId The ID of the proposal.
+    /// @return Returns `true` if the participation is greater than the minimum participation and `false` otherwise.
     function isMinApprovalReached(uint256 _proposalId) external view returns (bool);
 
     /// @notice Checks if an account can participate on a proposal vote. This can be because the vote
