@@ -88,6 +88,12 @@
           "name": "mintSettings",
           "type": "tuple",
           "description": "The token mint settings struct containing the `receivers` and `amounts`."
+        },
+        {
+          "internalType": "uint32",
+          "name": "minApproval",
+          "type": "uint32",
+          "description": "The minimum amount of yes votes needed for the proposal advance."
         }
       ]
     },
@@ -99,6 +105,17 @@
       "2": {
         "description": "No input is required for the update.",
         "inputs": []
+      },
+      "3": {
+        "description": "No input is required for the update.",
+        "inputs": [
+          {
+            "internalType": "uint32",
+            "name": "minApproval",
+            "type": "uint32",
+            "description": "The minimum amount of yes votes needed for the proposal advance."
+          }
+        ]
       }
     },
     "prepareUninstallation": {
