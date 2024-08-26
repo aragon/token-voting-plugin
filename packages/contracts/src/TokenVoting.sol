@@ -23,8 +23,11 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     using SafeCastUpgradeable for uint256;
 
     /// @notice The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contract.
-    bytes4 internal constant TOKEN_VOTING_INTERFACE_ID =
-        this.initialize.selector ^ this.getVotingToken.selector;
+    // todo think if there is a strong reason for keeping the initialize function on the interface id
+    bytes4 internal constant TOKEN_VOTING_INTERFACE_ID = this.getVotingToken.selector;
+    bytes4 internal constant OLD_TOKEN_VOTING_INTERFACE_ID =
+        bytes4(keccak256("initialize(address,(uint8,uint32,uint32,uint64,uint256),address)")) ^
+            this.getVotingToken.selector;
 
     /// @notice An [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
     /// compatible contract referencing the token being used for voting.
@@ -43,11 +46,23 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         VotingSettings calldata _votingSettings,
         IVotesUpgradeable _token
     ) external initializer {
-        __MajorityVotingBase_init(_dao, _votingSettings);
+        // todo TBD should we deprecate this function?
+        _initialize(_dao, _votingSettings, _token, 0);
+    }
 
-        votingToken = _token;
+    // todo natspec
+    function initialize(
+        IDAO _dao,
+        VotingSettings calldata _votingSettings,
+        IVotesUpgradeable _token,
+        uint32 _minApproval
+    ) external initializer {
+        _initialize(_dao, _votingSettings, _token, _minApproval);
+    }
 
-        emit MembershipContractAnnounced({definingContract: address(_token)});
+    // todo natspec
+    function initializeFrom(uint32 _minApproval) external reinitializer(2) {
+        _updateMinApproval(_minApproval);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -56,6 +71,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     function supportsInterface(bytes4 _interfaceId) public view virtual override returns (bool) {
         return
             _interfaceId == TOKEN_VOTING_INTERFACE_ID ||
+            _interfaceId == OLD_TOKEN_VOTING_INTERFACE_ID ||
             _interfaceId == type(IMembership).interfaceId ||
             super.supportsInterface(_interfaceId);
     }
@@ -137,6 +153,9 @@ contract TokenVoting is IMembership, MajorityVotingBase {
             minParticipation()
         );
 
+        // todo double check this, what if the minApproval is 0?
+        proposal_.minApprovalPower = _applyRatioCeiled(totalVotingPower_, minApproval());
+
         // Reduce costs
         if (_allowFailureMap != 0) {
             proposal_.allowFailureMap = _allowFailureMap;
@@ -160,6 +179,20 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         return
             votingToken.getVotes(_account) > 0 ||
             IERC20Upgradeable(address(votingToken)).balanceOf(_account) > 0;
+    }
+
+    // todo natspec
+    function _initialize(
+        IDAO _dao,
+        VotingSettings calldata _votingSettings,
+        IVotesUpgradeable _token,
+        uint32 _minApproval
+    ) internal {
+        __MajorityVotingBase_init(_dao, _votingSettings, _minApproval);
+
+        votingToken = _token;
+
+        emit MembershipContractAnnounced({definingContract: address(_token)});
     }
 
     /// @inheritdoc MajorityVotingBase
