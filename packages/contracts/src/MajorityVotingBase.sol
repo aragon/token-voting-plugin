@@ -227,7 +227,7 @@ abstract contract MajorityVotingBase is
     /// @notice The struct storing the voting settings.
     VotingSettings private votingSettings;
 
-    // todo TBD is this is the best way, can not add it to the voting settings because will break the interface
+    // todo TBD if this is the best way, can not add it to the voting settings because will break the interface
     uint32 private minApprovalValue;
 
     /// @notice Thrown if a date is out of bounds.
@@ -271,6 +271,10 @@ abstract contract MajorityVotingBase is
         uint64 minDuration,
         uint256 minProposerVotingPower
     );
+
+    /// @notice Emitted when the min approval value is updated.
+    /// @param minApproval The minimum amount of yes votes needed for a proposal succeed.
+    event VotingMinApprovalUpdated(uint32 minApproval);
 
     /// @notice Initializes the component to be used by inheriting contracts.
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
@@ -486,8 +490,9 @@ abstract contract MajorityVotingBase is
         _updateVotingSettings(_votingSettings);
     }
 
-    // todo define if permission should be the one as update settings
-    // todo add a new event emission
+    // todo define if permission should be the same one as update settings
+    /// @notice Updates the minimal approval value.
+    /// @param _minApproval The new minimal approval value.
     function updateMinApproval(
         uint32 _minApproval
     ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
@@ -641,9 +646,11 @@ abstract contract MajorityVotingBase is
         });
     }
 
-    // todo natspec
+    /// @notice Internal function to update minimal approval value.
+    /// @param _minApproval The new minimal approval value.
     function _updateMinApproval(uint32 _minApproval) internal virtual {
         minApprovalValue = _minApproval;
+        emit VotingMinApprovalUpdated(_minApproval);
     }
 
     /// @notice Validates and returns the proposal vote dates.
@@ -687,6 +694,5 @@ abstract contract MajorityVotingBase is
     /// new variables without shifting down storage in the inheritance chain
     /// (see [OpenZeppelin's guide about storage gaps]
     /// (https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps)).
-    // todo double check the gap is correct
     uint256[46] private __gap;
 }
