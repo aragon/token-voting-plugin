@@ -6,7 +6,7 @@ import {MajorityVotingBase, IDAO} from "../MajorityVotingBase.sol";
 
 contract MajorityVotingMock is MajorityVotingBase {
     function initializeMock(IDAO _dao, VotingSettings calldata _votingSettings) public initializer {
-        __MajorityVotingBase_init(_dao, _votingSettings);
+        __MajorityVotingBase_init(_dao, _votingSettings, 0);
     }
 
     function createProposal(

@@ -123,7 +123,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
   };
 
   const pluginInitdata = pluginImplementation.interface.encodeFunctionData(
-    'initialize',
+    'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)',
     [dao.address, defaultVotingSettings, token.address]
   );
   const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitdata);
@@ -205,11 +205,9 @@ describe('TokenVoting', function () {
 
       // Try to reinitialize the initialized plugin.
       await expect(
-        initializedPlugin.initialize(
-          dao.address,
-          defaultVotingSettings,
-          token.address
-        )
+        initializedPlugin[
+          'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)'
+        ](dao.address, defaultVotingSettings, token.address)
       ).to.be.revertedWith('Initializable: contract is already initialized');
     });
 
@@ -219,11 +217,9 @@ describe('TokenVoting', function () {
 
       // Initialize the uninitialized plugin.
       await expect(
-        await uninitializedPlugin.initialize(
-          dao.address,
-          defaultVotingSettings,
-          token.address
-        )
+        await uninitializedPlugin[
+          'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)'
+        ](dao.address, defaultVotingSettings, token.address)
       )
         .to.emit(uninitializedPlugin, 'MembershipContractAnnounced')
         .withArgs(token.address);
@@ -256,7 +252,9 @@ describe('TokenVoting', function () {
       };
 
       // Initialize the plugin.
-      await plugin.initialize(dao.address, votingSettings, token.address);
+      await plugin[
+        'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)'
+      ](dao.address, votingSettings, token.address);
 
       // Check that the voting settings have been set.
       expect(await plugin.minDuration()).to.equal(votingSettings.minDuration);

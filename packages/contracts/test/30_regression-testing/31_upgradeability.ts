@@ -36,7 +36,7 @@ describe('Upgrades', () => {
         defaultInitData.votingSettings,
         defaultInitData.token.address,
       ],
-      'initialize',
+      'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)',
       currentContractFactory,
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
       dao
