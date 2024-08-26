@@ -162,7 +162,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
         plugin = address(tokenVotingBase).deployUUPSProxy(
             // todo change to new initialize function
             abi.encodeWithSignature(
-                "initialize(address,(uint8,uint32,uint32,uint64,uint256),address, uint32)",
+                "initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)",
                 IDAO(_dao),
                 votingSettings,
                 IVotesUpgradeable(token),
