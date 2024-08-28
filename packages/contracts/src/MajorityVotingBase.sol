@@ -227,9 +227,9 @@ abstract contract MajorityVotingBase is
     /// @notice The struct storing the voting settings.
     VotingSettings private votingSettings;
 
-    /// @notice The minimal amount of yes votes needed for a proposal succeed.
-    /// @dev this value is not on the VotingSettings for compatibility reasons.
-    uint32 private minApprovalValue; // added in v1.3
+    /// @notice The minimal ratio of yes votes needed for a proposal succeed.
+    /// @dev is not on the VotingSettings for compatibility reasons.
+    uint32 private minApprovals; // added in v1.3
 
     /// @notice Thrown if a date is out of bounds.
     /// @param limit The limit value.
@@ -414,7 +414,7 @@ abstract contract MajorityVotingBase is
     }
 
     function minApproval() public view virtual returns (uint32) {
-        return minApprovalValue;
+        return minApprovals;
     }
 
     /// @inheritdoc IMajorityVoting
@@ -655,7 +655,7 @@ abstract contract MajorityVotingBase is
             revert RatioOutOfBounds({limit: RATIO_BASE, actual: _minApproval});
         }
 
-        minApprovalValue = _minApproval;
+        minApprovals = _minApproval;
         emit VotingMinApprovalUpdated(_minApproval);
     }
 
