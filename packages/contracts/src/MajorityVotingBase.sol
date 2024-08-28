@@ -227,8 +227,9 @@ abstract contract MajorityVotingBase is
     /// @notice The struct storing the voting settings.
     VotingSettings private votingSettings;
 
-    // todo TBD if this is the best way, can not add it to the voting settings because will break the interface
-    uint32 private minApprovalValue;
+    /// @notice The minimal amount of yes votes needed for a proposal succeed.
+    /// @dev this value is not on the VotingSettings for compatibility reasons.
+    uint32 private minApprovalValue; // added in v1.3
 
     /// @notice Thrown if a date is out of bounds.
     /// @param limit The limit value.
