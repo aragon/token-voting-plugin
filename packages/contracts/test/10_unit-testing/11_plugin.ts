@@ -128,11 +128,11 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
   // todo set a different value
   const defaultMinApproval = pctToRatio(10);
 
-  const pluginInitdata = pluginImplementation.interface.encodeFunctionData(
+  const pluginInitData = pluginImplementation.interface.encodeFunctionData(
     'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)',
     [dao.address, defaultVotingSettings, token.address, defaultMinApproval]
   );
-  const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitdata);
+  const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitData);
   const proxyCreatedEvent1 = findEvent<ProxyCreatedEvent>(
     await deploymentTx1.wait(),
     proxyFactory.interface.getEvent('ProxyCreated').name
@@ -2141,7 +2141,7 @@ describe('TokenVoting', function () {
 
         // Vote `Yes` with Frank with `tryEarlyExecution` being turned off. The vote is decided now.
         await plugin.connect(frank).vote(id, VoteOption.Yes, false);
-        // Check that the proposal can be excuted but didn't execute yet.
+        // Check that the proposal can be executed but didn't execute yet.
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(true);
 
@@ -2484,19 +2484,19 @@ describe('TokenVoting', function () {
 
         // Vote `Yes` with Eve with `tryEarlyExecution` being turned on. The vote is not decided yet.
         await plugin.connect(eve).vote(id, VoteOption.Yes, true);
-        // Check that the proposal cannot be excuted.
+        // Check that the proposal cannot be executed.
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(false);
 
         // Vote `Yes` with Frank with `tryEarlyExecution` being turned off. The vote is decided now.
         await plugin.connect(frank).vote(id, VoteOption.Yes, false);
-        // Check that the proposal cannot be excuted.
+        // Check that the proposal cannot be executed.
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(false);
 
         // Vote `Yes` with Eve with `tryEarlyExecution` being turned on. The vote is not decided yet.
         await plugin.connect(grace).vote(id, VoteOption.Yes, true);
-        // Check that the proposal cannot be excuted.
+        // Check that the proposal cannot be executed.
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(false);
       });
@@ -3162,7 +3162,7 @@ describe('TokenVoting', function () {
           // Vote `yes` with Carol who has close to 0.0001% of the total supply (only 1 vote is missing that Bob has).
           await plugin.connect(carol).vote(id, VoteOption.Yes, false);
 
-          // Check that only 1 vote is missing to meet 100% particpiation.
+          // Check that only 1 vote is missing to meet 100% participation.
           const proposal = await plugin.getProposal(id);
           const tally = proposal.tally;
           const totalVotingPower = await plugin.totalVotingPower(
@@ -3306,7 +3306,7 @@ describe('TokenVoting', function () {
           await plugin.connect(alice).vote(id, VoteOption.Yes, false);
           expect(await plugin.isMinParticipationReached(id)).to.be.false;
 
-          // 1 vote is still missing to meet particpiation = 100%
+          // 1 vote is still missing to meet participation = 100%
           const proposal = await plugin.getProposal(id);
           const tally = proposal.tally;
           const totalVotingPower = await plugin.totalVotingPower(
