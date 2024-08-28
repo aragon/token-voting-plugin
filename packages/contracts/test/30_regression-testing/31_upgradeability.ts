@@ -1,6 +1,7 @@
 import {createDaoProxy} from '../20_integration-testing/test-helpers';
 import {TestGovernanceERC20} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src';
+import {INITIALIZE_SIGNATURE} from '../test-utils/token-voting-constants';
 import {
   TokenVoting_V1_0_0__factory,
   TokenVoting_V1_3_0__factory,
@@ -38,7 +39,7 @@ describe('Upgrades', () => {
         defaultInitData.token.address,
         defaultInitData.minApproval,
       ],
-      'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)',
+      INITIALIZE_SIGNATURE,
       currentContractFactory,
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
       dao

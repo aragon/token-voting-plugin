@@ -25,6 +25,8 @@ import {
 import {
   TOKEN_VOTING_INTERFACE,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
+  INITIALIZE_SIGNATURE,
+  INITIALIZE_SIGNATURE_OLD,
 } from '../test-utils/token-voting-constants';
 import {
   TokenVoting__factory,
@@ -129,7 +131,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
   const defaultMinApproval = pctToRatio(10);
 
   const pluginInitData = pluginImplementation.interface.encodeFunctionData(
-    'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)',
+    INITIALIZE_SIGNATURE,
     [dao.address, defaultVotingSettings, token.address, defaultMinApproval]
   );
   const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitData);
@@ -217,10 +219,30 @@ describe('TokenVoting', function () {
 
       // Try to reinitialize the initialized plugin.
       await expect(
-        initializedPlugin[
-          'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)'
-        ](dao.address, defaultVotingSettings, token.address, defaultMinApproval)
+        initializedPlugin[INITIALIZE_SIGNATURE](
+          dao.address,
+          defaultVotingSettings,
+          token.address,
+          defaultMinApproval
+        )
       ).to.be.revertedWith('Initializable: contract is already initialized');
+    });
+
+    it('reverts if using DEPRECATED intialize function', async () => {
+      const {dao, uninitializedPlugin, defaultVotingSettings, token} =
+        await loadFixture(globalFixture);
+
+      // Try to call deprecated function (previous function with no minApproval param)
+      await expect(
+        uninitializedPlugin[INITIALIZE_SIGNATURE_OLD](
+          dao.address,
+          defaultVotingSettings,
+          token.address
+        )
+      ).to.be.revertedWithCustomError(
+        uninitializedPlugin,
+        'FunctionDeprecated'
+      );
     });
 
     it('emits the `MembershipContractAnnounced` event', async () => {
@@ -234,9 +256,12 @@ describe('TokenVoting', function () {
 
       // Initialize the uninitialized plugin.
       await expect(
-        await uninitializedPlugin[
-          'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)'
-        ](dao.address, defaultVotingSettings, token.address, defaultMinApproval)
+        await uninitializedPlugin[INITIALIZE_SIGNATURE](
+          dao.address,
+          defaultVotingSettings,
+          token.address,
+          defaultMinApproval
+        )
       )
         .to.emit(uninitializedPlugin, 'MembershipContractAnnounced')
         .withArgs(token.address);
@@ -270,9 +295,12 @@ describe('TokenVoting', function () {
       const minApproval = pctToRatio(30);
 
       // Initialize the plugin.
-      await plugin[
-        'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)'
-      ](dao.address, votingSettings, token.address, minApproval);
+      await plugin[INITIALIZE_SIGNATURE](
+        dao.address,
+        votingSettings,
+        token.address,
+        minApproval
+      );
 
       // Check that the voting settings have been set.
       expect(await plugin.minDuration()).to.equal(votingSettings.minDuration);
