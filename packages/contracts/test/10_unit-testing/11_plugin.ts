@@ -126,7 +126,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
   };
 
   // todo set a different value
-  const defaultMinApproval = pctToRatio(80);
+  const defaultMinApproval = pctToRatio(10);
 
   const pluginInitdata = pluginImplementation.interface.encodeFunctionData(
     'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)',
@@ -267,7 +267,7 @@ describe('TokenVoting', function () {
         minDuration: TIME.HOUR,
         minProposerVotingPower: 123,
       };
-      const minApproval = pctToRatio(80);
+      const minApproval = pctToRatio(30);
 
       // Initialize the plugin.
       await plugin[
