@@ -128,6 +128,9 @@ async function fixture(): Promise<FixtureResult> {
     minProposerVotingPower: 0,
   };
 
+  // todo set a different value
+  const defaultMinApproval = pctToRatio(30);
+
   const defaultTokenSettings = {
     addr: token.address,
     name: '', // only relevant if `address(0)` is provided as the token address
@@ -138,9 +141,6 @@ async function fixture(): Promise<FixtureResult> {
     receivers: [],
     amounts: [],
   };
-
-  // todo set a different value
-  const defaultMinApproval = BigNumber.from(0);
 
   // Provide uninstallation inputs
   const prepareInstallationInputs = ethers.utils.defaultAbiCoder.encode(

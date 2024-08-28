@@ -73,8 +73,6 @@ async function fixture(): Promise<FixtureResult> {
     symbol: 'SYMB',
   };
   const defaultMintSettings = {receivers: [], amounts: []};
-  // todo set a different value
-  const defaultMinApproval = BigNumber.from(0);
 
   const erc20 = await new ERC20__factory(deployer).deploy('erc20', 'ERC20');
 
@@ -101,6 +99,9 @@ async function fixture(): Promise<FixtureResult> {
     minDuration: TIME.HOUR,
     minProposerVotingPower: 0,
   };
+
+  // todo set a different value
+  const defaultMinApproval = pctToRatio(30);
 
   // Provide installation inputs
   const prepareInstallationInputs = ethers.utils.defaultAbiCoder.encode(
