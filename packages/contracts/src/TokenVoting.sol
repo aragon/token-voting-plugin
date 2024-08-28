@@ -36,14 +36,18 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @notice Thrown if the voting power is zero
     error NoVotingPower();
 
+    error FunctionDeprecated();
+
     /// @dev Deprecated function.
     function initialize(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
         IVotesUpgradeable _token
     ) external initializer {
-        // todo TBD should we deprecate this function?
-        _initialize(_dao, _votingSettings, _token, 0);
+        (_dao, _votingSettings, _token);
+
+        // todo TBD should we deprecate this function or only continue with old flow?
+        revert FunctionDeprecated();
     }
 
     /// @notice Initializes the component.
@@ -58,7 +62,11 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         IVotesUpgradeable _token,
         uint32 _minApproval
     ) external initializer {
-        _initialize(_dao, _votingSettings, _token, _minApproval);
+        __MajorityVotingBase_init(_dao, _votingSettings, _minApproval);
+
+        votingToken = _token;
+
+        emit MembershipContractAnnounced({definingContract: address(_token)});
     }
 
     /// @notice Initializes the plugin after an upgrade from a previous version.
@@ -181,20 +189,6 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         return
             votingToken.getVotes(_account) > 0 ||
             IERC20Upgradeable(address(votingToken)).balanceOf(_account) > 0;
-    }
-
-    /// @dev Internal function to initialize the contract.
-    function _initialize(
-        IDAO _dao,
-        VotingSettings calldata _votingSettings,
-        IVotesUpgradeable _token,
-        uint32 _minApproval
-    ) internal {
-        __MajorityVotingBase_init(_dao, _votingSettings, _minApproval);
-
-        votingToken = _token;
-
-        emit MembershipContractAnnounced({definingContract: address(_token)});
     }
 
     /// @inheritdoc MajorityVotingBase
