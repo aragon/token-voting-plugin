@@ -590,7 +590,6 @@ abstract contract MajorityVotingBase is
         if (!isMinParticipationReached(_proposalId)) {
             return false;
         }
-        // ! if the minApproval is zero should ignore it?
         if (!isMinApprovalReached(_proposalId)) {
             return false;
         }
