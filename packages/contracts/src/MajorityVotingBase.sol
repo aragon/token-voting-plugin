@@ -613,7 +613,7 @@ abstract contract MajorityVotingBase is
     /// @param _votingSettings The voting settings to be validated and updated.
     function _updateVotingSettings(VotingSettings calldata _votingSettings) internal virtual {
         // Require the support threshold value to be in the interval [0, 10^6-1],
-        // because `>` comparision is used in the support criterion and >100% could never be reached.
+        // because `>` comparison is used in the support criterion and >100% could never be reached.
         if (_votingSettings.supportThreshold > RATIO_BASE - 1) {
             revert RatioOutOfBounds({
                 limit: RATIO_BASE - 1,
@@ -622,7 +622,7 @@ abstract contract MajorityVotingBase is
         }
 
         // Require the minimum participation value to be in the interval [0, 10^6],
-        // because `>=` comparision is used in the participation criterion.
+        // because `>=` comparison is used in the participation criterion.
         if (_votingSettings.minParticipation > RATIO_BASE) {
             revert RatioOutOfBounds({limit: RATIO_BASE, actual: _votingSettings.minParticipation});
         }
@@ -649,6 +649,12 @@ abstract contract MajorityVotingBase is
     /// @notice Internal function to update minimal approval value.
     /// @param _minApproval The new minimal approval value.
     function _updateMinApproval(uint32 _minApproval) internal virtual {
+        // Require the minimum approval value to be in the interval [0, 10^6],
+        // because `>=` comparison is used in the participation criterion.
+        if (_minApproval > RATIO_BASE) {
+            revert RatioOutOfBounds({limit: RATIO_BASE, actual: _minApproval});
+        }
+
         minApprovalValue = _minApproval;
         emit VotingMinApprovalUpdated(_minApproval);
     }
