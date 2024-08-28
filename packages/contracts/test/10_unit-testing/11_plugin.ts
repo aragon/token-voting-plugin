@@ -339,7 +339,6 @@ describe('TokenVoting', function () {
 
     it('supports the `IMajorityVoting` OLD interface', async () => {
       const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      // const iface = IMajorityVoting__factory.createInterface();
       const oldIface = IMajorityVoting_V1_3_0__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(oldIface))).to.be
         .true;
