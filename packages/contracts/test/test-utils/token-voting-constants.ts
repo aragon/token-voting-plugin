@@ -25,3 +25,8 @@ export const VOTING_EVENTS = {
   VOTING_SETTINGS_UPDATED: 'VotingSettingsUpdated',
   VOTE_CAST: 'VoteCast',
 };
+
+export const INITIALIZE_SIGNATURE_OLD =
+  'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)';
+export const INITIALIZE_SIGNATURE =
+  'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)';
