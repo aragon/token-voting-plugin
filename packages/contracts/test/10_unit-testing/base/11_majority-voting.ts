@@ -11,7 +11,10 @@ import {
 } from '../../../typechain';
 import {ProxyCreatedEvent} from '../../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {MajorityVotingBase} from '../../../typechain/src/MajorityVotingBase';
-import {MAJORITY_VOTING_BASE_INTERFACE} from '../../test-utils/majority-voting-constants';
+import {
+  MAJORITY_VOTING_BASE_INTERFACE,
+  MAJORITY_VOTING_BASE_OLD_INTERFACE,
+} from '../../test-utils/majority-voting-constants';
 import {IMajorityVoting_V1_3_0__factory} from '../../test-utils/typechain-versions';
 import {VotingMode} from '../../test-utils/voting-helpers';
 import {TIME, findEvent} from '@aragon/osx-commons-sdk';
