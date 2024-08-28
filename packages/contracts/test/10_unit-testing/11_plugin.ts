@@ -317,7 +317,7 @@ describe('TokenVoting', function () {
       // Check that the token has been set.
       expect(await plugin.getVotingToken()).to.equal(token.address);
 
-      // Check the minimal approval have been set.
+      // Check the minimal approval has been set.
       expect(await plugin.minApproval()).to.equal(minApproval);
     });
   });
@@ -2625,7 +2625,6 @@ describe('TokenVoting', function () {
         };
 
         const newMinApproval = pctToRatio(21);
-        console.log('newMinApproval', newMinApproval);
 
         await initializedPlugin
           .connect(deployer)
