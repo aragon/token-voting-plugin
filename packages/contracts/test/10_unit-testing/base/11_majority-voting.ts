@@ -12,6 +12,7 @@ import {
 import {ProxyCreatedEvent} from '../../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {MajorityVotingBase} from '../../../typechain/src/MajorityVotingBase';
 import {MAJORITY_VOTING_BASE_INTERFACE} from '../../test-utils/majority-voting-constants';
+import {IMajorityVoting_V1_3_0__factory} from '../../test-utils/typechain-versions';
 import {VotingMode} from '../../test-utils/voting-helpers';
 import {TIME, findEvent} from '@aragon/osx-commons-sdk';
 import {getInterfaceId} from '@aragon/osx-commons-sdk';
@@ -116,10 +117,24 @@ describe('MajorityVotingMock', function () {
         .true;
     });
 
+    it('supports the `IMajorityVoting` OLD interface', async () => {
+      const oldIface = IMajorityVoting_V1_3_0__factory.createInterface();
+      expect(await votingBase.supportsInterface(getInterfaceId(oldIface))).to.be
+        .true;
+    });
+
     it('supports the `MajorityVotingBase` interface', async () => {
       expect(
         await votingBase.supportsInterface(
           getInterfaceId(MAJORITY_VOTING_BASE_INTERFACE)
+        )
+      ).to.be.true;
+    });
+
+    it('supports the `MajorityVotingBase` OLD interface', async () => {
+      expect(
+        await votingBase.supportsInterface(
+          getInterfaceId(MAJORITY_VOTING_BASE_OLD_INTERFACE)
         )
       ).to.be.true;
     });
