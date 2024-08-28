@@ -289,9 +289,7 @@ abstract contract MajorityVotingBase is
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
-        if (_minApproval != 0) {
-            _updateMinApproval(_minApproval);
-        }
+        _updateMinApproval(_minApproval);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
