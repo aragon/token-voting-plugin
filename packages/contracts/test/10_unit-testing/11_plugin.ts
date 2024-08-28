@@ -19,6 +19,7 @@ import {
 import {ExecutedEvent} from '../../typechain/src/mocks/DAOMock';
 import {
   MAJORITY_VOTING_BASE_INTERFACE,
+  MAJORITY_VOTING_BASE_OLD_INTERFACE,
   VOTING_EVENTS,
 } from '../test-utils/majority-voting-constants';
 import {
@@ -28,6 +29,7 @@ import {
 import {
   TokenVoting__factory,
   TokenVoting,
+  IMajorityVoting_V1_3_0__factory,
 } from '../test-utils/typechain-versions';
 import {
   VoteOption,
@@ -69,6 +71,7 @@ type GlobalFixtureResult = {
   initializedPlugin: TokenVoting;
   uninitializedPlugin: TokenVoting;
   defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct;
+  defaultMinApproval: BigNumber;
   token: TestGovernanceERC20;
   dao: DAO;
   dummyActions: DAOStructs.ActionStruct[];
@@ -122,9 +125,12 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     minProposerVotingPower: 0,
   };
 
+  // todo set a different value
+  const defaultMinApproval = pctToRatio(80);
+
   const pluginInitdata = pluginImplementation.interface.encodeFunctionData(
-    'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)',
-    [dao.address, defaultVotingSettings, token.address]
+    'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)',
+    [dao.address, defaultVotingSettings, token.address, defaultMinApproval]
   );
   const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitdata);
   const proxyCreatedEvent1 = findEvent<ProxyCreatedEvent>(
@@ -190,6 +196,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     initializedPlugin,
     uninitializedPlugin,
     defaultVotingSettings,
+    defaultMinApproval,
     token,
     dao,
     dummyActions,
@@ -200,32 +207,42 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
 describe('TokenVoting', function () {
   describe('initialize', async () => {
     it('reverts if trying to re-initialize', async () => {
-      const {dao, initializedPlugin, defaultVotingSettings, token} =
-        await loadFixture(globalFixture);
+      const {
+        dao,
+        initializedPlugin,
+        defaultVotingSettings,
+        defaultMinApproval,
+        token,
+      } = await loadFixture(globalFixture);
 
       // Try to reinitialize the initialized plugin.
       await expect(
         initializedPlugin[
-          'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)'
-        ](dao.address, defaultVotingSettings, token.address)
+          'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)'
+        ](dao.address, defaultVotingSettings, token.address, defaultMinApproval)
       ).to.be.revertedWith('Initializable: contract is already initialized');
     });
 
     it('emits the `MembershipContractAnnounced` event', async () => {
-      const {dao, uninitializedPlugin, defaultVotingSettings, token} =
-        await loadFixture(globalFixture);
+      const {
+        dao,
+        uninitializedPlugin,
+        defaultVotingSettings,
+        defaultMinApproval,
+        token,
+      } = await loadFixture(globalFixture);
 
       // Initialize the uninitialized plugin.
       await expect(
         await uninitializedPlugin[
-          'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)'
-        ](dao.address, defaultVotingSettings, token.address)
+          'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)'
+        ](dao.address, defaultVotingSettings, token.address, defaultMinApproval)
       )
         .to.emit(uninitializedPlugin, 'MembershipContractAnnounced')
         .withArgs(token.address);
     });
 
-    it('sets the voting settings and token', async () => {
+    it('sets the voting settings, token and minimal approval', async () => {
       const {
         dao,
         uninitializedPlugin: plugin,
@@ -250,11 +267,12 @@ describe('TokenVoting', function () {
         minDuration: TIME.HOUR,
         minProposerVotingPower: 123,
       };
+      const minApproval = pctToRatio(80);
 
       // Initialize the plugin.
       await plugin[
-        'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)'
-      ](dao.address, votingSettings, token.address);
+        'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)'
+      ](dao.address, votingSettings, token.address, minApproval);
 
       // Check that the voting settings have been set.
       expect(await plugin.minDuration()).to.equal(votingSettings.minDuration);
@@ -271,6 +289,9 @@ describe('TokenVoting', function () {
 
       // Check that the token has been set.
       expect(await plugin.getVotingToken()).to.equal(token.address);
+
+      // Check the minimal approval have been set.
+      expect(await plugin.minApproval()).to.equal(minApproval);
     });
   });
 
@@ -316,11 +337,28 @@ describe('TokenVoting', function () {
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
+    it('supports the `IMajorityVoting` OLD interface', async () => {
+      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      // const iface = IMajorityVoting__factory.createInterface();
+      const oldIface = IMajorityVoting_V1_3_0__factory.createInterface();
+      expect(await plugin.supportsInterface(getInterfaceId(oldIface))).to.be
+        .true;
+    });
+
     it('supports the `MajorityVotingBase` interface', async () => {
       const {initializedPlugin: plugin} = await loadFixture(globalFixture);
       expect(
         await plugin.supportsInterface(
           getInterfaceId(MAJORITY_VOTING_BASE_INTERFACE)
+        )
+      ).to.be.true;
+    });
+
+    it('supports the `MajorityVotingBase` OLD interface', async () => {
+      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      expect(
+        await plugin.supportsInterface(
+          getInterfaceId(MAJORITY_VOTING_BASE_OLD_INTERFACE)
         )
       ).to.be.true;
     });
@@ -735,7 +773,7 @@ describe('TokenVoting', function () {
         ).not.to.be.reverted;
       });
 
-      it('reverts if `_msgSender` doesn not own enough tokens herself/himself and has not tokens delegated to her/him in the current block', async () => {
+      it('reverts if `_msgSender` does not own enough tokens herself/himself and has not tokens delegated to her/him in the current block', async () => {
         const {
           deployer,
           alice,
@@ -2493,7 +2531,7 @@ describe('TokenVoting', function () {
   });
 
   describe('Different configurations:', async () => {
-    describe('A simple majority vote with >50% support and >=25% participation required', async () => {
+    describe('A simple majority vote with >50% support, >=25% participation required and minimal approval >= 21%', async () => {
       type LocalFixtureResult = {
         deployer: SignerWithAddress;
         alice: SignerWithAddress;
@@ -2560,9 +2598,16 @@ describe('TokenVoting', function () {
           minProposerVotingPower: 0,
         };
 
+        const newMinApproval = pctToRatio(21);
+        console.log('newMinApproval', newMinApproval);
+
         await initializedPlugin
           .connect(deployer)
           .updateVotingSettings(newVotingSettings);
+
+        await initializedPlugin
+          .connect(deployer)
+          .updateMinApproval(newMinApproval);
 
         return {
           deployer,
@@ -2621,6 +2666,50 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
       });
 
+      it('does not execute if support and participation are high enough but minimal approval is too low', async () => {
+        const {
+          alice,
+          bob,
+          carol,
+          initializedPlugin: plugin,
+          dummyMetadata,
+          dummyActions,
+        } = await loadFixture(localFixture);
+
+        const endDate = (await time.latest()) + TIME.DAY;
+
+        await plugin.createProposal(
+          dummyMetadata,
+          dummyActions,
+          0,
+          0,
+          endDate,
+          VoteOption.None,
+          false
+        );
+        const id = 0;
+
+        await voteWithSigners(plugin, id, {
+          yes: [alice, carol], // 20 votes
+          no: [bob], //  10 votes
+          abstain: [], // 0 votes
+        });
+
+        expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
+        expect(await plugin.isMinApprovalReached(id)).to.be.false;
+
+        expect(await plugin.canExecute(id)).to.be.false;
+
+        await time.increaseTo(endDate);
+
+        expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.isSupportThresholdReached(id)).to.be.true;
+        expect(await plugin.isMinApprovalReached(id)).to.be.false;
+
+        expect(await plugin.canExecute(id)).to.equal(false);
+      });
+
       it('does not execute if participation is high enough but support is too low', async () => {
         const {
           alice,
@@ -2660,7 +2749,52 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
       });
 
-      it('executes after the duration if participation and support are met', async () => {
+      it('does not execute if participation and minimal approval are high enough but support is too low', async () => {
+        const {
+          alice,
+          bob,
+          carol,
+          dave,
+          eve,
+          frank,
+          grace,
+          initializedPlugin: plugin,
+          dummyMetadata,
+          dummyActions,
+        } = await loadFixture(localFixture);
+        const endDate = (await time.latest()) + TIME.DAY;
+
+        await plugin.createProposal(
+          dummyMetadata,
+          dummyActions,
+          0,
+          0,
+          endDate,
+          VoteOption.None,
+          false
+        );
+        const id = 0;
+
+        await voteWithSigners(plugin, id, {
+          yes: [alice, dave, eve], // 30 votes
+          no: [bob, carol, frank, grace], //  40 votes
+          abstain: [], // 0 votes
+        });
+
+        expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.isMinApprovalReached(id)).to.be.true;
+        expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
+        expect(await plugin.canExecute(id)).to.equal(false);
+
+        await time.increaseTo(endDate);
+
+        expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.isMinApprovalReached(id)).to.be.true;
+        expect(await plugin.isSupportThresholdReached(id)).to.be.false;
+        expect(await plugin.canExecute(id)).to.equal(false);
+      });
+
+      it('executes after the duration if participation, support and minimal approval are met', async () => {
         const {
           alice,
           bob,
@@ -2689,6 +2823,8 @@ describe('TokenVoting', function () {
         });
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.isMinApprovalReached(id)).to.be.true;
+        expect(await plugin.isSupportThresholdReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
         expect(await plugin.canExecute(id)).to.equal(false);
 
@@ -2696,10 +2832,11 @@ describe('TokenVoting', function () {
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
+        expect(await plugin.isMinApprovalReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
       });
 
-      it('executes early if participation and support are met and the vote outcome cannot change anymore', async () => {
+      it('executes early if participation, support and minimal approval are met and the vote outcome cannot change anymore', async () => {
         const {
           alice,
           bob,
