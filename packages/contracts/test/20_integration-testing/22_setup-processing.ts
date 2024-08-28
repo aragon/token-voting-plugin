@@ -128,7 +128,6 @@ async function fixture(): Promise<FixtureResult> {
     minProposerVotingPower: 0,
   };
 
-  // todo set a different value
   const defaultMinApproval = pctToRatio(30);
 
   const defaultTokenSettings = {

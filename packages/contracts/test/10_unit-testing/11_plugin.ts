@@ -127,7 +127,6 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     minProposerVotingPower: 0,
   };
 
-  // todo set a different value
   const defaultMinApproval = pctToRatio(10);
 
   const pluginInitData = pluginImplementation.interface.encodeFunctionData(
