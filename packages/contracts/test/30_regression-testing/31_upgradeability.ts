@@ -21,6 +21,7 @@ import {DAO, TestGovernanceERC20__factory} from '@aragon/osx-ethers';
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
+import {BigNumber} from 'ethers';
 import {ethers} from 'hardhat';
 
 describe('Upgrades', () => {
@@ -35,8 +36,9 @@ describe('Upgrades', () => {
         dao.address,
         defaultInitData.votingSettings,
         defaultInitData.token.address,
+        defaultInitData.minApproval,
       ],
-      'initialize(address,(uint8,uint32,uint32,uint64,uint256),address)',
+      'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)',
       currentContractFactory,
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
       dao
@@ -124,6 +126,7 @@ type FixtureResult = {
   defaultInitData: {
     votingSettings: MajorityVotingBase.VotingSettingsStruct;
     token: TestGovernanceERC20;
+    minApproval: BigNumber;
   };
 };
 
@@ -156,6 +159,7 @@ async function fixture(): Promise<FixtureResult> {
   const defaultInitData = {
     votingSettings,
     token: token,
+    minApproval: pctToRatio(10),
   };
 
   return {
