@@ -2884,7 +2884,7 @@ describe('TokenVoting', function () {
       });
     });
 
-    describe('An edge case with `supportThreshold = 0%`, `minParticipation = 0%`, in early execution mode', async () => {
+    describe('An edge case with `supportThreshold = 0%`, `minParticipation = 0%`, `minApproval = 0%` in early execution mode', async () => {
       type LocalFixtureResult = {
         deployer: SignerWithAddress;
         alice: SignerWithAddress;
@@ -2919,9 +2919,15 @@ describe('TokenVoting', function () {
           minProposerVotingPower: 0,
         };
 
+        const minApproval = pctToRatio(0);
+
         await initializedPlugin
           .connect(deployer)
           .updateVotingSettings(newVotingSettings);
+
+        await initializedPlugin
+          .connect(deployer)
+          .updateMinApproval(minApproval);
 
         return {
           deployer,
@@ -2967,7 +2973,7 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
       });
 
-      it('executes if participation and support are met', async () => {
+      it('executes if participation, support and min approval are met', async () => {
         const {
           alice,
           initializedPlugin: plugin,
@@ -3003,7 +3009,7 @@ describe('TokenVoting', function () {
       });
     });
 
-    describe('An edge case with `supportThreshold = 99.9999%` and `minParticipation = 100%` in early execution mode', async () => {
+    describe('An edge case with `supportThreshold = 99.9999%`, `minParticipation = 100%` and `minApproval = 100%` in early execution mode', async () => {
       describe('token balances are in the magnitude of 10^18', async () => {
         type LocalFixtureResult = {
           deployer: SignerWithAddress;
@@ -3052,9 +3058,15 @@ describe('TokenVoting', function () {
             minProposerVotingPower: 0,
           };
 
+          const minApproval = pctToRatio(100); // the largest possible value
+
           await initializedPlugin
             .connect(deployer)
             .updateVotingSettings(newVotingSettings);
+
+          await initializedPlugin
+            .connect(deployer)
+            .updateMinApproval(minApproval);
 
           return {
             deployer,
