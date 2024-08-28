@@ -163,7 +163,6 @@ contract TokenVoting is IMembership, MajorityVotingBase {
             minParticipation()
         );
 
-        // todo double check this, what if the minApproval is 0?
         proposal_.minApprovalPower = _applyRatioCeiled(totalVotingPower_, minApproval());
 
         // Reduce costs
