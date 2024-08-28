@@ -406,11 +406,10 @@ abstract contract MajorityVotingBase is
 
     /// @inheritdoc IMajorityVoting
     function isMinApprovalReached(uint256 _proposalId) public view virtual returns (bool) {
-        Proposal storage proposal_ = proposals[_proposalId];
-
-        return proposal_.tally.yes >= proposal_.minApprovalPower;
+        return proposals[_proposalId].tally.yes >= proposals[_proposalId].minApprovalPower;
     }
 
+    /// @inheritdoc IMajorityVoting
     function minApproval() public view virtual returns (uint32) {
         return minApprovals;
     }
