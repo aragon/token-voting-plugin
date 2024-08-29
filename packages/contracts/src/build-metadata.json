@@ -107,7 +107,7 @@
         "inputs": []
       },
       "3": {
-        "description": "No input is required for the update.",
+        "description": "The information required for the installation.",
         "inputs": [
           {
             "internalType": "uint32",
