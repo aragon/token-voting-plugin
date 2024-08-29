@@ -8,9 +8,9 @@ contract MajorityVotingMock is MajorityVotingBase {
     function initializeMock(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
-        uint32 _minApproval
+        uint32 _minApprovals
     ) public initializer {
-        __MajorityVotingBase_init(_dao, _votingSettings, _minApproval);
+        __MajorityVotingBase_init(_dao, _votingSettings, _minApprovals);
     }
 
     function createProposal(

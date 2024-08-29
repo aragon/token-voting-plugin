@@ -97,7 +97,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             TokenSettings memory tokenSettings,
             // only used for GovernanceERC20(token is not passed)
             GovernanceERC20.MintSettings memory mintSettings,
-            uint32 minApproval
+            uint32 minApprovals
         ) = abi.decode(
                 _data,
                 (
@@ -165,7 +165,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                 IDAO(_dao),
                 votingSettings,
                 IVotesUpgradeable(token),
-                minApproval
+                minApprovals
             )
         );
 

@@ -55,14 +55,14 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @param _dao The IDAO interface of the associated DAO.
     /// @param _votingSettings The voting settings.
     /// @param _token The [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used for voting.
-    /// @param _minApproval The minimal amount of approvals the proposal needs to succeed.
+    /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
     function initialize(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
         IVotesUpgradeable _token,
-        uint32 _minApproval
+        uint32 _minApprovals
     ) external initializer {
-        __MajorityVotingBase_init(_dao, _votingSettings, _minApproval);
+        __MajorityVotingBase_init(_dao, _votingSettings, _minApprovals);
 
         votingToken = _token;
 
@@ -70,9 +70,9 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     }
 
     /// @notice Initializes the plugin after an upgrade from a previous version.
-    /// @param _minApproval The minimal amount of approvals the proposal needs to succeed.
-    function initializeFrom(uint32 _minApproval) external reinitializer(2) {
-        _updateMinApproval(_minApproval);
+    /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
+    function initializeFrom(uint32 _minApprovals) external reinitializer(2) {
+        _updateMinApproval(_minApprovals);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.

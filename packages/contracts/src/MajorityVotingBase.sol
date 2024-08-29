@@ -493,11 +493,11 @@ abstract contract MajorityVotingBase is
 
     // todo TBD define if permission should be the same one as update settings
     /// @notice Updates the minimal approval value.
-    /// @param _minApproval The new minimal approval value.
+    /// @param _minApprovals The new minimal approval value.
     function updateMinApproval(
-        uint32 _minApproval
+        uint32 _minApprovals
     ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
-        _updateMinApproval(_minApproval);
+        _updateMinApproval(_minApprovals);
     }
 
     /// @notice Creates a new majority voting proposal.
@@ -647,16 +647,16 @@ abstract contract MajorityVotingBase is
     }
 
     /// @notice Internal function to update minimal approval value.
-    /// @param _minApproval The new minimal approval value.
-    function _updateMinApproval(uint32 _minApproval) internal virtual {
+    /// @param _minApprovals The new minimal approval value.
+    function _updateMinApproval(uint32 _minApprovals) internal virtual {
         // Require the minimum approval value to be in the interval [0, 10^6],
         // because `>=` comparison is used in the participation criterion.
-        if (_minApproval > RATIO_BASE) {
-            revert RatioOutOfBounds({limit: RATIO_BASE, actual: _minApproval});
+        if (_minApprovals > RATIO_BASE) {
+            revert RatioOutOfBounds({limit: RATIO_BASE, actual: _minApprovals});
         }
 
-        minApprovals = _minApproval;
-        emit VotingMinApprovalUpdated(_minApproval);
+        minApprovals = _minApprovals;
+        emit VotingMinApprovalUpdated(_minApprovals);
     }
 
     /// @notice Validates and returns the proposal vote dates.
