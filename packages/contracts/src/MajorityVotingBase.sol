@@ -274,8 +274,8 @@ abstract contract MajorityVotingBase is
     );
 
     /// @notice Emitted when the min approval value is updated.
-    /// @param minApproval The minimum amount of yes votes needed for a proposal succeed.
-    event VotingMinApprovalUpdated(uint32 minApproval);
+    /// @param minApprovals The minimum amount of yes votes needed for a proposal succeed.
+    event VotingMinApprovalUpdated(uint32 minApprovals);
 
     /// @notice Initializes the component to be used by inheriting contracts.
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
@@ -285,11 +285,11 @@ abstract contract MajorityVotingBase is
     function __MajorityVotingBase_init(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
-        uint32 _minApproval
+        uint32 _minApprovals
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
-        _updateMinApproval(_minApproval);
+        _updateMinApproval(_minApprovals);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
