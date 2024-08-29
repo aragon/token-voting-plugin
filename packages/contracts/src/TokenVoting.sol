@@ -60,7 +60,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         IDAO _dao,
         VotingSettings calldata _votingSettings,
         IVotesUpgradeable _token,
-        uint32 _minApprovals
+        uint256 _minApprovals
     ) external initializer {
         __MajorityVotingBase_init(_dao, _votingSettings, _minApprovals);
 
@@ -71,7 +71,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
     /// @notice Initializes the plugin after an upgrade from a previous version.
     /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
-    function initializeFrom(uint32 _minApprovals) external reinitializer(2) {
+    function initializeFrom(uint256 _minApprovals) external reinitializer(2) {
         _updateMinApprovals(_minApprovals);
     }
 

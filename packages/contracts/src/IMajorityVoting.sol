@@ -38,7 +38,7 @@ interface IMajorityVoting {
 
     /// @notice Returns the min approval value stored configured.
     /// @return The minimal approval value.
-    function minApproval() external view returns (uint32);
+    function minApproval() external view returns (uint256);
 
     /// @notice Returns the minimum participation parameter stored in the voting settings.
     /// @return The minimum participation parameter.

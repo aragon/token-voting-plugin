@@ -97,14 +97,14 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             TokenSettings memory tokenSettings,
             // only used for GovernanceERC20(token is not passed)
             GovernanceERC20.MintSettings memory mintSettings,
-            uint32 minApprovals
+            uint256 minApprovals
         ) = abi.decode(
                 _data,
                 (
                     MajorityVotingBase.VotingSettings,
                     TokenSettings,
                     GovernanceERC20.MintSettings,
-                    uint32
+                    uint256
                 )
             );
 
@@ -161,7 +161,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
         // Prepare and deploy plugin proxy.
         plugin = address(tokenVotingBase).deployUUPSProxy(
             abi.encodeWithSignature(
-                "initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint32)",
+                "initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint256)",
                 IDAO(_dao),
                 votingSettings,
                 IVotesUpgradeable(token),
@@ -239,7 +239,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             // initialize the minAdvance value
             initData = abi.encodeCall(
                 TokenVoting.initializeFrom,
-                (abi.decode(_payload.data, (uint32)))
+                (abi.decode(_payload.data, (uint256)))
             );
         }
     }

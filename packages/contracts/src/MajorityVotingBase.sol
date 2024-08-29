@@ -229,7 +229,7 @@ abstract contract MajorityVotingBase is
 
     /// @notice The minimal ratio of yes votes needed for a proposal succeed.
     /// @dev is not on the VotingSettings for compatibility reasons.
-    uint32 private minApprovals; // added in v1.3
+    uint256 private minApprovals; // added in v1.3
 
     /// @notice Thrown if a date is out of bounds.
     /// @param limit The limit value.
@@ -275,7 +275,7 @@ abstract contract MajorityVotingBase is
 
     /// @notice Emitted when the min approval value is updated.
     /// @param minApprovals The minimum amount of yes votes needed for a proposal succeed.
-    event VotingMinApprovalUpdated(uint32 minApprovals);
+    event VotingMinApprovalUpdated(uint256 minApprovals);
 
     /// @notice Initializes the component to be used by inheriting contracts.
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
@@ -285,7 +285,7 @@ abstract contract MajorityVotingBase is
     function __MajorityVotingBase_init(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
-        uint32 _minApprovals
+        uint256 _minApprovals
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
@@ -413,7 +413,7 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IMajorityVoting
-    function minApproval() public view virtual returns (uint32) {
+    function minApproval() public view virtual returns (uint256) {
         return minApprovals;
     }
 
@@ -495,7 +495,7 @@ abstract contract MajorityVotingBase is
     /// @notice Updates the minimal approval value.
     /// @param _minApprovals The new minimal approval value.
     function updateMinApprovals(
-        uint32 _minApprovals
+        uint256 _minApprovals
     ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
         _updateMinApprovals(_minApprovals);
     }
@@ -648,7 +648,7 @@ abstract contract MajorityVotingBase is
 
     /// @notice Internal function to update minimal approval value.
     /// @param _minApprovals The new minimal approval value.
-    function _updateMinApprovals(uint32 _minApprovals) internal virtual {
+    function _updateMinApprovals(uint256 _minApprovals) internal virtual {
         // Require the minimum approval value to be in the interval [0, 10^6],
         // because `>=` comparison is used in the participation criterion.
         if (_minApprovals > RATIO_BASE) {
