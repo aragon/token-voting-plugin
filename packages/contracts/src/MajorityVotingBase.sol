@@ -304,9 +304,9 @@ abstract contract MajorityVotingBase is
         override(ERC165Upgradeable, PluginUUPSUpgradeable, ProposalUpgradeable)
         returns (bool)
     {
-        // In addition to the current IMajorityVoting interface, also support previous version of the interface that did not
-        // include the isMinApprovalReached() and minApproval() functions, same happens with MAJORITY_VOTING_BASE_INTERFACE_ID which
-        // did not included updateMinApproval() function.
+        // In addition to the current IMajorityVoting interface, also support previous version
+        // that did not include the isMinApprovalReached() and minApproval() functions, same
+        // happens with MAJORITY_VOTING_BASE_INTERFACE which did not included updateMinApproval().
         return
             _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ||
             _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ^ this.updateMinApproval.selector ||
