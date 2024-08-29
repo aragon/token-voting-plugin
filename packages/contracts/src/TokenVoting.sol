@@ -72,7 +72,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @notice Initializes the plugin after an upgrade from a previous version.
     /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
     function initializeFrom(uint32 _minApprovals) external reinitializer(2) {
-        _updateMinApproval(_minApprovals);
+        _updateMinApprovals(_minApprovals);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.

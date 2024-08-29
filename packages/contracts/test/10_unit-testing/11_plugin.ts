@@ -2632,7 +2632,7 @@ describe('TokenVoting', function () {
 
         await initializedPlugin
           .connect(deployer)
-          .updateMinApproval(newMinApproval);
+          .updateMinApprovals(newMinApproval);
 
         return {
           deployer,
@@ -2952,7 +2952,7 @@ describe('TokenVoting', function () {
 
         await initializedPlugin
           .connect(deployer)
-          .updateMinApproval(minApproval);
+          .updateMinApprovals(minApproval);
 
         return {
           deployer,
@@ -3091,7 +3091,7 @@ describe('TokenVoting', function () {
 
           await initializedPlugin
             .connect(deployer)
-            .updateMinApproval(minApproval);
+            .updateMinApprovals(minApproval);
 
           return {
             deployer,

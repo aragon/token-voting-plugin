@@ -204,7 +204,7 @@ describe('MajorityVotingMock', function () {
     });
   });
 
-  describe('updateMinApproval', async () => {
+  describe('updateMinApprovals', async () => {
     beforeEach(async () => {
       await votingBase.initializeMock(dao.address, votingSettings, minApproval);
     });
@@ -212,13 +212,13 @@ describe('MajorityVotingMock', function () {
     it('reverts if the minimum approval specified exceeds 100%', async () => {
       minApproval = pctToRatio(1000);
 
-      await expect(votingBase.updateMinApproval(minApproval))
+      await expect(votingBase.updateMinApprovals(minApproval))
         .to.be.revertedWithCustomError(votingBase, 'RatioOutOfBounds')
         .withArgs(pctToRatio(100), minApproval);
     });
 
     it('should change the minimum approval successfully', async () => {
-      await expect(votingBase.updateMinApproval(minApproval))
+      await expect(votingBase.updateMinApprovals(minApproval))
         .to.emit(votingBase, 'VotingMinApprovalUpdated')
         .withArgs(minApproval);
     });

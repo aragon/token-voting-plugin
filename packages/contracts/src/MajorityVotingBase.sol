@@ -213,7 +213,7 @@ abstract contract MajorityVotingBase is
             this.totalVotingPower.selector ^
             this.getProposal.selector ^
             this.updateVotingSettings.selector ^
-            this.updateMinApproval.selector ^
+            this.updateMinApprovals.selector ^
             this.createProposal.selector;
 
     /// @notice The ID of the permission required to call the `updateVotingSettings` function.
@@ -289,7 +289,7 @@ abstract contract MajorityVotingBase is
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
-        _updateMinApproval(_minApprovals);
+        _updateMinApprovals(_minApprovals);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -306,10 +306,10 @@ abstract contract MajorityVotingBase is
     {
         // In addition to the current IMajorityVoting interface, also support previous version
         // that did not include the isMinApprovalReached() and minApproval() functions, same
-        // happens with MAJORITY_VOTING_BASE_INTERFACE which did not included updateMinApproval().
+        // happens with MAJORITY_VOTING_BASE_INTERFACE which did not included updateMinApprovals().
         return
             _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ||
-            _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ^ this.updateMinApproval.selector ||
+            _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ^ this.updateMinApprovals.selector ||
             _interfaceId == type(IMajorityVoting).interfaceId ||
             _interfaceId ==
             type(IMajorityVoting).interfaceId ^
@@ -494,10 +494,10 @@ abstract contract MajorityVotingBase is
     // todo TBD define if permission should be the same one as update settings
     /// @notice Updates the minimal approval value.
     /// @param _minApprovals The new minimal approval value.
-    function updateMinApproval(
+    function updateMinApprovals(
         uint32 _minApprovals
     ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
-        _updateMinApproval(_minApprovals);
+        _updateMinApprovals(_minApprovals);
     }
 
     /// @notice Creates a new majority voting proposal.
@@ -648,7 +648,7 @@ abstract contract MajorityVotingBase is
 
     /// @notice Internal function to update minimal approval value.
     /// @param _minApprovals The new minimal approval value.
-    function _updateMinApproval(uint32 _minApprovals) internal virtual {
+    function _updateMinApprovals(uint32 _minApprovals) internal virtual {
         // Require the minimum approval value to be in the interval [0, 10^6],
         // because `>=` comparison is used in the participation criterion.
         if (_minApprovals > RATIO_BASE) {
