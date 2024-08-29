@@ -11,7 +11,11 @@ import {
 } from '../../../typechain';
 import {ProxyCreatedEvent} from '../../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {MajorityVotingBase} from '../../../typechain/src/MajorityVotingBase';
-import {MAJORITY_VOTING_BASE_INTERFACE} from '../../test-utils/majority-voting-constants';
+import {
+  MAJORITY_VOTING_BASE_INTERFACE,
+  MAJORITY_VOTING_BASE_OLD_INTERFACE,
+} from '../../test-utils/majority-voting-constants';
+import {IMajorityVoting_V1_3_0__factory} from '../../test-utils/typechain-versions';
 import {VotingMode} from '../../test-utils/voting-helpers';
 import {TIME, findEvent} from '@aragon/osx-commons-sdk';
 import {getInterfaceId} from '@aragon/osx-commons-sdk';
@@ -19,6 +23,7 @@ import {pctToRatio} from '@aragon/osx-commons-sdk';
 import {DAO} from '@aragon/osx-ethers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
+import {BigNumber} from 'ethers';
 import {ethers} from 'hardhat';
 
 describe('MajorityVotingMock', function () {
@@ -28,6 +33,7 @@ describe('MajorityVotingMock', function () {
   let dao: DAO;
 
   let votingSettings: MajorityVotingBase.VotingSettingsStruct;
+  let minApproval: BigNumber;
 
   before(async () => {
     signers = await ethers.getSigners();
@@ -44,6 +50,7 @@ describe('MajorityVotingMock', function () {
       minDuration: TIME.HOUR,
       minProposerVotingPower: 0,
     };
+    minApproval = pctToRatio(10);
 
     const pluginImplementation = await new MajorityVotingMock__factory(
       signers[0]
@@ -70,10 +77,10 @@ describe('MajorityVotingMock', function () {
 
   describe('initialize', async () => {
     it('reverts if trying to re-initialize', async () => {
-      await votingBase.initializeMock(dao.address, votingSettings);
+      await votingBase.initializeMock(dao.address, votingSettings, minApproval);
 
       await expect(
-        votingBase.initializeMock(dao.address, votingSettings)
+        votingBase.initializeMock(dao.address, votingSettings, minApproval)
       ).to.be.revertedWith('Initializable: contract is already initialized');
     });
   });
@@ -113,6 +120,12 @@ describe('MajorityVotingMock', function () {
         .true;
     });
 
+    it('supports the `IMajorityVoting` OLD interface', async () => {
+      const oldIface = IMajorityVoting_V1_3_0__factory.createInterface();
+      expect(await votingBase.supportsInterface(getInterfaceId(oldIface))).to.be
+        .true;
+    });
+
     it('supports the `MajorityVotingBase` interface', async () => {
       expect(
         await votingBase.supportsInterface(
@@ -120,11 +133,19 @@ describe('MajorityVotingMock', function () {
         )
       ).to.be.true;
     });
+
+    it('supports the `MajorityVotingBase` OLD interface', async () => {
+      expect(
+        await votingBase.supportsInterface(
+          getInterfaceId(MAJORITY_VOTING_BASE_OLD_INTERFACE)
+        )
+      ).to.be.true;
+    });
   });
 
   describe('updateVotingSettings', async () => {
     beforeEach(async () => {
-      await votingBase.initializeMock(dao.address, votingSettings);
+      await votingBase.initializeMock(dao.address, votingSettings, minApproval);
     });
 
     it('reverts if the support threshold specified equals 100%', async () => {
@@ -180,6 +201,26 @@ describe('MajorityVotingMock', function () {
           votingSettings.minDuration,
           votingSettings.minProposerVotingPower
         );
+    });
+  });
+
+  describe('updateMinApprovals', async () => {
+    beforeEach(async () => {
+      await votingBase.initializeMock(dao.address, votingSettings, minApproval);
+    });
+
+    it('reverts if the minimum approval specified exceeds 100%', async () => {
+      minApproval = pctToRatio(1000);
+
+      await expect(votingBase.updateMinApprovals(minApproval))
+        .to.be.revertedWithCustomError(votingBase, 'RatioOutOfBounds')
+        .withArgs(pctToRatio(100), minApproval);
+    });
+
+    it('should change the minimum approval successfully', async () => {
+      await expect(votingBase.updateMinApprovals(minApproval))
+        .to.emit(votingBase, 'VotingMinApprovalUpdated')
+        .withArgs(minApproval);
     });
   });
 });

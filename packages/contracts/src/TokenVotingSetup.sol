@@ -96,10 +96,16 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             MajorityVotingBase.VotingSettings memory votingSettings,
             TokenSettings memory tokenSettings,
             // only used for GovernanceERC20(token is not passed)
-            GovernanceERC20.MintSettings memory mintSettings
+            GovernanceERC20.MintSettings memory mintSettings,
+            uint256 minApprovals
         ) = abi.decode(
                 _data,
-                (MajorityVotingBase.VotingSettings, TokenSettings, GovernanceERC20.MintSettings)
+                (
+                    MajorityVotingBase.VotingSettings,
+                    TokenSettings,
+                    GovernanceERC20.MintSettings,
+                    uint256
+                )
             );
 
         address token = tokenSettings.addr;
@@ -154,9 +160,12 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
 
         // Prepare and deploy plugin proxy.
         plugin = address(tokenVotingBase).deployUUPSProxy(
-            abi.encodeCall(
-                TokenVoting.initialize,
-                (IDAO(_dao), votingSettings, IVotesUpgradeable(token))
+            abi.encodeWithSignature(
+                "initialize(address,(uint8,uint32,uint32,uint64,uint256),address,uint256)",
+                IDAO(_dao),
+                votingSettings,
+                IVotesUpgradeable(token),
+                minApprovals
             )
         );
 
@@ -213,7 +222,6 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
         override
         returns (bytes memory initData, PreparedSetupData memory preparedSetupData)
     {
-        (initData);
         if (_fromBuild < 3) {
             PermissionLib.MultiTargetPermission[]
                 memory permissions = new PermissionLib.MultiTargetPermission[](1);
@@ -227,6 +235,12 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             });
 
             preparedSetupData.permissions = permissions;
+
+            // initialize the minAdvance value
+            initData = abi.encodeCall(
+                TokenVoting.initializeFrom,
+                (abi.decode(_payload.data, (uint256)))
+            );
         }
     }
 

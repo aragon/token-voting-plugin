@@ -27,6 +27,8 @@ import {expect} from 'chai';
 import {ContractTransaction} from 'ethers';
 import {ethers} from 'hardhat';
 
+const latestBuild = 3;
+
 export async function installPLugin(
   signer: SignerWithAddress,
   psp: PluginSetupProcessor,
@@ -324,7 +326,7 @@ export async function updateFromBuildTest(
       pluginSetupRefLatestBuild,
       ethers.utils.defaultAbiCoder.encode(
         getNamedTypesFromMetadata(
-          METADATA.build.pluginSetup.prepareUpdate[1].inputs
+          METADATA.build.pluginSetup.prepareUpdate[latestBuild].inputs
         ),
         updateInputs
       )

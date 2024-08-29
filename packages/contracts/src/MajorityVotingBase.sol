@@ -165,6 +165,7 @@ abstract contract MajorityVotingBase is
     /// @param voters The votes casted by the voters.
     /// @param actions The actions to be executed when the proposal passes.
     /// @param allowFailureMap A bitmap allowing the proposal to succeed, even if individual actions might revert.
+    /// @param minApprovalPower The minimum amount of yes votes power needed for the proposal advance.
     /// If the bit at index `i` is 1, the proposal succeeds even if the `i`th action reverts.
     /// A failure map value of 0 requires every action to not revert.
     struct Proposal {
@@ -174,6 +175,7 @@ abstract contract MajorityVotingBase is
         mapping(address => IMajorityVoting.VoteOption) voters;
         IDAO.Action[] actions;
         uint256 allowFailureMap;
+        uint256 minApprovalPower;
     }
 
     /// @notice A container for the proposal parameters at the time of proposal creation.
@@ -211,6 +213,7 @@ abstract contract MajorityVotingBase is
             this.totalVotingPower.selector ^
             this.getProposal.selector ^
             this.updateVotingSettings.selector ^
+            this.updateMinApprovals.selector ^
             this.createProposal.selector;
 
     /// @notice The ID of the permission required to call the `updateVotingSettings` function.
@@ -223,6 +226,10 @@ abstract contract MajorityVotingBase is
 
     /// @notice The struct storing the voting settings.
     VotingSettings private votingSettings;
+
+    /// @notice The minimal ratio of yes votes needed for a proposal succeed.
+    /// @dev is not on the VotingSettings for compatibility reasons.
+    uint256 private minApprovals; // added in v1.3
 
     /// @notice Thrown if a date is out of bounds.
     /// @param limit The limit value.
@@ -266,6 +273,10 @@ abstract contract MajorityVotingBase is
         uint256 minProposerVotingPower
     );
 
+    /// @notice Emitted when the min approval value is updated.
+    /// @param minApprovals The minimum amount of yes votes needed for a proposal succeed.
+    event VotingMinApprovalUpdated(uint256 minApprovals);
+
     /// @notice Initializes the component to be used by inheriting contracts.
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
     /// @param _dao The IDAO interface of the associated DAO.
@@ -273,10 +284,12 @@ abstract contract MajorityVotingBase is
     // solhint-disable-next-line func-name-mixedcase
     function __MajorityVotingBase_init(
         IDAO _dao,
-        VotingSettings calldata _votingSettings
+        VotingSettings calldata _votingSettings,
+        uint256 _minApprovals
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
+        _updateMinApprovals(_minApprovals);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -291,9 +304,17 @@ abstract contract MajorityVotingBase is
         override(ERC165Upgradeable, PluginUUPSUpgradeable, ProposalUpgradeable)
         returns (bool)
     {
+        // In addition to the current IMajorityVoting interface, also support previous version
+        // that did not include the isMinApprovalReached() and minApproval() functions, same
+        // happens with MAJORITY_VOTING_BASE_INTERFACE which did not included updateMinApprovals().
         return
             _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ||
+            _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ^ this.updateMinApprovals.selector ||
             _interfaceId == type(IMajorityVoting).interfaceId ||
+            _interfaceId ==
+            type(IMajorityVoting).interfaceId ^
+                this.isMinApprovalReached.selector ^
+                this.minApproval.selector ||
             super.supportsInterface(_interfaceId);
     }
 
@@ -387,6 +408,16 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IMajorityVoting
+    function isMinApprovalReached(uint256 _proposalId) public view virtual returns (bool) {
+        return proposals[_proposalId].tally.yes >= proposals[_proposalId].minApprovalPower;
+    }
+
+    /// @inheritdoc IMajorityVoting
+    function minApproval() public view virtual returns (uint256) {
+        return minApprovals;
+    }
+
+    /// @inheritdoc IMajorityVoting
     function supportThreshold() public view virtual returns (uint32) {
         return votingSettings.supportThreshold;
     }
@@ -458,6 +489,15 @@ abstract contract MajorityVotingBase is
         VotingSettings calldata _votingSettings
     ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
         _updateVotingSettings(_votingSettings);
+    }
+
+    // todo TBD define if permission should be the same one as update settings
+    /// @notice Updates the minimal approval value.
+    /// @param _minApprovals The new minimal approval value.
+    function updateMinApprovals(
+        uint256 _minApprovals
+    ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
+        _updateMinApprovals(_minApprovals);
     }
 
     /// @notice Creates a new majority voting proposal.
@@ -550,6 +590,9 @@ abstract contract MajorityVotingBase is
         if (!isMinParticipationReached(_proposalId)) {
             return false;
         }
+        if (!isMinApprovalReached(_proposalId)) {
+            return false;
+        }
 
         return true;
     }
@@ -570,7 +613,7 @@ abstract contract MajorityVotingBase is
     /// @param _votingSettings The voting settings to be validated and updated.
     function _updateVotingSettings(VotingSettings calldata _votingSettings) internal virtual {
         // Require the support threshold value to be in the interval [0, 10^6-1],
-        // because `>` comparision is used in the support criterion and >100% could never be reached.
+        // because `>` comparison is used in the support criterion and >100% could never be reached.
         if (_votingSettings.supportThreshold > RATIO_BASE - 1) {
             revert RatioOutOfBounds({
                 limit: RATIO_BASE - 1,
@@ -579,7 +622,7 @@ abstract contract MajorityVotingBase is
         }
 
         // Require the minimum participation value to be in the interval [0, 10^6],
-        // because `>=` comparision is used in the participation criterion.
+        // because `>=` comparison is used in the participation criterion.
         if (_votingSettings.minParticipation > RATIO_BASE) {
             revert RatioOutOfBounds({limit: RATIO_BASE, actual: _votingSettings.minParticipation});
         }
@@ -601,6 +644,19 @@ abstract contract MajorityVotingBase is
             minDuration: _votingSettings.minDuration,
             minProposerVotingPower: _votingSettings.minProposerVotingPower
         });
+    }
+
+    /// @notice Internal function to update minimal approval value.
+    /// @param _minApprovals The new minimal approval value.
+    function _updateMinApprovals(uint256 _minApprovals) internal virtual {
+        // Require the minimum approval value to be in the interval [0, 10^6],
+        // because `>=` comparison is used in the participation criterion.
+        if (_minApprovals > RATIO_BASE) {
+            revert RatioOutOfBounds({limit: RATIO_BASE, actual: _minApprovals});
+        }
+
+        minApprovals = _minApprovals;
+        emit VotingMinApprovalUpdated(_minApprovals);
     }
 
     /// @notice Validates and returns the proposal vote dates.
@@ -644,5 +700,5 @@ abstract contract MajorityVotingBase is
     /// new variables without shifting down storage in the inheritance chain
     /// (see [OpenZeppelin's guide about storage gaps]
     /// (https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps)).
-    uint256[47] private __gap;
+    uint256[46] private __gap;
 }

@@ -19,15 +19,19 @@ import {
 import {ExecutedEvent} from '../../typechain/src/mocks/DAOMock';
 import {
   MAJORITY_VOTING_BASE_INTERFACE,
+  MAJORITY_VOTING_BASE_OLD_INTERFACE,
   VOTING_EVENTS,
 } from '../test-utils/majority-voting-constants';
 import {
   TOKEN_VOTING_INTERFACE,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
+  INITIALIZE_SIGNATURE,
+  INITIALIZE_SIGNATURE_OLD,
 } from '../test-utils/token-voting-constants';
 import {
   TokenVoting__factory,
   TokenVoting,
+  IMajorityVoting_V1_3_0__factory,
 } from '../test-utils/typechain-versions';
 import {
   VoteOption,
@@ -69,6 +73,7 @@ type GlobalFixtureResult = {
   initializedPlugin: TokenVoting;
   uninitializedPlugin: TokenVoting;
   defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct;
+  defaultMinApproval: BigNumber;
   token: TestGovernanceERC20;
   dao: DAO;
   dummyActions: DAOStructs.ActionStruct[];
@@ -122,11 +127,13 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     minProposerVotingPower: 0,
   };
 
-  const pluginInitdata = pluginImplementation.interface.encodeFunctionData(
-    'initialize',
-    [dao.address, defaultVotingSettings, token.address]
+  const defaultMinApproval = pctToRatio(10);
+
+  const pluginInitData = pluginImplementation.interface.encodeFunctionData(
+    INITIALIZE_SIGNATURE,
+    [dao.address, defaultVotingSettings, token.address, defaultMinApproval]
   );
-  const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitdata);
+  const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitData);
   const proxyCreatedEvent1 = findEvent<ProxyCreatedEvent>(
     await deploymentTx1.wait(),
     proxyFactory.interface.getEvent('ProxyCreated').name
@@ -190,6 +197,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     initializedPlugin,
     uninitializedPlugin,
     defaultVotingSettings,
+    defaultMinApproval,
     token,
     dao,
     dummyActions,
@@ -200,36 +208,65 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
 describe('TokenVoting', function () {
   describe('initialize', async () => {
     it('reverts if trying to re-initialize', async () => {
-      const {dao, initializedPlugin, defaultVotingSettings, token} =
-        await loadFixture(globalFixture);
+      const {
+        dao,
+        initializedPlugin,
+        defaultVotingSettings,
+        defaultMinApproval,
+        token,
+      } = await loadFixture(globalFixture);
 
       // Try to reinitialize the initialized plugin.
       await expect(
-        initializedPlugin.initialize(
+        initializedPlugin[INITIALIZE_SIGNATURE](
           dao.address,
           defaultVotingSettings,
-          token.address
+          token.address,
+          defaultMinApproval
         )
       ).to.be.revertedWith('Initializable: contract is already initialized');
     });
 
-    it('emits the `MembershipContractAnnounced` event', async () => {
+    it('reverts if using DEPRECATED intialize function', async () => {
       const {dao, uninitializedPlugin, defaultVotingSettings, token} =
         await loadFixture(globalFixture);
 
-      // Initialize the uninitialized plugin.
+      // Try to call deprecated function (previous function with no minApproval param)
       await expect(
-        await uninitializedPlugin.initialize(
+        uninitializedPlugin[INITIALIZE_SIGNATURE_OLD](
           dao.address,
           defaultVotingSettings,
           token.address
+        )
+      ).to.be.revertedWithCustomError(
+        uninitializedPlugin,
+        'FunctionDeprecated'
+      );
+    });
+
+    it('emits the `MembershipContractAnnounced` event', async () => {
+      const {
+        dao,
+        uninitializedPlugin,
+        defaultVotingSettings,
+        defaultMinApproval,
+        token,
+      } = await loadFixture(globalFixture);
+
+      // Initialize the uninitialized plugin.
+      await expect(
+        await uninitializedPlugin[INITIALIZE_SIGNATURE](
+          dao.address,
+          defaultVotingSettings,
+          token.address,
+          defaultMinApproval
         )
       )
         .to.emit(uninitializedPlugin, 'MembershipContractAnnounced')
         .withArgs(token.address);
     });
 
-    it('sets the voting settings and token', async () => {
+    it('sets the voting settings, token and minimal approval', async () => {
       const {
         dao,
         uninitializedPlugin: plugin,
@@ -254,9 +291,15 @@ describe('TokenVoting', function () {
         minDuration: TIME.HOUR,
         minProposerVotingPower: 123,
       };
+      const minApproval = pctToRatio(30);
 
       // Initialize the plugin.
-      await plugin.initialize(dao.address, votingSettings, token.address);
+      await plugin[INITIALIZE_SIGNATURE](
+        dao.address,
+        votingSettings,
+        token.address,
+        minApproval
+      );
 
       // Check that the voting settings have been set.
       expect(await plugin.minDuration()).to.equal(votingSettings.minDuration);
@@ -273,6 +316,9 @@ describe('TokenVoting', function () {
 
       // Check that the token has been set.
       expect(await plugin.getVotingToken()).to.equal(token.address);
+
+      // Check the minimal approval has been set.
+      expect(await plugin.minApproval()).to.equal(minApproval);
     });
   });
 
@@ -318,11 +364,27 @@ describe('TokenVoting', function () {
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
+    it('supports the `IMajorityVoting` OLD interface', async () => {
+      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const oldIface = IMajorityVoting_V1_3_0__factory.createInterface();
+      expect(await plugin.supportsInterface(getInterfaceId(oldIface))).to.be
+        .true;
+    });
+
     it('supports the `MajorityVotingBase` interface', async () => {
       const {initializedPlugin: plugin} = await loadFixture(globalFixture);
       expect(
         await plugin.supportsInterface(
           getInterfaceId(MAJORITY_VOTING_BASE_INTERFACE)
+        )
+      ).to.be.true;
+    });
+
+    it('supports the `MajorityVotingBase` OLD interface', async () => {
+      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      expect(
+        await plugin.supportsInterface(
+          getInterfaceId(MAJORITY_VOTING_BASE_OLD_INTERFACE)
         )
       ).to.be.true;
     });
@@ -737,7 +799,7 @@ describe('TokenVoting', function () {
         ).not.to.be.reverted;
       });
 
-      it('reverts if `_msgSender` doesn not own enough tokens herself/himself and has not tokens delegated to her/him in the current block', async () => {
+      it('reverts if `_msgSender` does not own enough tokens herself/himself and has not tokens delegated to her/him in the current block', async () => {
         const {
           deployer,
           alice,
@@ -2106,7 +2168,7 @@ describe('TokenVoting', function () {
 
         // Vote `Yes` with Frank with `tryEarlyExecution` being turned off. The vote is decided now.
         await plugin.connect(frank).vote(id, VoteOption.Yes, false);
-        // Check that the proposal can be excuted but didn't execute yet.
+        // Check that the proposal can be executed but didn't execute yet.
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(true);
 
@@ -2449,19 +2511,19 @@ describe('TokenVoting', function () {
 
         // Vote `Yes` with Eve with `tryEarlyExecution` being turned on. The vote is not decided yet.
         await plugin.connect(eve).vote(id, VoteOption.Yes, true);
-        // Check that the proposal cannot be excuted.
+        // Check that the proposal cannot be executed.
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(false);
 
         // Vote `Yes` with Frank with `tryEarlyExecution` being turned off. The vote is decided now.
         await plugin.connect(frank).vote(id, VoteOption.Yes, false);
-        // Check that the proposal cannot be excuted.
+        // Check that the proposal cannot be executed.
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(false);
 
         // Vote `Yes` with Eve with `tryEarlyExecution` being turned on. The vote is not decided yet.
         await plugin.connect(grace).vote(id, VoteOption.Yes, true);
-        // Check that the proposal cannot be excuted.
+        // Check that the proposal cannot be executed.
         expect((await plugin.getProposal(id)).executed).to.equal(false);
         expect(await plugin.canExecute(id)).to.equal(false);
       });
@@ -2495,7 +2557,7 @@ describe('TokenVoting', function () {
   });
 
   describe('Different configurations:', async () => {
-    describe('A simple majority vote with >50% support and >=25% participation required', async () => {
+    describe('A simple majority vote with >50% support, >=25% participation required and minimal approval >= 21%', async () => {
       type LocalFixtureResult = {
         deployer: SignerWithAddress;
         alice: SignerWithAddress;
@@ -2562,9 +2624,15 @@ describe('TokenVoting', function () {
           minProposerVotingPower: 0,
         };
 
+        const newMinApproval = pctToRatio(21);
+
         await initializedPlugin
           .connect(deployer)
           .updateVotingSettings(newVotingSettings);
+
+        await initializedPlugin
+          .connect(deployer)
+          .updateMinApprovals(newMinApproval);
 
         return {
           deployer,
@@ -2623,6 +2691,50 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
       });
 
+      it('does not execute if support and participation are high enough but minimal approval is too low', async () => {
+        const {
+          alice,
+          bob,
+          carol,
+          initializedPlugin: plugin,
+          dummyMetadata,
+          dummyActions,
+        } = await loadFixture(localFixture);
+
+        const endDate = (await time.latest()) + TIME.DAY;
+
+        await plugin.createProposal(
+          dummyMetadata,
+          dummyActions,
+          0,
+          0,
+          endDate,
+          VoteOption.None,
+          false
+        );
+        const id = 0;
+
+        await voteWithSigners(plugin, id, {
+          yes: [alice, carol], // 20 votes
+          no: [bob], //  10 votes
+          abstain: [], // 0 votes
+        });
+
+        expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
+        expect(await plugin.isMinApprovalReached(id)).to.be.false;
+
+        expect(await plugin.canExecute(id)).to.be.false;
+
+        await time.increaseTo(endDate);
+
+        expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.isSupportThresholdReached(id)).to.be.true;
+        expect(await plugin.isMinApprovalReached(id)).to.be.false;
+
+        expect(await plugin.canExecute(id)).to.equal(false);
+      });
+
       it('does not execute if participation is high enough but support is too low', async () => {
         const {
           alice,
@@ -2662,7 +2774,52 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
       });
 
-      it('executes after the duration if participation and support are met', async () => {
+      it('does not execute if participation and minimal approval are high enough but support is too low', async () => {
+        const {
+          alice,
+          bob,
+          carol,
+          dave,
+          eve,
+          frank,
+          grace,
+          initializedPlugin: plugin,
+          dummyMetadata,
+          dummyActions,
+        } = await loadFixture(localFixture);
+        const endDate = (await time.latest()) + TIME.DAY;
+
+        await plugin.createProposal(
+          dummyMetadata,
+          dummyActions,
+          0,
+          0,
+          endDate,
+          VoteOption.None,
+          false
+        );
+        const id = 0;
+
+        await voteWithSigners(plugin, id, {
+          yes: [alice, dave, eve], // 30 votes
+          no: [bob, carol, frank, grace], //  40 votes
+          abstain: [], // 0 votes
+        });
+
+        expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.isMinApprovalReached(id)).to.be.true;
+        expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
+        expect(await plugin.canExecute(id)).to.equal(false);
+
+        await time.increaseTo(endDate);
+
+        expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.isMinApprovalReached(id)).to.be.true;
+        expect(await plugin.isSupportThresholdReached(id)).to.be.false;
+        expect(await plugin.canExecute(id)).to.equal(false);
+      });
+
+      it('executes after the duration if participation, support and minimal approval are met', async () => {
         const {
           alice,
           bob,
@@ -2691,6 +2848,8 @@ describe('TokenVoting', function () {
         });
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.isMinApprovalReached(id)).to.be.true;
+        expect(await plugin.isSupportThresholdReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
         expect(await plugin.canExecute(id)).to.equal(false);
 
@@ -2698,10 +2857,11 @@ describe('TokenVoting', function () {
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
+        expect(await plugin.isMinApprovalReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
       });
 
-      it('executes early if participation and support are met and the vote outcome cannot change anymore', async () => {
+      it('executes early if participation, support and minimal approval are met and the vote outcome cannot change anymore', async () => {
         const {
           alice,
           bob,
@@ -2749,7 +2909,7 @@ describe('TokenVoting', function () {
       });
     });
 
-    describe('An edge case with `supportThreshold = 0%`, `minParticipation = 0%`, in early execution mode', async () => {
+    describe('An edge case with `supportThreshold = 0%`, `minParticipation = 0%`, `minApproval = 0%` in early execution mode', async () => {
       type LocalFixtureResult = {
         deployer: SignerWithAddress;
         alice: SignerWithAddress;
@@ -2784,9 +2944,15 @@ describe('TokenVoting', function () {
           minProposerVotingPower: 0,
         };
 
+        const minApproval = pctToRatio(0);
+
         await initializedPlugin
           .connect(deployer)
           .updateVotingSettings(newVotingSettings);
+
+        await initializedPlugin
+          .connect(deployer)
+          .updateMinApprovals(minApproval);
 
         return {
           deployer,
@@ -2832,7 +2998,7 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
       });
 
-      it('executes if participation and support are met', async () => {
+      it('executes if participation, support and min approval are met', async () => {
         const {
           alice,
           initializedPlugin: plugin,
@@ -2868,7 +3034,7 @@ describe('TokenVoting', function () {
       });
     });
 
-    describe('An edge case with `supportThreshold = 99.9999%` and `minParticipation = 100%` in early execution mode', async () => {
+    describe('An edge case with `supportThreshold = 99.9999%`, `minParticipation = 100%` and `minApproval = 100%` in early execution mode', async () => {
       describe('token balances are in the magnitude of 10^18', async () => {
         type LocalFixtureResult = {
           deployer: SignerWithAddress;
@@ -2917,9 +3083,15 @@ describe('TokenVoting', function () {
             minProposerVotingPower: 0,
           };
 
+          const minApproval = pctToRatio(100); // the largest possible value
+
           await initializedPlugin
             .connect(deployer)
             .updateVotingSettings(newVotingSettings);
+
+          await initializedPlugin
+            .connect(deployer)
+            .updateMinApprovals(minApproval);
 
           return {
             deployer,
@@ -3016,7 +3188,7 @@ describe('TokenVoting', function () {
           // Vote `yes` with Carol who has close to 0.0001% of the total supply (only 1 vote is missing that Bob has).
           await plugin.connect(carol).vote(id, VoteOption.Yes, false);
 
-          // Check that only 1 vote is missing to meet 100% particpiation.
+          // Check that only 1 vote is missing to meet 100% participation.
           const proposal = await plugin.getProposal(id);
           const tally = proposal.tally;
           const totalVotingPower = await plugin.totalVotingPower(
@@ -3160,7 +3332,7 @@ describe('TokenVoting', function () {
           await plugin.connect(alice).vote(id, VoteOption.Yes, false);
           expect(await plugin.isMinParticipationReached(id)).to.be.false;
 
-          // 1 vote is still missing to meet particpiation = 100%
+          // 1 vote is still missing to meet participation = 100%
           const proposal = await plugin.getProposal(id);
           const tally = proposal.tally;
           const totalVotingPower = await plugin.totalVotingPower(

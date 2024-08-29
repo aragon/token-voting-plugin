@@ -1,6 +1,7 @@
 import {createDaoProxy} from '../20_integration-testing/test-helpers';
 import {TestGovernanceERC20} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src';
+import {INITIALIZE_SIGNATURE} from '../test-utils/token-voting-constants';
 import {
   TokenVoting_V1_0_0__factory,
   TokenVoting_V1_3_0__factory,
@@ -21,6 +22,7 @@ import {DAO, TestGovernanceERC20__factory} from '@aragon/osx-ethers';
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
+import {BigNumber} from 'ethers';
 import {ethers} from 'hardhat';
 
 describe('Upgrades', () => {
@@ -35,8 +37,9 @@ describe('Upgrades', () => {
         dao.address,
         defaultInitData.votingSettings,
         defaultInitData.token.address,
+        defaultInitData.minApproval,
       ],
-      'initialize',
+      INITIALIZE_SIGNATURE,
       currentContractFactory,
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
       dao
@@ -124,6 +127,7 @@ type FixtureResult = {
   defaultInitData: {
     votingSettings: MajorityVotingBase.VotingSettingsStruct;
     token: TestGovernanceERC20;
+    minApproval: BigNumber;
   };
 };
 
@@ -156,6 +160,7 @@ async function fixture(): Promise<FixtureResult> {
   const defaultInitData = {
     votingSettings,
     token: token,
+    minApproval: pctToRatio(10),
   };
 
   return {

@@ -23,8 +23,11 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     using SafeCastUpgradeable for uint256;
 
     /// @notice The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contract.
-    bytes4 internal constant TOKEN_VOTING_INTERFACE_ID =
-        this.initialize.selector ^ this.getVotingToken.selector;
+    // todo double check there is a strong reason for keeping the initialize function on the interface id
+    bytes4 internal constant TOKEN_VOTING_INTERFACE_ID = this.getVotingToken.selector;
+    bytes4 internal constant OLD_TOKEN_VOTING_INTERFACE_ID =
+        bytes4(keccak256("initialize(address,(uint8,uint32,uint32,uint64,uint256),address)")) ^
+            this.getVotingToken.selector;
 
     /// @notice An [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
     /// compatible contract referencing the token being used for voting.
@@ -33,21 +36,43 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @notice Thrown if the voting power is zero
     error NoVotingPower();
 
-    /// @notice Initializes the component.
-    /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
-    /// @param _dao The IDAO interface of the associated DAO.
-    /// @param _votingSettings The voting settings.
-    /// @param _token The [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used for voting.
+    error FunctionDeprecated();
+
+    /// @dev Deprecated function.
     function initialize(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
         IVotesUpgradeable _token
     ) external initializer {
-        __MajorityVotingBase_init(_dao, _votingSettings);
+        (_dao, _votingSettings, _token);
+
+        // todo TBD should we deprecate this function or only continue with old flow?
+        revert FunctionDeprecated();
+    }
+
+    /// @notice Initializes the component.
+    /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
+    /// @param _dao The IDAO interface of the associated DAO.
+    /// @param _votingSettings The voting settings.
+    /// @param _token The [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used for voting.
+    /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
+    function initialize(
+        IDAO _dao,
+        VotingSettings calldata _votingSettings,
+        IVotesUpgradeable _token,
+        uint256 _minApprovals
+    ) external initializer {
+        __MajorityVotingBase_init(_dao, _votingSettings, _minApprovals);
 
         votingToken = _token;
 
         emit MembershipContractAnnounced({definingContract: address(_token)});
+    }
+
+    /// @notice Initializes the plugin after an upgrade from a previous version.
+    /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
+    function initializeFrom(uint256 _minApprovals) external reinitializer(2) {
+        _updateMinApprovals(_minApprovals);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -56,6 +81,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     function supportsInterface(bytes4 _interfaceId) public view virtual override returns (bool) {
         return
             _interfaceId == TOKEN_VOTING_INTERFACE_ID ||
+            _interfaceId == OLD_TOKEN_VOTING_INTERFACE_ID ||
             _interfaceId == type(IMembership).interfaceId ||
             super.supportsInterface(_interfaceId);
     }
@@ -136,6 +162,8 @@ contract TokenVoting is IMembership, MajorityVotingBase {
             totalVotingPower_,
             minParticipation()
         );
+
+        proposal_.minApprovalPower = _applyRatioCeiled(totalVotingPower_, minApproval());
 
         // Reduce costs
         if (_allowFailureMap != 0) {
