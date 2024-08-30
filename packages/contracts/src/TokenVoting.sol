@@ -60,7 +60,8 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         IDAO _dao,
         VotingSettings calldata _votingSettings,
         IVotesUpgradeable _token,
-        uint256 _minApprovals
+        uint256 _minApprovals,
+        TargetConfig calldata _targetConfig
     ) external initializer {
         __MajorityVotingBase_init(_dao, _votingSettings, _minApprovals);
 
@@ -69,10 +70,15 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         emit MembershipContractAnnounced({definingContract: address(_token)});
     }
 
+    // todo double check the reinitializer version must be 2
     /// @notice Initializes the plugin after an upgrade from a previous version.
     /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
-    function initializeFrom(uint256 _minApprovals) external reinitializer(2) {
+    function initializeFrom(
+        uint256 _minApprovals,
+        TargetConfig calldata _targetConfig
+    ) external reinitializer(2) {
         _updateMinApprovals(_minApprovals);
+        // todo set target
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -108,24 +114,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         uint64 _endDate,
         VoteOption _voteOption,
         bool _tryEarlyExecution
-    ) external override returns (uint256 proposalId) {
-        // Check that either `_msgSender` owns enough tokens or has enough voting power from being a delegatee.
-        {
-            uint256 minProposerVotingPower_ = minProposerVotingPower();
-
-            if (minProposerVotingPower_ != 0) {
-                // Because of the checks in `TokenVotingSetup`, we can assume that `votingToken`
-                // is an [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token.
-                if (
-                    votingToken.getVotes(_msgSender()) < minProposerVotingPower_ &&
-                    IERC20Upgradeable(address(votingToken)).balanceOf(_msgSender()) <
-                    minProposerVotingPower_
-                ) {
-                    revert ProposalCreationForbidden(_msgSender());
-                }
-            }
-        }
-
+    ) external override auth(CREATE_PROPOSAL_PERMISSION_ID) returns (uint256 proposalId) {
         uint256 snapshotBlock;
         unchecked {
             // The snapshot block must be mined already to
@@ -141,6 +130,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
         (_startDate, _endDate) = _validateProposalDates(_startDate, _endDate);
 
+        // todo think this should be changed since create Proposal is no longe in commons contract
         proposalId = _createProposal({
             _creator: _msgSender(),
             _metadata: _metadata,
@@ -165,6 +155,16 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
         proposal_.minApprovalPower = _applyRatioCeiled(totalVotingPower_, minApproval());
 
+        TargetConfig memory currentTarget = getTargetConfig();
+
+        if (currentTarget.target == address(0)) {
+            proposal_.target = address(dao());
+            proposal_.operation = Operation.Call;
+        } else {
+            proposal_.target = currentTarget.target;
+            proposal_.operation = currentTarget.operation;
+        }
+
         // Reduce costs
         if (_allowFailureMap != 0) {
             proposal_.allowFailureMap = _allowFailureMap;
@@ -180,6 +180,18 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         if (_voteOption != VoteOption.None) {
             vote(proposalId, _voteOption, _tryEarlyExecution);
         }
+
+        // todo will need to emit event
+    }
+
+    function createProposal(
+        bytes calldata _metadata,
+        IDAO.Action[] calldata _actions,
+        uint64 _startDate,
+        uint64 _endDate
+    ) external override returns (uint256 proposalId) {
+        // Calls public function for permission check.
+        proposalId = createProposal(_metadata, _actions, 0, false, false, _startDate, _endDate);
     }
 
     /// @inheritdoc IMembership
@@ -188,6 +200,25 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         return
             votingToken.getVotes(_account) > 0 ||
             IERC20Upgradeable(address(votingToken)).balanceOf(_account) > 0;
+    }
+
+    /// @notice Hashing function used to (re)build the proposal id from the proposal details..
+    /// @dev The proposal id is produced by hashing the ABI encoded `targets` array, the `values` array, the `calldatas` array
+    /// and the descriptionHash (bytes32 which itself is the keccak256 hash of the description string). This proposal id
+    /// can be produced from the proposal data which is part of the {ProposalCreated} event. It can even be computed in
+    /// advance, before the proposal is submitted.
+    /// The chainId and the governor address are not part of the proposal id computation. Consequently, the
+    /// same proposal (with same operation and same description) will have the same id if submitted on multiple governors
+    /// across multiple networks. This also means that in order to execute the same operation twice (on the same
+    /// governor) the proposer will have to change the description in order to avoid proposal id conflicts.
+    /// @param _actions The actions that will be executed after the proposal passes.
+    /// @param _metadata The metadata of the proposal.
+    /// @return proposalId The ID of the proposal.
+    function createProposalId(
+        IDAO.Action[] calldata _actions,
+        bytes memory _metadata
+    ) public pure override returns (uint256) {
+        return uint256(keccak256(abi.encode(_actions, _metadata)));
     }
 
     /// @inheritdoc MajorityVotingBase
