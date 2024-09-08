@@ -9,7 +9,7 @@ import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/
 
 import {PermissionCondition} from "@aragon/osx-commons-contracts/src/permission/condition/PermissionCondition.sol";
 
-contract ListedCheckCondition is PermissionCondition {
+contract VotingPowerCondition is PermissionCondition {
     TokenVoting private immutable TOKEN_VOTING;
     IVotesUpgradeable private immutable VOTING_TOKEN;
 
@@ -27,7 +27,7 @@ contract ListedCheckCondition is PermissionCondition {
         (_where, _data, _permissionId);
 
         uint256 minProposerVotingPower_ = TOKEN_VOTING.minProposerVotingPower();
-
+    
         if (minProposerVotingPower_ != 0) {
             if (
                 VOTING_TOKEN.getVotes(_who) < minProposerVotingPower_ &&

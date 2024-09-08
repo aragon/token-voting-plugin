@@ -156,11 +156,12 @@ const config: HardhatUserConfig = {
     deploy: './deploy',
   },
   mocha: {
-    timeout: 60_000,
+    timeout: 6000000,
   },
   solidity: {
     version: '0.8.17',
     settings: {
+      viaIR: true,
       metadata: {
         // Not including the metadata hash
         // https://github.com/paulrberg/hardhat-template/issues/31

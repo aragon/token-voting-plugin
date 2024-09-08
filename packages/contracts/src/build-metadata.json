@@ -90,9 +90,29 @@
           "description": "The token mint settings struct containing the `receivers` and `amounts`."
         },
         {
-          "internalType": "uint32",
+          "components": [
+            {
+              "internalType": "address",
+              "name": "target",
+              "type": "address",
+              "description": "The target contract to which actions will be forwarded to for execution."
+            },
+            {
+              "internalType": "uint8",
+              "name": "operation",
+              "type": "uint8",
+              "description": "The operation type(either `call` or `delegatecall`) that will be used for execution forwarding."
+            }
+          ],
+          "internalType": "struct TokenVoting.TargetConfig",
+          "name": "TargetConfig",
+          "type": "tuple",
+          "description": "The initial target config"
+        },
+        {
+          "internalType": "uint256",
           "name": "minApproval",
-          "type": "uint32",
+          "type": "uint256",
           "description": "The minimum amount of yes votes needed for the proposal advance."
         }
       ]
@@ -110,10 +130,30 @@
         "description": "The information required for the installation.",
         "inputs": [
           {
-            "internalType": "uint32",
+            "internalType": "uint256",
             "name": "minApproval",
-            "type": "uint32",
+            "type": "uint256",
             "description": "The minimum amount of yes votes needed for the proposal advance."
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "target",
+                "type": "address",
+                "description": "The target contract to which actions will be forwarded to for execution."
+              },
+              {
+                "internalType": "enum PluginUUPSUpgradeable.Operation",
+                "name": "operation",
+                "type": "uint8",
+                "description": "The operation type(either `call` or `delegatecall`) that will be used for execution forwarding."
+              }
+            ],
+            "internalType": "struct PluginUUPSUpgradeable.TargetConfig",
+            "name": "TargetConfig",
+            "type": "tuple",
+            "description": "The initial target config"
           }
         ]
       }

@@ -25,6 +25,7 @@ import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
 import {ethers} from 'hardhat';
+import { Operation, SET_TARGET_CONFIG_PERMISSION_ID, TargetConfig } from '../../test-utils/token-voting-constants';
 
 describe('MajorityVotingMock', function () {
   let signers: SignerWithAddress[];
@@ -34,6 +35,7 @@ describe('MajorityVotingMock', function () {
 
   let votingSettings: MajorityVotingBase.VotingSettingsStruct;
   let minApproval: BigNumber;
+  let targetConfig: TargetConfig
 
   before(async () => {
     signers = await ethers.getSigners();
@@ -51,6 +53,11 @@ describe('MajorityVotingMock', function () {
       minProposerVotingPower: 0,
     };
     minApproval = pctToRatio(10);
+
+    targetConfig = {
+      target: dao.address,
+      operation: Operation.call
+    }
 
     const pluginImplementation = await new MajorityVotingMock__factory(
       signers[0]
@@ -77,10 +84,10 @@ describe('MajorityVotingMock', function () {
 
   describe('initialize', async () => {
     it('reverts if trying to re-initialize', async () => {
-      await votingBase.initializeMock(dao.address, votingSettings, minApproval);
+      await votingBase.initializeMock(dao.address, votingSettings, targetConfig, minApproval);
 
       await expect(
-        votingBase.initializeMock(dao.address, votingSettings, minApproval)
+        votingBase.initializeMock(dao.address, votingSettings, targetConfig, minApproval)
       ).to.be.revertedWith('Initializable: contract is already initialized');
     });
   });
@@ -145,7 +152,7 @@ describe('MajorityVotingMock', function () {
 
   describe('updateVotingSettings', async () => {
     beforeEach(async () => {
-      await votingBase.initializeMock(dao.address, votingSettings, minApproval);
+      await votingBase.initializeMock(dao.address, votingSettings, targetConfig, minApproval);
     });
 
     it('reverts if the support threshold specified equals 100%', async () => {
@@ -206,7 +213,7 @@ describe('MajorityVotingMock', function () {
 
   describe('updateMinApprovals', async () => {
     beforeEach(async () => {
-      await votingBase.initializeMock(dao.address, votingSettings, minApproval);
+      await votingBase.initializeMock(dao.address, votingSettings, targetConfig, minApproval);
     });
 
     it('reverts if the minimum approval specified exceeds 100%', async () => {
@@ -221,6 +228,32 @@ describe('MajorityVotingMock', function () {
       await expect(votingBase.updateMinApprovals(minApproval))
         .to.emit(votingBase, 'VotingMinApprovalUpdated')
         .withArgs(minApproval);
+    });
+  });
+
+  describe('updateTargetConfig', async () => {
+    beforeEach(async () => {
+      await votingBase.initializeMock(dao.address, votingSettings, targetConfig, minApproval);
+
+      await dao.grant(
+        votingBase.address,
+        deployer.address,
+        SET_TARGET_CONFIG_PERMISSION_ID
+      );
+    });
+
+    it('should change the minimum approval successfully', async () => {
+      const newTargetConfig = {
+        target: votingBase.address,
+        operation: Operation.delegatecall
+      }
+
+      await votingBase.setTargetConfig(newTargetConfig)
+
+      expect(await votingBase.getTargetConfig()).to.deep.equal([
+        newTargetConfig.target,
+        Operation.delegatecall
+      ]);
     });
   });
 });

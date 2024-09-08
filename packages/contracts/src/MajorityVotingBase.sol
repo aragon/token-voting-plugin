@@ -12,6 +12,7 @@ import {ProposalUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/exte
 import {RATIO_BASE, RatioOutOfBounds} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
 import {PluginUUPSUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/PluginUUPSUpgradeable.sol";
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
 
 import {IMajorityVoting} from "./IMajorityVoting.sol";
 
@@ -215,7 +216,11 @@ abstract contract MajorityVotingBase is
             this.getProposal.selector ^
             this.updateVotingSettings.selector ^
             this.updateMinApprovals.selector ^
-            this.createProposal.selector;
+            bytes4(
+                keccak256(
+                    "createProposal(bytes,(address,uint256,bytes)[],uint256,bool,bool,uint64,uint64)"
+                )
+            );
 
     /// @notice The ID of the permission required to call the `updateVotingSettings` function.
     bytes32 public constant UPDATE_VOTING_SETTINGS_PERMISSION_ID =
@@ -293,14 +298,13 @@ abstract contract MajorityVotingBase is
     function __MajorityVotingBase_init(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
-        uint256 _minApprovals,
-        TargetConfig calldata _targetConfig
+        TargetConfig calldata _targetConfig,
+        uint256 _minApprovals
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
         _updateMinApprovals(_minApprovals);
-
-        // todo set target config
+        _setTargetConfig(_targetConfig);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -373,7 +377,7 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IMajorityVoting
-    function canExecute(uint256 _proposalId) public view virtual override returns (bool) {
+    function canExecute(uint256 _proposalId) public view virtual override(IMajorityVoting, IProposal) returns (bool) {
         return _canExecute(_proposalId);
     }
 
@@ -556,10 +560,11 @@ abstract contract MajorityVotingBase is
         proposal_.executed = true;
 
         _execute(
-            proposal_.target,
-            _proposalId,
+            proposal_.targetConfig.target,
+            bytes32(_proposalId),
             proposals[_proposalId].actions,
-            proposals[_proposalId].allowFailureMap
+            proposals[_proposalId].allowFailureMap,
+            proposal_.targetConfig.operation
         );
 
         emit ProposalExecuted(_proposalId);

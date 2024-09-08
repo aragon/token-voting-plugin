@@ -33,7 +33,7 @@ export async function deployAndUpgradeSelfCheck(
     {
       kind: 'uups',
       initializer: initializerName,
-      unsafeAllow: ['constructor'],
+      unsafeAllow: ['constructor', 'delegatecall'],
       constructorArgs: [],
     }
   );
@@ -49,7 +49,7 @@ export async function deployAndUpgradeSelfCheck(
   if (managingContract === undefined) {
     await expect(
       upgrades.upgradeProxy(proxy.address, factory.connect(upgrader), {
-        unsafeAllow: ['constructor'],
+        unsafeAllow: ['constructor', 'delegatecall'],
         constructorArgs: [],
       })
     )
@@ -62,7 +62,7 @@ export async function deployAndUpgradeSelfCheck(
   else {
     await expect(
       upgrades.upgradeProxy(proxy.address, factory.connect(upgrader), {
-        unsafeAllow: ['constructor'],
+        unsafeAllow: ['constructor', 'delegatecall'],
         constructorArgs: [],
       })
     )
@@ -115,7 +115,7 @@ export async function deployAndUpgradeFromToCheck(
     {
       kind: 'uups',
       initializer: initializerName,
-      unsafeAllow: ['constructor'],
+      unsafeAllow: ['constructor', 'delegatecall'],
       constructorArgs: [],
     }
   );
@@ -134,7 +134,7 @@ export async function deployAndUpgradeFromToCheck(
   if (managingDao === undefined) {
     await expect(
       upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
-        unsafeAllow: ['constructor'],
+        unsafeAllow: ['constructor', 'delegatecall'],
         constructorArgs: [],
       })
     )
@@ -145,7 +145,7 @@ export async function deployAndUpgradeFromToCheck(
   } else {
     await expect(
       upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
-        unsafeAllow: ['constructor'],
+        unsafeAllow: ['constructor', 'delegatecall'],
         constructorArgs: [],
       })
     )
@@ -157,7 +157,7 @@ export async function deployAndUpgradeFromToCheck(
 
   // Upgrade the proxy to a new implementation from a different factory
   await upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
-    unsafeAllow: ['constructor'],
+    unsafeAllow: ['constructor', 'delegatecall'],
     constructorArgs: [],
   });
 

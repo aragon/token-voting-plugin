@@ -60,10 +60,10 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         IDAO _dao,
         VotingSettings calldata _votingSettings,
         IVotesUpgradeable _token,
-        uint256 _minApprovals,
-        TargetConfig calldata _targetConfig
+        TargetConfig calldata _targetConfig,
+        uint256 _minApprovals
     ) external initializer {
-        __MajorityVotingBase_init(_dao, _votingSettings, _minApprovals);
+        __MajorityVotingBase_init(_dao, _votingSettings, _targetConfig, _minApprovals);
 
         votingToken = _token;
 
@@ -78,7 +78,8 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         TargetConfig calldata _targetConfig
     ) external reinitializer(2) {
         _updateMinApprovals(_minApprovals);
-        // todo set target
+
+        _setTargetConfig(_targetConfig);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -114,7 +115,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         uint64 _endDate,
         VoteOption _voteOption,
         bool _tryEarlyExecution
-    ) external override auth(CREATE_PROPOSAL_PERMISSION_ID) returns (uint256 proposalId) {
+    ) public override auth(CREATE_PROPOSAL_PERMISSION_ID) returns (uint256 proposalId) {
         uint256 snapshotBlock;
         unchecked {
             // The snapshot block must be mined already to
@@ -130,18 +131,14 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
         (_startDate, _endDate) = _validateProposalDates(_startDate, _endDate);
 
-        // todo think this should be changed since create Proposal is no longe in commons contract
-        proposalId = _createProposal({
-            _creator: _msgSender(),
-            _metadata: _metadata,
-            _startDate: _startDate,
-            _endDate: _endDate,
-            _actions: _actions,
-            _allowFailureMap: _allowFailureMap
-        });
+        proposalId = createProposalId(_actions, _metadata);
 
         // Store proposal related information
         Proposal storage proposal_ = proposals[proposalId];
+
+        if (proposal_.parameters.snapshotBlock != 0) {
+            revert ProposalAlreadyExists(proposalId);
+        }
 
         proposal_.parameters.startDate = _startDate;
         proposal_.parameters.endDate = _endDate;
@@ -158,11 +155,10 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         TargetConfig memory currentTarget = getTargetConfig();
 
         if (currentTarget.target == address(0)) {
-            proposal_.target = address(dao());
-            proposal_.operation = Operation.Call;
+            proposal_.targetConfig.target = address(dao());
+            proposal_.targetConfig.operation = Operation.Call;
         } else {
-            proposal_.target = currentTarget.target;
-            proposal_.operation = currentTarget.operation;
+            proposal_.targetConfig = currentTarget;
         }
 
         // Reduce costs
@@ -181,7 +177,15 @@ contract TokenVoting is IMembership, MajorityVotingBase {
             vote(proposalId, _voteOption, _tryEarlyExecution);
         }
 
-        // todo will need to emit event
+        emit ProposalCreated(
+            proposalId,
+            _msgSender(),
+            _startDate,
+            _endDate,
+            _metadata,
+            _actions,
+            _allowFailureMap
+        );
     }
 
     function createProposal(
@@ -191,7 +195,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         uint64 _endDate
     ) external override returns (uint256 proposalId) {
         // Calls public function for permission check.
-        proposalId = createProposal(_metadata, _actions, 0, false, false, _startDate, _endDate);
+        proposalId = createProposal(_metadata, _actions, 0, _startDate, _endDate, VoteOption.None, false);
     }
 
     /// @inheritdoc IMembership

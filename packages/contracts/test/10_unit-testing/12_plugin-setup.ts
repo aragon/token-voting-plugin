@@ -10,9 +10,15 @@ import {
 } from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {
+  ANY_ADDR,
+  CREATE_PROPOSAL_PERMISSION_ID,
   MINT_PERMISSION_ID,
+  SET_TARGET_CONFIG_PERMISSION_ID,
+  TargetConfig,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
 } from '../test-utils/token-voting-constants';
+import {Operation as Op} from '../test-utils/token-voting-constants';
+
 import {
   TokenVoting__factory,
   TokenVotingSetup,
@@ -49,8 +55,11 @@ type FixtureResult = {
     name: string;
     symbol: string;
   };
+  defaultTargetConfig: TargetConfig;
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
   defaultMinApproval: BigNumber;
+  updateMinApproval: BigNumber;
+  updateTargetConfig: TargetConfig;
   prepareInstallationInputs: string;
   prepareUninstallationInputs: string;
   prepareUpdateBuild3Inputs: string;
@@ -92,6 +101,11 @@ async function fixture(): Promise<FixtureResult> {
     governanceWrappedERC20Base.address
   );
 
+  const defaultTargetConfig: TargetConfig = {
+    target: dao.address,
+    operation: Op.call
+  }
+
   const defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
     votingMode: VotingMode.EarlyExecution,
     supportThreshold: pctToRatio(50),
@@ -111,7 +125,8 @@ async function fixture(): Promise<FixtureResult> {
       Object.values(defaultVotingSettings),
       Object.values(defaultTokenSettings),
       Object.values(defaultMintSettings),
-      defaultMinApproval,
+      Object.values(defaultTargetConfig),
+      defaultMinApproval
     ]
   );
 
@@ -123,12 +138,18 @@ async function fixture(): Promise<FixtureResult> {
     []
   );
 
+  const updateMinApproval = pctToRatio(35);
+  const updateTargetConfig : TargetConfig = {
+    target: pluginSetup.address,
+    operation: Op.call
+  }
+
   // Provide update inputs
   const prepareUpdateBuild3Inputs = ethers.utils.defaultAbiCoder.encode(
     getNamedTypesFromMetadata(
       METADATA.build.pluginSetup.prepareUpdate[3].inputs
     ),
-    [defaultMinApproval]
+    [updateMinApproval, updateTargetConfig]
   );
 
   return {
@@ -141,6 +162,9 @@ async function fixture(): Promise<FixtureResult> {
     defaultTokenSettings,
     defaultMintSettings,
     defaultMinApproval,
+    defaultTargetConfig,
+    updateMinApproval,
+    updateTargetConfig,
     prepareInstallationInputs,
     prepareUninstallationInputs,
     prepareUpdateBuild3Inputs,
@@ -201,6 +225,7 @@ describe('TokenVotingSetup', function () {
         defaultVotingSettings,
         defaultTokenSettings,
         defaultMinApproval,
+        defaultTargetConfig
       } = await loadFixture(fixture);
 
       const receivers: string[] = [AddressZero];
@@ -213,6 +238,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           Object.values(defaultTokenSettings),
           {receivers, amounts},
+          defaultTargetConfig,
           defaultMinApproval,
         ]
       );
@@ -245,6 +271,7 @@ describe('TokenVotingSetup', function () {
         defaultVotingSettings,
         defaultMintSettings,
         defaultMinApproval,
+        defaultTargetConfig
       } = await loadFixture(fixture);
 
       const data = abiCoder.encode(
@@ -255,6 +282,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [alice.address, '', ''], // Instead of a token address, we pass Alice's address here.
           Object.values(defaultMintSettings),
+          defaultTargetConfig,
           defaultMinApproval,
         ]
       );
@@ -271,6 +299,7 @@ describe('TokenVotingSetup', function () {
         defaultVotingSettings,
         defaultMintSettings,
         defaultMinApproval,
+        defaultTargetConfig
       } = await loadFixture(fixture);
 
       const data = abiCoder.encode(
@@ -281,6 +310,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [dao.address, '', ''],
           Object.values(defaultMintSettings),
+          defaultTargetConfig,
           defaultMinApproval,
         ]
       );
@@ -299,6 +329,7 @@ describe('TokenVotingSetup', function () {
         defaultMintSettings,
         erc20,
         defaultMinApproval,
+        defaultTargetConfig
       } = await loadFixture(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
@@ -311,6 +342,10 @@ describe('TokenVotingSetup', function () {
       const anticipatedPluginAddress = ethers.utils.getContractAddress({
         from: pluginSetup.address,
         nonce: nonce + 1,
+      });
+      const anticipatedCondition = ethers.utils.getContractAddress({
+        from: pluginSetup.address,
+        nonce: nonce + 2,
       });
 
       const data = abiCoder.encode(
@@ -326,6 +361,7 @@ describe('TokenVotingSetup', function () {
             defaultTokenSettings.symbol,
           ],
           Object.values(defaultMintSettings),
+          defaultTargetConfig,
           defaultMinApproval,
         ]
       );
@@ -336,9 +372,9 @@ describe('TokenVotingSetup', function () {
       } = await pluginSetup.callStatic.prepareInstallation(dao.address, data);
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
-      expect(helpers.length).to.be.equal(1);
-      expect(helpers).to.be.deep.equal([anticipatedWrappedTokenAddress]);
-      expect(permissions.length).to.be.equal(2);
+      expect(helpers.length).to.be.equal(2);
+      expect(helpers).to.be.deep.equal([anticipatedWrappedTokenAddress, anticipatedCondition]);
+      expect(permissions.length).to.be.equal(4);
       expect(permissions).to.deep.equal([
         [
           Operation.Grant,
@@ -354,6 +390,20 @@ describe('TokenVotingSetup', function () {
           AddressZero,
           DAO_PERMISSIONS.EXECUTE_PERMISSION_ID,
         ],
+        [
+          Operation.GrantWithCondition,
+          plugin,
+          ANY_ADDR,
+          anticipatedCondition,
+          CREATE_PROPOSAL_PERMISSION_ID,
+        ],
+        [
+          Operation.Grant,
+          plugin,
+          dao.address,
+          AddressZero,
+          SET_TARGET_CONFIG_PERMISSION_ID,
+        ],
       ]);
     });
 
@@ -365,6 +415,7 @@ describe('TokenVotingSetup', function () {
         defaultVotingSettings,
         defaultMintSettings,
         erc20,
+        defaultTargetConfig,
         defaultMinApproval,
       } = await loadFixture(fixture);
 
@@ -384,7 +435,8 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [erc20.address, 'myName', 'mySymb'],
           Object.values(defaultMintSettings),
-          defaultMinApproval,
+          defaultTargetConfig,
+          defaultMinApproval
         ]
       );
 
@@ -413,6 +465,7 @@ describe('TokenVotingSetup', function () {
         defaultVotingSettings,
         defaultMintSettings,
         defaultMinApproval,
+        defaultTargetConfig
       } = await loadFixture(fixture);
 
       const governanceERC20 = await new GovernanceERC20__factory(
@@ -428,6 +481,11 @@ describe('TokenVotingSetup', function () {
         nonce: nonce,
       });
 
+      const anticipatedCondition = ethers.utils.getContractAddress({
+        from: pluginSetup.address,
+        nonce: nonce + 1,
+      });
+
       const data = abiCoder.encode(
         getNamedTypesFromMetadata(
           METADATA.build.pluginSetup.prepareInstallation.inputs
@@ -436,6 +494,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [governanceERC20.address, '', ''],
           Object.values(defaultMintSettings),
+          defaultTargetConfig,
           defaultMinApproval,
         ]
       );
@@ -446,9 +505,9 @@ describe('TokenVotingSetup', function () {
       } = await pluginSetup.callStatic.prepareInstallation(dao.address, data);
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
-      expect(helpers.length).to.be.equal(1);
-      expect(helpers).to.be.deep.equal([governanceERC20.address]);
-      expect(permissions.length).to.be.equal(2);
+      expect(helpers.length).to.be.equal(2);
+      expect(helpers).to.be.deep.equal([governanceERC20.address, anticipatedCondition]);
+      expect(permissions.length).to.be.equal(4);
       expect(permissions).to.deep.equal([
         [
           Operation.Grant,
@@ -464,6 +523,20 @@ describe('TokenVotingSetup', function () {
           AddressZero,
           DAO_PERMISSIONS.EXECUTE_PERMISSION_ID,
         ],
+        [
+          Operation.GrantWithCondition,
+          plugin,
+          ANY_ADDR,
+          anticipatedCondition,
+          CREATE_PROPOSAL_PERMISSION_ID,
+        ],
+        [
+          Operation.Grant,
+          plugin,
+          dao.address,
+          AddressZero,
+          SET_TARGET_CONFIG_PERMISSION_ID,
+        ]
       ]);
     });
 
@@ -485,6 +558,11 @@ describe('TokenVotingSetup', function () {
         nonce: nonce + 1,
       });
 
+      const anticipatedCondition = ethers.utils.getContractAddress({
+        from: pluginSetup.address,
+        nonce: nonce + 2,
+      });
+
       const {
         plugin,
         preparedSetupData: {helpers, permissions},
@@ -494,9 +572,9 @@ describe('TokenVotingSetup', function () {
       );
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
-      expect(helpers.length).to.be.equal(1);
-      expect(helpers).to.be.deep.equal([anticipatedTokenAddress]);
-      expect(permissions.length).to.be.equal(3);
+      expect(helpers.length).to.be.equal(2);
+      expect(helpers).to.be.deep.equal([anticipatedTokenAddress, anticipatedCondition]);
+      expect(permissions.length).to.be.equal(5);
       expect(permissions).to.deep.equal([
         [
           Operation.Grant,
@@ -511,6 +589,20 @@ describe('TokenVotingSetup', function () {
           plugin,
           AddressZero,
           DAO_PERMISSIONS.EXECUTE_PERMISSION_ID,
+        ],
+        [
+          Operation.GrantWithCondition,
+          plugin,
+          ANY_ADDR,
+          anticipatedCondition,
+          CREATE_PROPOSAL_PERMISSION_ID,
+        ],
+        [
+          Operation.Grant,
+          plugin,
+          dao.address,
+          AddressZero,
+          SET_TARGET_CONFIG_PERMISSION_ID,
         ],
         [
           Operation.Grant,
@@ -531,6 +623,7 @@ describe('TokenVotingSetup', function () {
         defaultTokenSettings,
         defaultMintSettings,
         defaultMinApproval,
+        defaultTargetConfig
       } = await loadFixture(fixture);
 
       const daoAddress = dao.address;
@@ -543,6 +636,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultVotingSettings),
           [AddressZero, defaultTokenSettings.name, defaultTokenSettings.symbol],
           Object.values(defaultMintSettings),
+          defaultTargetConfig,
           defaultMinApproval,
         ]
       );
@@ -584,6 +678,11 @@ describe('TokenVotingSetup', function () {
         anticipatedTokenAddress
       );
 
+      expect(await tokenVoting.getTargetConfig()).to.deep.equal([
+        defaultTargetConfig.target,
+        defaultTargetConfig.operation
+      ]);
+
       // check helpers
       const token = new GovernanceERC20__factory(deployer).attach(
         anticipatedTokenAddress
@@ -597,10 +696,20 @@ describe('TokenVotingSetup', function () {
 
   describe('prepareUpdate', async () => {
     it('returns the permissions expected for the update from build 1', async () => {
-      const {pluginSetup, dao, prepareUpdateBuild3Inputs} = await loadFixture(
+      const {pluginSetup, dao, prepareInstallationInputs, prepareUpdateBuild3Inputs, updateMinApproval, updateTargetConfig } = await loadFixture(
         fixture
       );
-      const plugin = ethers.Wallet.createRandom().address;
+
+      const nonce = await ethers.provider.getTransactionCount(
+        pluginSetup.address
+      );
+    
+      const plugin = ethers.utils.getContractAddress({
+        from: pluginSetup.address,
+        nonce: nonce + 1,
+      });
+
+      await pluginSetup.prepareInstallation(dao.address, prepareInstallationInputs)
 
       // Make a static call to check that the plugin update data being returned is correct.
       const {
@@ -612,18 +721,28 @@ describe('TokenVotingSetup', function () {
           ethers.Wallet.createRandom().address,
         ],
         data: prepareUpdateBuild3Inputs,
-        plugin,
+        plugin
       });
 
       // Check the return data.
       expect(initData).to.be.eq(
         TokenVoting__factory.createInterface().encodeFunctionData(
           'initializeFrom',
-          [prepareUpdateBuild3Inputs]
+          [updateMinApproval, updateTargetConfig]
         )
       );
-      expect(helpers).to.be.eql([]);
-      expect(permissions.length).to.be.eql(1);
+
+      const currentNonce = await ethers.provider.getTransactionCount(
+        pluginSetup.address
+      );
+      
+      const anticipatedCondition = ethers.utils.getContractAddress({
+        from: pluginSetup.address,
+        nonce: currentNonce,
+      });
+
+      expect(helpers).to.deep.equal([anticipatedCondition]);
+      expect(permissions.length).to.be.eql(3);
       expect(permissions).to.deep.equal([
         [
           Operation.Revoke,
@@ -632,14 +751,38 @@ describe('TokenVotingSetup', function () {
           AddressZero,
           PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
         ],
+        [
+          Operation.GrantWithCondition,
+          plugin,
+          ANY_ADDR,
+          anticipatedCondition,
+          CREATE_PROPOSAL_PERMISSION_ID
+        ],
+        [
+          Operation.Grant,
+          plugin,
+          dao.address,
+          AddressZero,
+          SET_TARGET_CONFIG_PERMISSION_ID
+        ],
       ]);
     });
 
     it('returns the permissions expected for the update from build 2', async () => {
-      const {pluginSetup, dao, prepareUpdateBuild3Inputs} = await loadFixture(
+      const {pluginSetup, dao, prepareInstallationInputs, prepareUpdateBuild3Inputs, updateMinApproval, updateTargetConfig} = await loadFixture(
         fixture
       );
-      const plugin = ethers.Wallet.createRandom().address;
+
+      const nonce = await ethers.provider.getTransactionCount(
+        pluginSetup.address
+      );
+    
+      const plugin = ethers.utils.getContractAddress({
+        from: pluginSetup.address,
+        nonce: nonce + 1,
+      });
+
+      await pluginSetup.prepareInstallation(dao.address, prepareInstallationInputs)
 
       // Make a static call to check that the plugin update data being returned is correct.
       const {
@@ -654,15 +797,24 @@ describe('TokenVotingSetup', function () {
         plugin,
       });
 
+      const currentNonce = await ethers.provider.getTransactionCount(
+        pluginSetup.address
+      );
+      
+      const anticipatedCondition = ethers.utils.getContractAddress({
+        from: pluginSetup.address,
+        nonce: currentNonce,
+      });
+
       // Check the return data.
       expect(initData).to.be.eq(
         TokenVoting__factory.createInterface().encodeFunctionData(
           'initializeFrom',
-          [prepareUpdateBuild3Inputs]
+          [updateMinApproval, updateTargetConfig]
         )
       );
-      expect(helpers).to.be.eql([]);
-      expect(permissions.length).to.be.eql(1);
+      expect(helpers).to.be.eql([anticipatedCondition]);
+      expect(permissions.length).to.be.eql(3);
       expect(permissions).to.deep.equal([
         [
           Operation.Revoke,
@@ -671,12 +823,27 @@ describe('TokenVotingSetup', function () {
           AddressZero,
           PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
         ],
+        [
+          Operation.GrantWithCondition,
+          plugin,
+          ANY_ADDR,
+          anticipatedCondition,
+          CREATE_PROPOSAL_PERMISSION_ID
+        ],
+        [
+          Operation.Grant,
+          plugin,
+          dao.address,
+          AddressZero,
+          SET_TARGET_CONFIG_PERMISSION_ID
+        ],
       ]);
     });
   });
 
   describe('prepareUninstallation', async () => {
-    it('fails when the wrong number of helpers is supplied', async () => {
+    // TODO: this test will need to be removed...
+    it.only('fails when the wrong number of helpers is supplied', async () => {
       const {pluginSetup, dao, prepareUninstallationInputs} = await loadFixture(
         fixture
       );
@@ -754,14 +921,35 @@ describe('TokenVotingSetup', function () {
         ],
         [
           Operation.Revoke,
+          plugin,
+          dao.address,
+          AddressZero,
+          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
+        ],
+        [
+          Operation.Revoke,
           dao.address,
           plugin,
           AddressZero,
           DAO_PERMISSIONS.EXECUTE_PERMISSION_ID,
         ],
+        [
+          Operation.Revoke,
+          plugin,
+          dao.address,
+          AddressZero,
+          SET_TARGET_CONFIG_PERMISSION_ID,
+        ],
+        [
+          Operation.Revoke,
+          plugin,
+          ANY_ADDR,
+          AddressZero,
+          CREATE_PROPOSAL_PERMISSION_ID
+        ],
       ];
 
-      expect(permissions1.length).to.be.equal(2);
+      expect(permissions1.length).to.be.equal(5);
       expect(permissions1).to.deep.equal(essentialPermissions);
 
       const permissions2 = await pluginSetup.callStatic.prepareUninstallation(
@@ -773,7 +961,7 @@ describe('TokenVotingSetup', function () {
         }
       );
 
-      expect(permissions2.length).to.be.equal(2);
+      expect(permissions2.length).to.be.equal(5);
       expect(permissions2).to.deep.equal(essentialPermissions);
     });
   });

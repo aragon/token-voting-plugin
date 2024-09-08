@@ -39,6 +39,7 @@ import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import env, {deployments, ethers} from 'hardhat';
+import { Operation, TargetConfig } from '../test-utils/token-voting-constants';
 
 const productionNetworkName = getProductionNetworkName(env);
 
@@ -59,6 +60,7 @@ type FixtureResult = {
   };
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
   defaultMinApproval: BigNumber;
+  defaultTargetConfig: TargetConfig;
   prepareInstallationInputs: string;
   prepareInstallData: any;
   prepareUpdateData: any;
@@ -130,6 +132,11 @@ async function fixture(): Promise<FixtureResult> {
 
   const defaultMinApproval = pctToRatio(30);
 
+  const defaultTargetConfig = {
+    target: dao.address,
+    operation: Operation.call
+  }
+
   const defaultTokenSettings = {
     addr: token.address,
     name: '', // only relevant if `address(0)` is provided as the token address
@@ -150,6 +157,7 @@ async function fixture(): Promise<FixtureResult> {
       Object.values(defaultVotingSettings),
       Object.values(defaultTokenSettings),
       Object.values(defaultMintSettings),
+      Object.values(defaultTargetConfig),
       defaultMinApproval,
     ]
   );
@@ -158,10 +166,11 @@ async function fixture(): Promise<FixtureResult> {
     votingSettings: Object.values(defaultVotingSettings),
     tokenSettings: Object.values(defaultTokenSettings),
     mintSettings: Object.values(defaultMintSettings),
+    targetConfig: Object.values(defaultTargetConfig),
     defaultMinApproval,
   };
 
-  const prepareUpdateData = [defaultMinApproval];
+  const prepareUpdateData = [defaultMinApproval, defaultTargetConfig];
   // Provide update inputs
   // const prepareUpdateBuild3Data = [defaultMinApproval];
   return {
@@ -177,6 +186,7 @@ async function fixture(): Promise<FixtureResult> {
     defaultTokenSettings,
     defaultMintSettings,
     defaultMinApproval,
+    defaultTargetConfig,
     prepareInstallationInputs,
     prepareInstallData,
     prepareUpdateData,
@@ -233,6 +243,8 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
     expect(await plugin.isMember(alice.address)).to.be.false;
     expect(await plugin.isMember(deployer.address)).to.be.true;
 
+    const condition = results.preparedEvent.args.preparedSetupData.helpers[1];
+
     // Uninstall the current build.
     await uninstallPLugin(
       deployer,
@@ -246,7 +258,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
         ),
         []
       ),
-      [pluginToken]
+      [pluginToken, condition]
     );
   });
 
@@ -259,6 +271,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       defaultVotingSettings,
       pluginSetupRefLatestBuild,
       defaultMinApproval,
+      defaultTargetConfig
     } = await loadFixture(fixture);
 
     // Grant deployer all required permissions
@@ -284,6 +297,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       votingSettings: Object.values(defaultVotingSettings),
       tokenSettings: [ethers.constants.AddressZero, 'testToken', 'TEST'],
       mintSettings: [[alice.address], ['1000']],
+      defaultTargetConfig,
       defaultMinApproval,
     };
 
@@ -314,6 +328,8 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
     expect(await plugin.isMember(alice.address)).to.be.true;
     expect(await plugin.isMember(deployer.address)).to.be.false;
 
+    const condition = results.preparedEvent.args.preparedSetupData.helpers[1];
+
     // Uninstall the current build.
     await uninstallPLugin(
       deployer,
@@ -327,7 +343,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
         ),
         []
       ),
-      [pluginToken]
+      [pluginToken, condition]
     );
   });
 
