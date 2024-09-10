@@ -218,7 +218,7 @@ abstract contract MajorityVotingBase is
             this.updateMinApprovals.selector ^
             bytes4(
                 keccak256(
-                    "createProposal(bytes,(address,uint256,bytes)[],uint256,bool,bool,uint64,uint64)"
+                    "createProposal(bytes,(address,uint256,bytes)[],uint256,uint64,uint64,uint8,bool)"
                 )
             );
 
@@ -320,8 +320,8 @@ abstract contract MajorityVotingBase is
         returns (bool)
     {
         // In addition to the current IMajorityVoting interface, also support previous version
-        // that did not include the isMinApprovalReached() and minApproval() functions, same
-        // happens with MAJORITY_VOTING_BASE_INTERFACE which did not included updateMinApprovals().
+        // that did not include the `isMinApprovalReached` and `minApproval` functions, same
+        // happens with MAJORITY_VOTING_BASE_INTERFACE which did not include `updateMinApprovals`.
         return
             _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ||
             _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ^ this.updateMinApprovals.selector ||

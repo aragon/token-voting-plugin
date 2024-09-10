@@ -78,10 +78,6 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     /// @param token The token address
     error TokenNotERC20(address token);
 
-    /// @notice Thrown if passed helpers array is of wrong length.
-    /// @param length The array length of passed helpers.
-    error WrongHelpersArrayLength(uint256 length);
-
     /// @notice The contract constructor deploying the plugin implementation contract
     /// and receiving the governance token base contracts to clone from.
     /// @param _governanceERC20Base The base `GovernanceERC20` contract to create clones from.

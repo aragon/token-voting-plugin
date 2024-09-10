@@ -270,23 +270,6 @@ describe('TokenVoting', function () {
       ).to.be.revertedWith('Initializable: contract is already initialized');
     });
 
-    it('reverts if using DEPRECATED intialize function', async () => {
-      const {dao, uninitializedPlugin, defaultVotingSettings, token} =
-        await loadFixture(globalFixture);
-
-      // Try to call deprecated function (previous function with no minApproval param)
-      await expect(
-        uninitializedPlugin[INITIALIZE_SIGNATURE_OLD](
-          dao.address,
-          defaultVotingSettings,
-          token.address
-        )
-      ).to.be.revertedWithCustomError(
-        uninitializedPlugin,
-        'FunctionDeprecated'
-      );
-    });
-
     it('emits the `MembershipContractAnnounced` event', async () => {
       const {
         dao,

@@ -842,35 +842,6 @@ describe('TokenVotingSetup', function () {
   });
 
   describe('prepareUninstallation', async () => {
-    // TODO: this test will need to be removed...
-    it.only('fails when the wrong number of helpers is supplied', async () => {
-      const {pluginSetup, dao, prepareUninstallationInputs} = await loadFixture(
-        fixture
-      );
-
-      const plugin = ethers.Wallet.createRandom().address;
-
-      await expect(
-        pluginSetup.prepareUninstallation(dao.address, {
-          plugin,
-          currentHelpers: [],
-          data: prepareUninstallationInputs,
-        })
-      )
-        .to.be.revertedWithCustomError(pluginSetup, 'WrongHelpersArrayLength')
-        .withArgs(0);
-
-      await expect(
-        pluginSetup.prepareUninstallation(dao.address, {
-          plugin,
-          currentHelpers: [AddressZero, AddressZero, AddressZero],
-          data: prepareUninstallationInputs,
-        })
-      )
-        .to.be.revertedWithCustomError(pluginSetup, 'WrongHelpersArrayLength')
-        .withArgs(3);
-    });
-
     it('correctly returns permissions, when the required number of helpers is supplied', async () => {
       const {
         deployer,
