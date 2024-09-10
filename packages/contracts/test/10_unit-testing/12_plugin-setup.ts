@@ -723,12 +723,13 @@ describe('TokenVotingSetup', function () {
         data: prepareUpdateBuild3Inputs,
         plugin
       });
+      
 
       // Check the return data.
       expect(initData).to.be.eq(
         TokenVoting__factory.createInterface().encodeFunctionData(
           'initializeFrom',
-          [updateMinApproval, updateTargetConfig]
+          [1, prepareUpdateBuild3Inputs]
         )
       );
 
@@ -810,7 +811,7 @@ describe('TokenVotingSetup', function () {
       expect(initData).to.be.eq(
         TokenVoting__factory.createInterface().encodeFunctionData(
           'initializeFrom',
-          [updateMinApproval, updateTargetConfig]
+          [2, prepareUpdateBuild3Inputs]
         )
       );
       expect(helpers).to.be.eql([anticipatedCondition]);

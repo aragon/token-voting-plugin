@@ -283,14 +283,9 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             preparedSetupData.helpers = new address[](1);
             preparedSetupData.helpers[0] = votingPowerCondition;
 
-            // initialize the minApprovals and targetConfig
-            (uint256 _minApprovals, PluginUUPSUpgradeable.TargetConfig memory _targetConfig) = abi.decode(
-                _payload.data, 
-                (uint256, PluginUUPSUpgradeable.TargetConfig)
-            );
             initData = abi.encodeCall(
                 TokenVoting.initializeFrom,
-                (_minApprovals, _targetConfig)
+                (_fromBuild, _payload.data)
             );
         }
     }

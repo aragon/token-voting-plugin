@@ -52,15 +52,19 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         emit MembershipContractAnnounced({definingContract: address(_token)});
     }
 
-    /// @notice Initializes the plugin after an upgrade from a previous version.
-    /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
+    /// @notice Reinitializes the TokenVoting after an upgrade from a previous protocol version.
+    /// @param _fromBuild The build version number of the previous implementation contract this upgrade is transitioning from.
+    /// @param _initData The initialization data to be passed to via `upgradeToAndCall` (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
     function initializeFrom(
-        uint256 _minApprovals,
-        TargetConfig calldata _targetConfig
+        uint16 _fromBuild,
+        bytes calldata _initData
     ) external reinitializer(2) {
-        _updateMinApprovals(_minApprovals);
+        if(_fromBuild < 3) {
+            (uint256 minApprovals, TargetConfig memory targetConfig) = abi.decode(_initData, (uint256, TargetConfig));
+            _updateMinApprovals(minApprovals);
 
-        _setTargetConfig(_targetConfig);
+            _setTargetConfig(targetConfig);
+        }
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
