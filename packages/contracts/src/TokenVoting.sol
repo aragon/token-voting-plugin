@@ -52,7 +52,6 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         emit MembershipContractAnnounced({definingContract: address(_token)});
     }
 
-    // todo double check the reinitializer version must be 2
     /// @notice Initializes the plugin after an upgrade from a previous version.
     /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
     function initializeFrom(

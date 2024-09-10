@@ -506,7 +506,6 @@ abstract contract MajorityVotingBase is
         _updateVotingSettings(_votingSettings);
     }
 
-    // todo TBD define if permission should be the same one as update settings
     /// @notice Updates the minimal approval value.
     /// @param _minApprovals The new minimal approval value.
     function updateMinApprovals(
