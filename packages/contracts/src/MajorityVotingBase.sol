@@ -561,8 +561,8 @@ abstract contract MajorityVotingBase is
         _execute(
             proposal_.targetConfig.target,
             bytes32(_proposalId),
-            proposals[_proposalId].actions,
-            proposals[_proposalId].allowFailureMap,
+            proposal_.actions,
+            proposal_.allowFailureMap,
             proposal_.targetConfig.operation
         );
 

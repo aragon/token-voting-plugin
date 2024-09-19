@@ -17,7 +17,7 @@ import {MajorityVotingBase} from "./MajorityVotingBase.sol";
 /// @notice The majority voting implementation using an
 /// [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
 /// compatible governance token.
-/// @dev v1.3 (Release 1, Build 3)
+/// @dev v1.3 (Release 1, Build 3). For each upgrade, if the reinitialization step is required, increment the version numbers in the modifier for both the initialize and initializeFrom functions.
 /// @custom:security-contact sirt@aragon.org
 contract TokenVoting is IMembership, MajorityVotingBase {
     using SafeCastUpgradeable for uint256;
@@ -32,6 +32,18 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @notice Thrown if the voting power is zero
     error NoVotingPower();
 
+    /// @notice Thrown when initialize is called after it has already been executed.
+    error AlreadyInitialized();
+
+    /// @notice This ensures that the initialize function cannot be called during the upgrade process.
+    modifier onlyCallAtInitialization() {
+        if (_getInitializedVersion() != 0) {
+            revert AlreadyInitialized();
+        }
+
+        _;
+    }
+
     /// @notice Initializes the component.
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
     /// @param _dao The IDAO interface of the associated DAO.
@@ -44,7 +56,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         IVotesUpgradeable _token,
         TargetConfig calldata _targetConfig,
         uint256 _minApprovals
-    ) external reinitializer(2) {
+    ) external onlyCallAtInitialization reinitializer(2) {
         __MajorityVotingBase_init(_dao, _votingSettings, _targetConfig, _minApprovals);
 
         votingToken = _token;
@@ -52,7 +64,8 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         emit MembershipContractAnnounced({definingContract: address(_token)});
     }
 
-    /// @notice Reinitializes the TokenVoting after an upgrade from a previous protocol version.
+    /// @notice Reinitializes the TokenVoting after an upgrade from a previous protocol version.For each reinitialization step, use the `_fromBuild` version to decide which internal functions to call for reinitialization.
+    /// @dev WARNING: The contract should only be upgradeable through PSP to ensure that _fromBuild is not incorrectly passed, and that the appropriate permissions for the upgrade are properly configured.
     /// @param _fromBuild The build version number of the previous implementation contract this upgrade is transitioning from.
     /// @param _initData The initialization data to be passed to via `upgradeToAndCall` (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
     function initializeFrom(
@@ -136,14 +149,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
         proposal_.minApprovalPower = _applyRatioCeiled(totalVotingPower_, minApproval());
 
-        TargetConfig memory currentTarget = getTargetConfig();
-
-        if (currentTarget.target == address(0)) {
-            proposal_.targetConfig.target = address(dao());
-            proposal_.targetConfig.operation = Operation.Call;
-        } else {
-            proposal_.targetConfig = currentTarget;
-        }
+        proposal_.targetConfig = getTargetConfig();
 
         // Reduce costs
         if (_allowFailureMap != 0) {

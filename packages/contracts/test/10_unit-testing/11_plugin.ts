@@ -267,7 +267,7 @@ describe('TokenVoting', function () {
           defaultTargetConfig,
           defaultMinApproval
         )
-      ).to.be.revertedWith('Initializable: contract is already initialized');
+      ).to.be.revertedWithCustomError(initializedPlugin, 'AlreadyInitialized');
     });
 
     it('emits the `MembershipContractAnnounced` event', async () => {
