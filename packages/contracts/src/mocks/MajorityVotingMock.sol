@@ -52,7 +52,7 @@ contract MajorityVotingMock is MajorityVotingBase {
         );
     }
 
-    function createProposalParams() external pure override returns (string memory) {
+    function createProposalParamsABI() external pure override returns (string memory) {
         return "[uint256 allowFailureMap, uint8 voteOption, bool tryEarlyExecution]";
     }
 
