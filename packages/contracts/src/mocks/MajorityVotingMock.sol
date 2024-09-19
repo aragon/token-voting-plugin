@@ -33,14 +33,27 @@ contract MajorityVotingMock is MajorityVotingBase {
         return 0;
     }
 
-     function createProposal(
+    function createProposal(
         bytes calldata _metadata,
         IDAO.Action[] calldata _actions,
         uint64 _startDate,
-        uint64 _endDate
+        uint64 _endDate,
+        bytes memory
     ) external pure override returns (uint256 proposalId) {
         // Calls public function for permission check.
-        proposalId = createProposal(_metadata, _actions, 0, _startDate, _endDate, VoteOption.None, false);
+        proposalId = createProposal(
+            _metadata,
+            _actions,
+            0,
+            _startDate,
+            _endDate,
+            VoteOption.None,
+            false
+        );
+    }
+
+    function createProposalParams() external pure override returns (string memory) {
+        return "[uint256 allowFailureMap, uint8 voteOption, bool tryEarlyExecution]";
     }
 
     function totalVotingPower(uint256 /* _blockNumber */) public pure override returns (uint256) {

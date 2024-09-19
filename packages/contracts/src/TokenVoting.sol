@@ -11,6 +11,7 @@ import {_applyRatioCeiled} from "@aragon/osx-commons-contracts/src/utils/math/Ra
 
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {MajorityVotingBase} from "./MajorityVotingBase.sol";
+import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
 
 /// @title TokenVoting
 /// @author Aragon X - 2021-2023
@@ -68,12 +69,12 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @dev WARNING: The contract should only be upgradeable through PSP to ensure that _fromBuild is not incorrectly passed, and that the appropriate permissions for the upgrade are properly configured.
     /// @param _fromBuild The build version number of the previous implementation contract this upgrade is transitioning from.
     /// @param _initData The initialization data to be passed to via `upgradeToAndCall` (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
-    function initializeFrom(
-        uint16 _fromBuild,
-        bytes calldata _initData
-    ) external reinitializer(2) {
-        if(_fromBuild < 3) {
-            (uint256 minApprovals, TargetConfig memory targetConfig) = abi.decode(_initData, (uint256, TargetConfig));
+    function initializeFrom(uint16 _fromBuild, bytes calldata _initData) external reinitializer(2) {
+        if (_fromBuild < 3) {
+            (uint256 minApprovals, TargetConfig memory targetConfig) = abi.decode(
+                _initData,
+                (uint256, TargetConfig)
+            );
             _updateMinApprovals(minApprovals);
 
             _setTargetConfig(targetConfig);
@@ -178,14 +179,46 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         );
     }
 
+    /// @inheritdoc IProposal
     function createProposal(
         bytes calldata _metadata,
         IDAO.Action[] calldata _actions,
         uint64 _startDate,
-        uint64 _endDate
+        uint64 _endDate,
+        bytes memory _data
     ) external override returns (uint256 proposalId) {
-        // Calls public function for permission check.
-        proposalId = createProposal(_metadata, _actions, 0, _startDate, _endDate, VoteOption.None, false);
+        // Note that this calls public function for permission check.
+        if (_data.length == 0) {
+            // Proposal can still be created with default values.
+            proposalId = createProposal(
+                _metadata,
+                _actions,
+                0,
+                _startDate,
+                _endDate,
+                VoteOption.None,
+                false
+            );
+        } else {
+            (uint256 allowFailureMap, VoteOption _voteOption, bool tryEarlyExecution) = abi.decode(
+                _data,
+                (uint256, VoteOption, bool)
+            );
+            proposalId = createProposal(
+                _metadata,
+                _actions,
+                allowFailureMap,
+                _startDate,
+                _endDate,
+                _voteOption,
+                tryEarlyExecution
+            );
+        }
+    }
+
+    /// @inheritdoc IProposal
+    function createProposalParams() external pure override returns (string memory) {
+        return "[uint256 allowFailureMap, uint8 voteOption, bool tryEarlyExecution]";
     }
 
     /// @inheritdoc IMembership

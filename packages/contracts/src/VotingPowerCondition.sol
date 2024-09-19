@@ -27,7 +27,7 @@ contract VotingPowerCondition is PermissionCondition {
         (_where, _data, _permissionId);
 
         uint256 minProposerVotingPower_ = TOKEN_VOTING.minProposerVotingPower();
-    
+
         if (minProposerVotingPower_ != 0) {
             if (
                 VOTING_TOKEN.getVotes(_who) < minProposerVotingPower_ &&
