@@ -29,7 +29,7 @@ import {expect} from 'chai';
 import {BigNumber} from 'ethers';
 import {ethers} from 'hardhat';
 
-describe.only('Upgrades', () => {
+describe('Upgrades', () => {
   it('upgrades to a new implementation', async () => {
     const {deployer, alice, dao, defaultInitData} = await loadFixture(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
