@@ -27,12 +27,12 @@ import {
   TOKEN_VOTING_INTERFACE,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
   INITIALIZE_SIGNATURE,
-  INITIALIZE_SIGNATURE_OLD,
   Operation,
   TargetConfig,
   CREATE_PROPOSAL_SIGNATURE,
   CREATE_PROPOSAL_PERMISSION_ID,
   ANY_ADDR,
+  latestInitializerVersion,
 } from '../test-utils/token-voting-constants';
 import {
   TokenVoting__factory,
@@ -49,7 +49,6 @@ import {
 import {
   findEvent,
   findEventTopicLog,
-  proposalIdToBytes32,
   TIME,
   getInterfaceId,
   pctToRatio,
@@ -82,7 +81,7 @@ type GlobalFixtureResult = {
   defaultMinApproval: BigNumber;
   token: TestGovernanceERC20;
   dao: DAO;
-  defaultTargetConfig: TargetConfig
+  defaultTargetConfig: TargetConfig;
   dummyActions: DAOStructs.ActionStruct[];
   dummyMetadata: string;
 };
@@ -140,11 +139,17 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
   const defaultTargetConfig: TargetConfig = {
     target: dao.address,
     operation: Operation.call,
-  }
+  };
 
   const pluginInitData = pluginImplementation.interface.encodeFunctionData(
-    INITIALIZE_SIGNATURE,
-    [dao.address, defaultVotingSettings, token.address, defaultTargetConfig, defaultMinApproval]
+    'initialize',
+    [
+      dao.address,
+      defaultVotingSettings,
+      token.address,
+      defaultTargetConfig,
+      defaultMinApproval,
+    ]
   );
   const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitData);
   const proxyCreatedEvent1 = findEvent<ProxyCreatedEvent>(
@@ -194,7 +199,12 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     },
   ];
 
-  await grantCreateProposalPermissions(deployer, dao, initializedPlugin, uninitializedPlugin)
+  await grantCreateProposalPermissions(
+    deployer,
+    dao,
+    initializedPlugin,
+    uninitializedPlugin
+  );
 
   return {
     deployer,
@@ -222,9 +232,9 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
 }
 
 async function grantCreateProposalPermissions(
-  deployer: SignerWithAddress, 
-  dao: DAO, 
-  initializedPlugin: TokenVoting, 
+  deployer: SignerWithAddress,
+  dao: DAO,
+  initializedPlugin: TokenVoting,
   uninitializedPlugin: TokenVoting
 ) {
   const condition = await new VotingPowerCondition__factory(deployer).deploy(
@@ -260,7 +270,7 @@ describe('TokenVoting', function () {
 
       // Try to reinitialize the initialized plugin.
       await expect(
-        initializedPlugin[INITIALIZE_SIGNATURE](
+        initializedPlugin.initialize(
           dao.address,
           defaultVotingSettings,
           token.address,
@@ -282,7 +292,7 @@ describe('TokenVoting', function () {
 
       // Initialize the uninitialized plugin.
       await expect(
-        await uninitializedPlugin[INITIALIZE_SIGNATURE](
+        await uninitializedPlugin.initialize(
           dao.address,
           defaultVotingSettings,
           token.address,
@@ -323,7 +333,7 @@ describe('TokenVoting', function () {
       const minApproval = pctToRatio(30);
 
       // Initialize the plugin.
-      await plugin[INITIALIZE_SIGNATURE](
+      await plugin.initialize(
         dao.address,
         votingSettings,
         token.address,
@@ -349,6 +359,91 @@ describe('TokenVoting', function () {
 
       // Check the minimal approval has been set.
       expect(await plugin.minApproval()).to.equal(minApproval);
+    });
+  });
+
+  describe('initializeFrom', async () => {
+    it('reverts if trying to re-reinitializeFrom', async () => {
+      const {uninitializedPlugin, defaultMinApproval, defaultTargetConfig} =
+        await loadFixture(globalFixture);
+
+      // initial data is minApproval and targetConfig
+      const encodedDefaultInitialData = ethers.utils.defaultAbiCoder.encode(
+        ['uint256', 'address', 'uint8'],
+        [
+          defaultMinApproval,
+          defaultTargetConfig.target,
+          defaultTargetConfig.operation,
+        ]
+      );
+
+      // initialize from the plugin.
+      await uninitializedPlugin.initializeFrom(
+        latestInitializerVersion,
+        encodedDefaultInitialData
+      );
+
+      // Try to reinitializeFrom the plugin.
+      await expect(
+        uninitializedPlugin.initializeFrom(
+          latestInitializerVersion,
+          encodedDefaultInitialData
+        )
+      ).to.be.revertedWith('Initializable: contract is already initialized');
+    });
+
+    it('reverts if trying to initializeFrom an initialized plugin', async () => {
+      const {initializedPlugin, defaultMinApproval, defaultTargetConfig} =
+        await loadFixture(globalFixture);
+
+      // initial data is minApproval and targetConfig
+      const encodedDefaultInitialData = ethers.utils.defaultAbiCoder.encode(
+        ['uint256', 'address', 'uint8'],
+        [
+          defaultMinApproval,
+          defaultTargetConfig.target,
+          defaultTargetConfig.operation,
+        ]
+      );
+
+      // Try to reinitialize the  plugin.
+      await expect(
+        initializedPlugin.initializeFrom(
+          latestInitializerVersion,
+          encodedDefaultInitialData
+        )
+      ).to.be.revertedWith('Initializable: contract is already initialized');
+    });
+
+    it('sets the `_targetConfig` and `minApproval` when initializingFrom an uninitialized plugin', async () => {
+      const {uninitializedPlugin, defaultMinApproval, defaultTargetConfig} =
+        await loadFixture(globalFixture);
+
+      // initial data is minApproval and targetConfig
+      const encodedDefaultInitialData = ethers.utils.defaultAbiCoder.encode(
+        ['uint256', 'address', 'uint8'],
+        [
+          defaultMinApproval,
+          defaultTargetConfig.target,
+          defaultTargetConfig.operation,
+        ]
+      );
+
+      // reinitialize the plugin.
+      await uninitializedPlugin.initializeFrom(
+        latestInitializerVersion,
+        encodedDefaultInitialData
+      );
+
+      expect(await uninitializedPlugin.minApproval()).to.be.eq(
+        defaultMinApproval
+      );
+      expect((await uninitializedPlugin.getTargetConfig()).target).to.be.eq(
+        defaultTargetConfig.target
+      );
+      expect((await uninitializedPlugin.getTargetConfig()).operation).to.be.eq(
+        defaultTargetConfig.operation
+      );
     });
   });
 
@@ -478,7 +573,7 @@ describe('TokenVoting', function () {
         minParticipation: pctToRatio(20),
         minDuration: TIME.HOUR,
         minProposerVotingPower: 123,
-      }
+      };
     });
 
     describe('minProposerVotingPower == 0', async () => {
@@ -489,7 +584,7 @@ describe('TokenVoting', function () {
           token,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture)
+        } = await loadFixture(globalFixture);
 
         await setTotalSupply(token, 1);
 
@@ -506,7 +601,7 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-        
+
         const expectedProposalId = await plugin.createProposalId(
           dummyActions,
           dummyMetadata
@@ -560,13 +655,13 @@ describe('TokenVoting', function () {
               false
             )
         )
-        .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
-        .withArgs(
-          dao.address,
-          plugin.address,
-          alice.address,
-          CREATE_PROPOSAL_PERMISSION_ID
-        );
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            alice.address,
+            CREATE_PROPOSAL_PERMISSION_ID
+          );
 
         // Create a proposal as Bob.
         await expect(
@@ -580,7 +675,8 @@ describe('TokenVoting', function () {
               endDate,
               VoteOption.None,
               false
-            )).not.to.be.reverted;
+            )
+        ).not.to.be.reverted;
       });
 
       it('reverts if `_msgSender` owns no tokens and has no tokens delegated to her/him in the current block although having them in the last block', async () => {
@@ -636,13 +732,13 @@ describe('TokenVoting', function () {
               false
             )
         )
-        .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
-        .withArgs(
-          dao.address,
-          plugin.address,
-          alice.address,
-          CREATE_PROPOSAL_PERMISSION_ID
-        );
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            alice.address,
+            CREATE_PROPOSAL_PERMISSION_ID
+          );
 
         // Transaction 3: Create the proposal as Bob.
         const tx3 = await plugin
@@ -656,7 +752,7 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-        const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+        const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
         // Check the balances before the block is mined. Note that `balanceOf` is a view function,
         // whose result will be immediately available and does not rely on the block to be mined.
@@ -739,13 +835,13 @@ describe('TokenVoting', function () {
               false
             )
         )
-        .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
-        .withArgs(
-          dao.address,
-          plugin.address,
-          bob.address,
-          CREATE_PROPOSAL_PERMISSION_ID
-        );
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            bob.address,
+            CREATE_PROPOSAL_PERMISSION_ID
+          );
 
         // Check that Alice who has enough balance can create a proposal.
         await expect(
@@ -805,7 +901,9 @@ describe('TokenVoting', function () {
           await tx.wait(),
           'ProposalCreated'
         );
-        expect(event.args.proposalId).to.equal(await plugin.createProposalId(dummyActions, dummyMetadata));
+        expect(event.args.proposalId).to.equal(
+          await plugin.createProposalId(dummyActions, dummyMetadata)
+        );
       });
 
       it('creates a proposal if `_msgSender` owns no tokens but has enough tokens delegated to her/him in the current block', async () => {
@@ -897,13 +995,13 @@ describe('TokenVoting', function () {
               false
             )
         )
-        .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
-        .withArgs(
-          dao.address,
-          plugin.address,
-          alice.address,
-          CREATE_PROPOSAL_PERMISSION_ID
-        );
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            alice.address,
+            CREATE_PROPOSAL_PERMISSION_ID
+          );
 
         // As Alice delegate all votes to Bob.
         await token.connect(alice).delegate(bob.address);
@@ -922,13 +1020,13 @@ describe('TokenVoting', function () {
               false
             )
         )
-        .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
-        .withArgs(
-          dao.address,
-          plugin.address,
-          alice.address,
-          CREATE_PROPOSAL_PERMISSION_ID
-        );
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            alice.address,
+            CREATE_PROPOSAL_PERMISSION_ID
+          );
       });
     });
 
@@ -1095,7 +1193,7 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-      const id = await plugin.createProposalId([], dummyMetadata)
+      const id = await plugin.createProposalId([], dummyMetadata);
 
       const expectedStartDate = BigNumber.from(await time.latest());
       const expectedEndDate = expectedStartDate.add(
@@ -1154,7 +1252,7 @@ describe('TokenVoting', function () {
         VoteOption.None,
         false
       );
-      const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+      const id = await plugin.createProposalId(dummyActions, dummyMetadata);
       const event = findEvent<ProposalCreatedEvent>(
         await tx.wait(),
         'ProposalCreated'
@@ -1197,7 +1295,7 @@ describe('TokenVoting', function () {
         VoteOption.None,
         false
       );
-      const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+      const id = await plugin.createProposalId(dummyActions, dummyMetadata);
       const event = findEvent<ProposalCreatedEvent>(
         await tx.wait(),
         'ProposalCreated'
@@ -1234,7 +1332,7 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-      const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+      const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
       // Check that the `ProposalCreated` event is emitted and `VoteCast` is not.
       await expect(tx)
@@ -1321,7 +1419,7 @@ describe('TokenVoting', function () {
           VoteOption.Yes,
           false
         );
-      const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+      const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
       // Check that the `ProposalCreated` and `VoteCast` events are emitted with the expected data.
       await expect(tx)
@@ -1383,7 +1481,7 @@ describe('TokenVoting', function () {
       const startDate = (await time.latest()) + TIME.HOUR;
       const endDate = startDate + TIME.DAY;
       expect(await time.latest()).to.be.lessThan(startDate);
-      const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+      const id = await plugin.createProposalId(dummyActions, dummyMetadata);
       await expect(
         plugin
           .connect(alice)
@@ -1461,7 +1559,7 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+        const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
         await expect(plugin.connect(alice).vote(id, VoteOption.Yes, false))
           .to.be.revertedWithCustomError(plugin, 'VoteCastForbidden')
@@ -1488,7 +1586,7 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+        const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
         // check the mallory has 0 token
         expect(await token.balanceOf(mallory.address)).to.equal(0);
@@ -1522,7 +1620,7 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+        const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
         // Vote with Alice.
         await expect(plugin.connect(alice).vote(id, VoteOption.Yes, false))
@@ -1584,7 +1682,7 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+        const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
         // Check that voting is possible but don't vote using `callStatic`
         await expect(
@@ -1634,7 +1732,6 @@ describe('TokenVoting', function () {
           judy,
           mallory,
           initializedPlugin,
-          uninitializedPlugin,
           token,
           dao,
           dummyActions,
@@ -1716,7 +1813,7 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-        const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+        const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
         // Vote as Alice.
         await plugin.connect(alice).vote(id, VoteOption.Yes, false);
@@ -1761,7 +1858,7 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+        const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
         // Vote with enough voters so that the execution criteria are met.
         // Vote with enough votes so that the execution criteria and the vote outcome cannot change anymore,
@@ -1806,7 +1903,7 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+        const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
         // Vote with enough voters so that the execution criteria are met.
         await voteWithSigners(plugin, id, {
@@ -1903,7 +2000,7 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = await plugin.createProposalId(dummyActions, dummyMetadata)
+        const id = await plugin.createProposalId(dummyActions, dummyMetadata);
 
         // Try to execute it while the vote is not decided yet.
         await expect(plugin.execute(id))
@@ -1949,7 +2046,6 @@ describe('TokenVoting', function () {
           judy,
           mallory,
           initializedPlugin,
-          uninitializedPlugin,
           token,
           dao,
           dummyActions,
@@ -1984,7 +2080,7 @@ describe('TokenVoting', function () {
         await initializedPlugin
           .connect(deployer)
           .updateVotingSettings(newVotingSettings);
-        
+
         return {
           deployer,
           alice,
@@ -2248,7 +2344,9 @@ describe('TokenVoting', function () {
           );
 
           expect(event.args.actor).to.equal(plugin.address);
-          expect(event.args.callId).to.equal(ethers.utils.hexZeroPad(id.toHexString(), 32));
+          expect(event.args.callId).to.equal(
+            ethers.utils.hexZeroPad(id.toHexString(), 32)
+          );
           expect(event.args.actions.length).to.equal(1);
           expect(event.args.actions[0].to).to.equal(dummyActions[0].to);
           expect(event.args.actions[0].value).to.equal(dummyActions[0].value);
