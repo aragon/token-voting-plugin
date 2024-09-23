@@ -102,7 +102,9 @@ export async function deployAndUpgradeFromToCheck(
   from: ContractFactory,
   to: ContractFactory,
   upgradePermissionId: string,
-  managingDao?: DAO | PluginRepo
+  managingDao?: DAO | PluginRepo,
+  reinitializerName?: string,
+  reinitArgs?: any
 ): Promise<{
   proxy: Contract;
   fromImplementation: string;
@@ -155,10 +157,19 @@ export async function deployAndUpgradeFromToCheck(
     await managingDao.connect(deployer).grant(...grantArgs);
   }
 
+  let call;
+  if (reinitializerName && reinitArgs) {
+    call = {
+      fn: reinitializerName,
+      args: reinitArgs,
+    };
+  }
+
   // Upgrade the proxy to a new implementation from a different factory
   await upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
     unsafeAllow: ['constructor', 'delegatecall'],
     constructorArgs: [],
+    call,
   });
 
   const toImplementation = await ethers.provider
