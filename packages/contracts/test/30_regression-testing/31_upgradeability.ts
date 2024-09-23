@@ -1,10 +1,15 @@
 import {createDaoProxy} from '../20_integration-testing/test-helpers';
 import {TestGovernanceERC20} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src';
-import {INITIALIZE_SIGNATURE, INITIALIZE_SIGNATURE_OLD, Operation, TargetConfig} from '../test-utils/token-voting-constants';
 import {
-  TokenVoting_V1_0_0__factory,
-  TokenVoting_V1_3_0__factory,
+  INITIALIZE_SIGNATURE,
+  INITIALIZE_SIGNATURE_OLD,
+  Operation,
+  TargetConfig,
+} from '../test-utils/token-voting-constants';
+import {
+  TokenVoting_V1_1__factory,
+  TokenVoting_V1_2__factory,
   TokenVoting__factory,
 } from '../test-utils/typechain-versions';
 import {
@@ -38,7 +43,7 @@ describe('Upgrades', () => {
         defaultInitData.votingSettings,
         defaultInitData.token.address,
         defaultInitData.targetConfig,
-        defaultInitData.minApproval
+        defaultInitData.minApproval,
       ],
       INITIALIZE_SIGNATURE,
       currentContractFactory,
@@ -50,7 +55,7 @@ describe('Upgrades', () => {
   it('upgrades from v1.0.0', async () => {
     const {deployer, alice, dao, defaultInitData} = await loadFixture(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
-    const legacyContractFactory = new TokenVoting_V1_0_0__factory(deployer);
+    const legacyContractFactory = new TokenVoting_V1_1__factory(deployer);
 
     const {fromImplementation, toImplementation} =
       await deployAndUpgradeFromToCheck(
@@ -82,11 +87,11 @@ describe('Upgrades', () => {
     expect(toProtocolVersion).to.deep.equal([1, 4, 0]); // TODO Check this automatically
   });
 
-  /// TODO: why is this saying from 1.3.0 ? 
+  /// TODO: why is this saying from 1.3.0 ?
   it('from v1.3.0', async () => {
     const {deployer, alice, dao, defaultInitData} = await loadFixture(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
-    const legacyContractFactory = new TokenVoting_V1_3_0__factory(deployer);
+    const legacyContractFactory = new TokenVoting_V1_2__factory(deployer);
 
     const {fromImplementation, toImplementation} =
       await deployAndUpgradeFromToCheck(
@@ -129,7 +134,7 @@ type FixtureResult = {
     votingSettings: MajorityVotingBase.VotingSettingsStruct;
     token: TestGovernanceERC20;
     minApproval: BigNumber;
-    targetConfig: TargetConfig
+    targetConfig: TargetConfig;
   };
 };
 
@@ -157,7 +162,7 @@ async function fixture(): Promise<FixtureResult> {
     minDuration: TIME.HOUR,
     minProposerVotingPower: 0,
   };
-  
+
   // Create an initialized plugin clone
   const defaultInitData = {
     votingSettings,
@@ -165,8 +170,8 @@ async function fixture(): Promise<FixtureResult> {
     minApproval: pctToRatio(10),
     targetConfig: {
       target: dao.address,
-      operation: Operation.call
-    }
+      operation: Operation.call,
+    },
   };
 
   return {

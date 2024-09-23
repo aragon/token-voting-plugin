@@ -37,7 +37,7 @@ import {
 import {
   TokenVoting__factory,
   TokenVoting,
-  IMajorityVoting_V1_3_0__factory,
+  IMajorityVoting_V1_2__factory,
 } from '../test-utils/typechain-versions';
 import {
   VoteOption,
@@ -491,7 +491,7 @@ describe('TokenVoting', function () {
 
     it('supports the `IMajorityVoting` OLD interface', async () => {
       const {initializedPlugin: plugin} = await loadFixture(globalFixture);
-      const oldIface = IMajorityVoting_V1_3_0__factory.createInterface();
+      const oldIface = IMajorityVoting_V1_2__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(oldIface))).to.be
         .true;
     });

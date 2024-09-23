@@ -15,7 +15,7 @@ import {
   MAJORITY_VOTING_BASE_INTERFACE,
   MAJORITY_VOTING_BASE_OLD_INTERFACE,
 } from '../../test-utils/majority-voting-constants';
-import {IMajorityVoting_V1_3_0__factory} from '../../test-utils/typechain-versions';
+import {IMajorityVoting_V1_2__factory} from '../../test-utils/typechain-versions';
 import {VotingMode} from '../../test-utils/voting-helpers';
 import {TIME, findEvent} from '@aragon/osx-commons-sdk';
 import {getInterfaceId} from '@aragon/osx-commons-sdk';
@@ -128,7 +128,7 @@ describe('MajorityVotingMock', function () {
     });
 
     it('supports the `IMajorityVoting` OLD interface', async () => {
-      const oldIface = IMajorityVoting_V1_3_0__factory.createInterface();
+      const oldIface = IMajorityVoting_V1_2__factory.createInterface();
       expect(await votingBase.supportsInterface(getInterfaceId(oldIface))).to.be
         .true;
     });
