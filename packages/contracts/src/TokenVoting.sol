@@ -188,33 +188,27 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         bytes memory _data
     ) external override returns (uint256 proposalId) {
         // Note that this calls public function for permission check.
-        if (_data.length == 0) {
-            // Proposal can still be created with default values.
-            proposalId = createProposal(
-                _metadata,
-                _actions,
-                0,
-                _startDate,
-                _endDate,
-                VoteOption.None,
-                false
-            );
-        } else {
-            (uint256 allowFailureMap, VoteOption _voteOption, bool tryEarlyExecution) = abi.decode(
+        uint256 allowFailureMap;
+        VoteOption _voteOption = VoteOption.None;
+        bool tryEarlyExecution;
+
+        if (_data.length != 0) {
+            (allowFailureMap, _voteOption, tryEarlyExecution) = abi.decode(
                 _data,
                 (uint256, VoteOption, bool)
             );
-            proposalId = createProposal(
-                _metadata,
-                _actions,
-                allowFailureMap,
-                _startDate,
-                _endDate,
-                _voteOption,
-                tryEarlyExecution
-            );
         }
     }
+
+    proposalId = createProposal(
+        _metadata,
+        _actions,
+        allowFailureMap,
+        _startDate,
+        _endDate,
+        _voteOption,
+        tryEarlyExecution
+    );
 
     /// @inheritdoc IProposal
     function createProposalParamsABI() external pure override returns (string memory) {
