@@ -218,7 +218,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
     /// @inheritdoc IProposal
     function createProposalParamsABI() external pure override returns (string memory) {
-        return "[uint256 allowFailureMap, uint8 voteOption, bool tryEarlyExecution]";
+        return "(uint256 allowFailureMap, uint8 voteOption, bool tryEarlyExecution)";
     }
 
     /// @inheritdoc IMembership
