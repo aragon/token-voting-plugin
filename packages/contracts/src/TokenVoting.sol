@@ -198,17 +198,17 @@ contract TokenVoting is IMembership, MajorityVotingBase {
                 (uint256, VoteOption, bool)
             );
         }
-    }
 
-    proposalId = createProposal(
-        _metadata,
-        _actions,
-        allowFailureMap,
-        _startDate,
-        _endDate,
-        _voteOption,
-        tryEarlyExecution
-    );
+        proposalId = createProposal(
+            _metadata,
+            _actions,
+            allowFailureMap,
+            _startDate,
+            _endDate,
+            _voteOption,
+            tryEarlyExecution
+        );
+    }
 
     /// @inheritdoc IProposal
     function createProposalParamsABI() external pure override returns (string memory) {
