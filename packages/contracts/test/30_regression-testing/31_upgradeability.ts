@@ -190,7 +190,7 @@ describe('Upgrades', () => {
     );
   });
 
-  it('from v1.2 with `initializeFrom`', async () => {
+  it('upgrades from v1.2 with `initializeFrom`', async () => {
     const {
       deployer,
       alice,
