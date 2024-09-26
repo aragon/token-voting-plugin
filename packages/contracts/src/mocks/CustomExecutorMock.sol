@@ -12,9 +12,11 @@ contract CustomExecutorMock {
 
     function execute(
         bytes32 callId,
-        IDAO.Action[] memory _actions,
-        uint256 allowFailureMap
+        IDAO.Action[] memory,
+        uint256
     ) external returns (bytes[] memory execResults, uint256 failureMap) {
+        (execResults, failureMap);
+
         if (callId == bytes32(0)) {
             revert FailedCustom();
         } else {
