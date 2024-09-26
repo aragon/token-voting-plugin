@@ -10,8 +10,10 @@ import {IMembership} from "@aragon/osx-commons-contracts/src/plugin/extensions/m
 import {_applyRatioCeiled} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
 
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
-import {MajorityVotingBase} from "./MajorityVotingBase.sol";
 import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
+import {IExecutor} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+
+import {MajorityVotingBase} from "./MajorityVotingBase.sol";
 
 /// @title TokenVoting
 /// @author Aragon X - 2021-2023
@@ -107,7 +109,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @inheritdoc MajorityVotingBase
     function createProposal(
         bytes calldata _metadata,
-        IDAO.Action[] calldata _actions,
+        IExecutor.Action[] calldata _actions,
         uint256 _allowFailureMap,
         uint64 _startDate,
         uint64 _endDate,
@@ -182,7 +184,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @inheritdoc IProposal
     function createProposal(
         bytes calldata _metadata,
-        IDAO.Action[] calldata _actions,
+        IExecutor.Action[] calldata _actions,
         uint64 _startDate,
         uint64 _endDate,
         bytes memory _data
@@ -236,7 +238,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @param _metadata The metadata of the proposal.
     /// @return proposalId The ID of the proposal.
     function createProposalId(
-        IDAO.Action[] calldata _actions,
+        IExecutor.Action[] calldata _actions,
         bytes memory _metadata
     ) public pure override returns (uint256) {
         return uint256(keccak256(abi.encode(_actions, _metadata)));

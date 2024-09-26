@@ -13,6 +13,7 @@ import {RATIO_BASE, RatioOutOfBounds} from "@aragon/osx-commons-contracts/src/ut
 import {PluginUUPSUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/PluginUUPSUpgradeable.sol";
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
+import {IExecutor} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
 
 import {IMajorityVoting} from "./IMajorityVoting.sol";
 
@@ -174,7 +175,7 @@ abstract contract MajorityVotingBase is
         ProposalParameters parameters;
         Tally tally;
         mapping(address => IMajorityVoting.VoteOption) voters;
-        IDAO.Action[] actions;
+        IExecutor.Action[] actions;
         uint256 allowFailureMap;
         uint256 minApprovalPower;
         TargetConfig targetConfig; // added in v1.3
@@ -486,7 +487,7 @@ abstract contract MajorityVotingBase is
             bool executed,
             ProposalParameters memory parameters,
             Tally memory tally,
-            IDAO.Action[] memory actions,
+            IExecutor.Action[] memory actions,
             uint256 allowFailureMap
         )
     {
@@ -533,7 +534,7 @@ abstract contract MajorityVotingBase is
     /// @return proposalId The ID of the proposal.
     function createProposal(
         bytes calldata _metadata,
-        IDAO.Action[] calldata _actions,
+        IExecutor.Action[] calldata _actions,
         uint256 _allowFailureMap,
         uint64 _startDate,
         uint64 _endDate,
