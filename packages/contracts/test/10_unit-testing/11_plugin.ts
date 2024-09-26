@@ -10,6 +10,7 @@ import {
   IProtocolVersion__factory,
   ProxyFactory__factory,
   VotingPowerCondition__factory,
+  CustomExecutorMock__factory,
 } from '../../typechain';
 import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
@@ -34,6 +35,7 @@ import {
   CREATE_PROPOSAL_PERMISSION_ID,
   ANY_ADDR,
   CREATE_PROPOSAL_SIGNATURE_IProposal,
+  SET_TARGET_CONFIG_PERMISSION_ID,
 } from '../test-utils/token-voting-constants';
 import {
   TokenVoting__factory,
@@ -57,7 +59,12 @@ import {
   RATIO_BASE,
   DAO_PERMISSIONS,
 } from '@aragon/osx-commons-sdk';
-import {DAO, DAOStructs, DAO__factory} from '@aragon/osx-ethers';
+import {
+  DAO,
+  DAOStructs,
+  DAO__factory,
+  MajorityVotingBase__factory,
+} from '@aragon/osx-ethers';
 import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
@@ -2308,6 +2315,80 @@ describe('TokenVoting', function () {
 
         // Check that the vote is not executable because the participation with 19% is still too low, despite a support of 67% and the voting period being over.
         expect(await plugin.canExecute(id)).to.equal(false);
+      });
+
+      it('executes target with delegate call', async () => {
+        let {
+          alice,
+          bob,
+          carol,
+          dave,
+          eve,
+          frank,
+          grace,
+          harold,
+          ivan,
+          dummyMetadata,
+          dummyActions,
+          deployer,
+          dao,
+          initializedPlugin: plugin,
+        } = await loadFixture(localFixture);
+
+        const executorFactory = new CustomExecutorMock__factory(deployer);
+        const executor = await executorFactory.deploy();
+
+        const abiA = CustomExecutorMock__factory.abi;
+        const abiB = TokenVoting__factory.abi;
+
+        // @ts-ignore
+        const mergedABI = abiA.concat(abiB);
+
+        await dao.grant(
+          plugin.address,
+          deployer.address,
+          SET_TARGET_CONFIG_PERMISSION_ID
+        );
+
+        await plugin.connect(deployer).setTargetConfig({
+          target: executor.address,
+          operation: Operation.delegatecall,
+        });
+
+        // @ts-ignore
+        const pluginMerged = (await ethers.getContractAt(
+          mergedABI,
+          plugin.address
+        )) as TokenVoting;
+
+        const endDate = (await time.latest()) + TIME.DAY;
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
+          dummyMetadata,
+          dummyActions,
+          0,
+          0,
+          endDate,
+          VoteOption.None,
+          false
+        );
+        const id = await plugin.createProposalId(dummyActions, dummyMetadata);
+
+        // Vote with enough people so that execution criteria are met.
+        await voteWithSigners(plugin, id, {
+          yes: [alice, bob, carol, dave, eve], // 50 yes
+          no: [frank, grace, harold], // 30 votes
+          abstain: [ivan], // 10 votes
+        });
+
+        // Advance after the end date.
+        await time.increaseTo(endDate);
+
+        // Check that the vote is executable because support > 50%, participation > 20%, and the voting period is over.
+        expect(await plugin.canExecute(id)).to.equal(true);
+
+        await expect(plugin.execute(id))
+          .to.emit(pluginMerged, 'ExecutedCustom')
+          .to.emit(pluginMerged, 'ProposalExecuted');
       });
 
       it('executes the vote immediately when the vote is decided early and the tryEarlyExecution options is selected', async () => {
