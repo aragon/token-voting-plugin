@@ -916,13 +916,6 @@ describe('TokenVotingSetup', function () {
         ],
         [
           Operation.Revoke,
-          plugin,
-          dao.address,
-          AddressZero,
-          PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
-        ],
-        [
-          Operation.Revoke,
           dao.address,
           plugin,
           AddressZero,
@@ -944,7 +937,7 @@ describe('TokenVotingSetup', function () {
         ],
       ];
 
-      expect(permissions1.length).to.be.equal(5);
+      expect(permissions1.length).to.be.equal(4);
       expect(permissions1).to.deep.equal(essentialPermissions);
 
       const permissions2 = await pluginSetup.callStatic.prepareUninstallation(
@@ -956,7 +949,7 @@ describe('TokenVotingSetup', function () {
         }
       );
 
-      expect(permissions2.length).to.be.equal(5);
+      expect(permissions2.length).to.be.equal(4);
       expect(permissions2).to.deep.equal(essentialPermissions);
     });
   });
