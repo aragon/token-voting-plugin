@@ -5,7 +5,7 @@ pragma solidity ^0.8.8;
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {IPermissionCondition} from "@aragon/osx-commons-contracts/src/permission/condition/IPermissionCondition.sol";
 import {PermissionLib} from "@aragon/osx-commons-contracts/src/permission/PermissionLib.sol";
-import {IExecutor} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+import {IExecutor, Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
 
 contract DAOMock is IDAO, IExecutor {
     address internal constant NO_CONDITION = address(0);
@@ -113,7 +113,7 @@ contract DAOMock is IDAO, IExecutor {
 
     function execute(
         bytes32 callId,
-        IExecutor.Action[] memory _actions,
+        Action[] memory _actions,
         uint256 allowFailureMap
     ) external override returns (bytes[] memory execResults, uint256 failureMap) {
         emit Executed(msg.sender, callId, _actions, allowFailureMap, failureMap, execResults);
