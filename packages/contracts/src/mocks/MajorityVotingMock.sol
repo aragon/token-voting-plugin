@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.8;
 
+import {IExecutor, Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+
 import {MajorityVotingBase, IDAO} from "../MajorityVotingBase.sol";
 
 contract MajorityVotingMock is MajorityVotingBase {
@@ -15,7 +17,7 @@ contract MajorityVotingMock is MajorityVotingBase {
     }
 
     function createProposalId(
-        IDAO.Action[] calldata _actions,
+        Action[] calldata _actions,
         bytes memory _metadata
     ) public pure override returns (uint256) {
         return uint256(keccak256(abi.encode(_actions, _metadata)));
@@ -23,7 +25,7 @@ contract MajorityVotingMock is MajorityVotingBase {
 
     function createProposal(
         bytes calldata /* _metadata */,
-        IDAO.Action[] calldata /* _actions */,
+        Action[] calldata /* _actions */,
         uint256 /* _allowFailureMap */,
         uint64 /* _startDate */,
         uint64 /* _endDate */,
@@ -33,14 +35,27 @@ contract MajorityVotingMock is MajorityVotingBase {
         return 0;
     }
 
-     function createProposal(
+    function createProposal(
         bytes calldata _metadata,
-        IDAO.Action[] calldata _actions,
+        Action[] calldata _actions,
         uint64 _startDate,
-        uint64 _endDate
+        uint64 _endDate,
+        bytes memory
     ) external pure override returns (uint256 proposalId) {
         // Calls public function for permission check.
-        proposalId = createProposal(_metadata, _actions, 0, _startDate, _endDate, VoteOption.None, false);
+        proposalId = createProposal(
+            _metadata,
+            _actions,
+            0,
+            _startDate,
+            _endDate,
+            VoteOption.None,
+            false
+        );
+    }
+
+    function createProposalParamsABI() external pure override returns (string memory) {
+        return "[uint256 allowFailureMap, uint8 voteOption, bool tryEarlyExecution]";
     }
 
     function totalVotingPower(uint256 /* _blockNumber */) public pure override returns (uint256) {
