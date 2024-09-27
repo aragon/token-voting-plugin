@@ -10,6 +10,9 @@ import {IMembership} from "@aragon/osx-commons-contracts/src/plugin/extensions/m
 import {_applyRatioCeiled} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
 
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
+import {IExecutor, Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+
 import {MajorityVotingBase} from "./MajorityVotingBase.sol";
 
 /// @title TokenVoting
@@ -68,12 +71,12 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @dev WARNING: The contract should only be upgradeable through PSP to ensure that _fromBuild is not incorrectly passed, and that the appropriate permissions for the upgrade are properly configured.
     /// @param _fromBuild The build version number of the previous implementation contract this upgrade is transitioning from.
     /// @param _initData The initialization data to be passed to via `upgradeToAndCall` (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
-    function initializeFrom(
-        uint16 _fromBuild,
-        bytes calldata _initData
-    ) external reinitializer(2) {
-        if(_fromBuild < 3) {
-            (uint256 minApprovals, TargetConfig memory targetConfig) = abi.decode(_initData, (uint256, TargetConfig));
+    function initializeFrom(uint16 _fromBuild, bytes calldata _initData) external reinitializer(2) {
+        if (_fromBuild < 3) {
+            (uint256 minApprovals, TargetConfig memory targetConfig) = abi.decode(
+                _initData,
+                (uint256, TargetConfig)
+            );
             _updateMinApprovals(minApprovals);
 
             _setTargetConfig(targetConfig);
@@ -106,7 +109,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @inheritdoc MajorityVotingBase
     function createProposal(
         bytes calldata _metadata,
-        IDAO.Action[] calldata _actions,
+        Action[] calldata _actions,
         uint256 _allowFailureMap,
         uint64 _startDate,
         uint64 _endDate,
@@ -178,14 +181,40 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         );
     }
 
+    /// @inheritdoc IProposal
     function createProposal(
         bytes calldata _metadata,
-        IDAO.Action[] calldata _actions,
+        Action[] calldata _actions,
         uint64 _startDate,
-        uint64 _endDate
+        uint64 _endDate,
+        bytes memory _data
     ) external override returns (uint256 proposalId) {
-        // Calls public function for permission check.
-        proposalId = createProposal(_metadata, _actions, 0, _startDate, _endDate, VoteOption.None, false);
+        // Note that this calls public function for permission check.
+        uint256 allowFailureMap;
+        VoteOption _voteOption = VoteOption.None;
+        bool tryEarlyExecution;
+
+        if (_data.length != 0) {
+            (allowFailureMap, _voteOption, tryEarlyExecution) = abi.decode(
+                _data,
+                (uint256, VoteOption, bool)
+            );
+        }
+
+        proposalId = createProposal(
+            _metadata,
+            _actions,
+            allowFailureMap,
+            _startDate,
+            _endDate,
+            _voteOption,
+            tryEarlyExecution
+        );
+    }
+
+    /// @inheritdoc IProposal
+    function createProposalParamsABI() external pure override returns (string memory) {
+        return "(uint256 allowFailureMap, uint8 voteOption, bool tryEarlyExecution)";
     }
 
     /// @inheritdoc IMembership
@@ -209,7 +238,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @param _metadata The metadata of the proposal.
     /// @return proposalId The ID of the proposal.
     function createProposalId(
-        IDAO.Action[] calldata _actions,
+        Action[] calldata _actions,
         bytes memory _metadata
     ) public pure override returns (uint256) {
         return uint256(keccak256(abi.encode(_actions, _metadata)));

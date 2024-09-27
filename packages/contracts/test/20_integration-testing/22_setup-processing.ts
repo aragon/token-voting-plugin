@@ -2,6 +2,7 @@ import {METADATA, VERSION} from '../../plugin-settings';
 import {GovernanceERC20} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {getProductionNetworkName, findPluginRepo} from '../../utils/helpers';
+import {Operation, TargetConfig} from '../test-utils/token-voting-constants';
 import {
   GovernanceERC20__factory,
   TokenVotingSetup,
@@ -39,7 +40,6 @@ import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import env, {deployments, ethers} from 'hardhat';
-import { Operation, TargetConfig } from '../test-utils/token-voting-constants';
 
 const productionNetworkName = getProductionNetworkName(env);
 
@@ -134,8 +134,8 @@ async function fixture(): Promise<FixtureResult> {
 
   const defaultTargetConfig = {
     target: dao.address,
-    operation: Operation.call
-  }
+    operation: Operation.call,
+  };
 
   const defaultTokenSettings = {
     addr: token.address,
@@ -271,7 +271,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       defaultVotingSettings,
       pluginSetupRefLatestBuild,
       defaultMinApproval,
-      defaultTargetConfig
+      defaultTargetConfig,
     } = await loadFixture(fixture);
 
     // Grant deployer all required permissions
