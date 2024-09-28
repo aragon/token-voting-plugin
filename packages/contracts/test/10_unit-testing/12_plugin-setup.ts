@@ -7,6 +7,8 @@ import {
   GovernanceERC20__factory,
   GovernanceWrappedERC20,
   GovernanceWrappedERC20__factory,
+  IERC20Upgradeable__factory,
+  IVotesUpgradeable__factory,
 } from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {
@@ -26,6 +28,7 @@ import {
 import {VotingMode} from '../test-utils/voting-helpers';
 import {
   DAO_PERMISSIONS,
+  getInterfaceId,
   Operation,
   PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS,
 } from '@aragon/osx-commons-sdk';
@@ -38,6 +41,8 @@ import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {ethers} from 'hardhat';
+import { plugins } from '../../typechain/@aragon/osx-v1.0.0';
+import { IGovernanceWrappedERC20__factory } from '../../typechain/factories/src/ERC20/governance';
 
 const abiCoder = ethers.utils.defaultAbiCoder;
 const AddressZero = ethers.constants.AddressZero;
@@ -370,6 +375,9 @@ describe('TokenVotingSetup', function () {
         preparedSetupData: {helpers, permissions},
       } = await pluginSetup.callStatic.prepareInstallation(dao.address, data);
 
+      expect(await pluginSetup.supportsIVotesInterface(erc20.address))
+        .to.be.false;
+
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(2);
       expect(helpers).to.be.deep.equal([
@@ -457,6 +465,36 @@ describe('TokenVotingSetup', function () {
       expect(await governanceWrappedERC20Contract.underlying()).to.be.equal(
         erc20.address
       );
+
+      expect(await pluginSetup.supportsIVotesInterface(erc20.address))
+        .to.be.false;
+
+      // If a token address is not passed, it must have deployed GovernanceERC20.
+      const ivotesInterfaceId = getInterfaceId(
+        IVotesUpgradeable__factory.createInterface()
+      );
+      const iERC20InterfaceId = getInterfaceId(
+        IERC20Upgradeable__factory.createInterface()
+      );
+      const iGovernanceWrappedERC20 = getInterfaceId(
+        IGovernanceWrappedERC20__factory.createInterface()
+      );
+
+      expect(
+        await governanceWrappedERC20Contract.supportsInterface(
+          ivotesInterfaceId
+        )
+      ).to.be.true;
+      expect(
+        await governanceWrappedERC20Contract.supportsInterface(
+          iERC20InterfaceId
+        )
+      ).to.be.true;
+      expect(
+        await governanceWrappedERC20Contract.supportsInterface(
+          iGovernanceWrappedERC20
+        )
+      ).to.be.true;
     });
 
     it('correctly returns plugin, helpers and permissions, when a governance token address is supplied', async () => {
@@ -506,6 +544,10 @@ describe('TokenVotingSetup', function () {
         preparedSetupData: {helpers, permissions},
       } = await pluginSetup.callStatic.prepareInstallation(dao.address, data);
 
+      expect(
+        await pluginSetup.supportsIVotesInterface(governanceERC20.address)
+      ).to.be.true;
+
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(2);
       expect(helpers).to.be.deep.equal([
@@ -546,7 +588,7 @@ describe('TokenVotingSetup', function () {
     });
 
     it('correctly returns plugin, helpers and permissions, when a token address is not supplied', async () => {
-      const {pluginSetup, dao, prepareInstallationInputs} = await loadFixture(
+      const {pluginSetup, dao, defaultTokenSettings, prepareInstallationInputs} = await loadFixture(
         fixture
       );
 
@@ -575,6 +617,12 @@ describe('TokenVotingSetup', function () {
         dao.address,
         prepareInstallationInputs
       );
+
+      expect(
+        await pluginSetup.supportsIVotesInterface(
+          defaultTokenSettings.addr
+        )
+      ).to.be.false;
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(2);
@@ -699,6 +747,19 @@ describe('TokenVotingSetup', function () {
       expect(await token.dao()).to.be.equal(daoAddress);
       expect(await token.name()).to.be.equal(defaultTokenSettings.name);
       expect(await token.symbol()).to.be.equal(defaultTokenSettings.symbol);
+
+      // If a token address is not passed, it must have deployed GovernanceERC20.
+      const ivotesInterfaceId = getInterfaceId(
+        IVotesUpgradeable__factory.createInterface()
+      );
+      const iERC20InterfaceId = getInterfaceId(
+        IERC20Upgradeable__factory.createInterface()
+      );
+
+      expect(await token.supportsInterface(ivotesInterfaceId))
+        .to.be.true;
+      expect(await token.supportsInterface(iERC20InterfaceId))
+        .to.be.true;
     });
   });
 
