@@ -1,3 +1,4 @@
+import {VERSION} from '../../plugin-settings';
 import {ethers} from 'hardhat';
 
 export const TOKEN_VOTING_INTERFACE = new ethers.utils.Interface([
@@ -55,4 +56,4 @@ export type TargetConfig = {
 };
 
 export const latestInitializerVersion = 2;
-export const latestPluginBuild = 3;
+export const latestPluginBuild = VERSION.build;
