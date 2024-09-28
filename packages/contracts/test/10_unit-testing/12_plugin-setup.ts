@@ -10,6 +10,8 @@ import {
   IERC20Upgradeable__factory,
   IVotesUpgradeable__factory,
 } from '../../typechain';
+import {plugins} from '../../typechain/@aragon/osx-v1.0.0';
+import {IGovernanceWrappedERC20__factory} from '../../typechain/factories/src/ERC20/governance';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {
   ANY_ADDR,
@@ -41,8 +43,6 @@ import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {ethers} from 'hardhat';
-import { plugins } from '../../typechain/@aragon/osx-v1.0.0';
-import { IGovernanceWrappedERC20__factory } from '../../typechain/factories/src/ERC20/governance';
 
 const abiCoder = ethers.utils.defaultAbiCoder;
 const AddressZero = ethers.constants.AddressZero;
@@ -375,8 +375,8 @@ describe('TokenVotingSetup', function () {
         preparedSetupData: {helpers, permissions},
       } = await pluginSetup.callStatic.prepareInstallation(dao.address, data);
 
-      expect(await pluginSetup.supportsIVotesInterface(erc20.address))
-        .to.be.false;
+      expect(await pluginSetup.supportsIVotesInterface(erc20.address)).to.be
+        .false;
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(2);
@@ -466,8 +466,8 @@ describe('TokenVotingSetup', function () {
         erc20.address
       );
 
-      expect(await pluginSetup.supportsIVotesInterface(erc20.address))
-        .to.be.false;
+      expect(await pluginSetup.supportsIVotesInterface(erc20.address)).to.be
+        .false;
 
       // If a token address is not passed, it must have deployed GovernanceERC20.
       const ivotesInterfaceId = getInterfaceId(
@@ -544,9 +544,8 @@ describe('TokenVotingSetup', function () {
         preparedSetupData: {helpers, permissions},
       } = await pluginSetup.callStatic.prepareInstallation(dao.address, data);
 
-      expect(
-        await pluginSetup.supportsIVotesInterface(governanceERC20.address)
-      ).to.be.true;
+      expect(await pluginSetup.supportsIVotesInterface(governanceERC20.address))
+        .to.be.true;
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(2);
@@ -588,9 +587,12 @@ describe('TokenVotingSetup', function () {
     });
 
     it('correctly returns plugin, helpers and permissions, when a token address is not supplied', async () => {
-      const {pluginSetup, dao, defaultTokenSettings, prepareInstallationInputs} = await loadFixture(
-        fixture
-      );
+      const {
+        pluginSetup,
+        dao,
+        defaultTokenSettings,
+        prepareInstallationInputs,
+      } = await loadFixture(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
         pluginSetup.address
@@ -619,9 +621,7 @@ describe('TokenVotingSetup', function () {
       );
 
       expect(
-        await pluginSetup.supportsIVotesInterface(
-          defaultTokenSettings.addr
-        )
+        await pluginSetup.supportsIVotesInterface(defaultTokenSettings.addr)
       ).to.be.false;
 
       expect(plugin).to.be.equal(anticipatedPluginAddress);
@@ -756,10 +756,8 @@ describe('TokenVotingSetup', function () {
         IERC20Upgradeable__factory.createInterface()
       );
 
-      expect(await token.supportsInterface(ivotesInterfaceId))
-        .to.be.true;
-      expect(await token.supportsInterface(iERC20InterfaceId))
-        .to.be.true;
+      expect(await token.supportsInterface(ivotesInterfaceId)).to.be.true;
+      expect(await token.supportsInterface(iERC20InterfaceId)).to.be.true;
     });
   });
 
@@ -923,6 +921,31 @@ describe('TokenVotingSetup', function () {
           SET_TARGET_CONFIG_PERMISSION_ID,
         ],
       ]);
+    });
+
+    it('returns the permissions expected for the update from build 3 (empty list)', async () => {
+      const {pluginSetup, dao, prepareUpdateBuild3Inputs} = await loadFixture(
+        fixture
+      );
+      const plugin = ethers.Wallet.createRandom().address;
+
+      // Make a static call to check that the plugin update data being returned is correct.
+      const {
+        initData: initData,
+        preparedSetupData: {helpers, permissions},
+      } = await pluginSetup.callStatic.prepareUpdate(dao.address, 3, {
+        currentHelpers: [
+          ethers.Wallet.createRandom().address,
+          ethers.Wallet.createRandom().address,
+        ],
+        data: prepareUpdateBuild3Inputs,
+        plugin,
+      });
+
+      // Check the return data. There should be no permission needed for build 3.
+      expect(initData).to.be.eq('0x');
+      expect(permissions.length).to.be.equal(0);
+      expect(helpers.length).to.be.equal(0);
     });
   });
 
