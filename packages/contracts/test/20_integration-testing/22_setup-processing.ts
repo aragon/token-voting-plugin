@@ -2,7 +2,11 @@ import {METADATA, VERSION} from '../../plugin-settings';
 import {GovernanceERC20} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {getProductionNetworkName, findPluginRepo} from '../../utils/helpers';
-import {Operation, TargetConfig} from '../test-utils/token-voting-constants';
+import {
+  Operation,
+  TargetConfig,
+  latestInitializerVersion,
+} from '../test-utils/token-voting-constants';
 import {
   GovernanceERC20__factory,
   TokenVotingSetup,
@@ -366,7 +370,8 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       pluginSetupRefLatestBuild,
       1,
       Object.values(prepareInstallData),
-      prepareUpdateData
+      prepareUpdateData,
+      latestInitializerVersion
     );
   });
 
@@ -390,7 +395,8 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       pluginSetupRefLatestBuild,
       2,
       Object.values(prepareInstallData),
-      prepareUpdateData
+      prepareUpdateData,
+      latestInitializerVersion
     );
   });
 });
