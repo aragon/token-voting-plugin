@@ -19,6 +19,7 @@ import {
   Operation,
   SET_TARGET_CONFIG_PERMISSION_ID,
   TargetConfig,
+  UPDATE_VOTING_SETTINGS_PERMISSION_ID,
 } from '../../test-utils/token-voting-constants';
 import {IMajorityVoting_V1_3_0__factory} from '../../test-utils/typechain-versions';
 import {VotingMode} from '../../test-utils/voting-helpers';
@@ -174,6 +175,22 @@ describe('MajorityVotingMock', function () {
       );
     });
 
+    it('reverts if caller is unauthorized', async () => {
+      const unauthorizedAddr = signers[5];
+      await expect(
+        votingBase
+          .connect(unauthorizedAddr)
+          .updateVotingSettings(votingSettings)
+      )
+        .to.be.revertedWithCustomError(votingBase, 'DaoUnauthorized')
+        .withArgs(
+          dao.address,
+          votingBase.address,
+          unauthorizedAddr.address,
+          UPDATE_VOTING_SETTINGS_PERMISSION_ID
+        );
+    });
+
     it('reverts if the support threshold specified equals 100%', async () => {
       votingSettings.supportThreshold = pctToRatio(100);
       await expect(votingBase.updateVotingSettings(votingSettings))
@@ -238,6 +255,20 @@ describe('MajorityVotingMock', function () {
         targetConfig,
         minApproval
       );
+    });
+
+    it('reverts if caller is unauthorized', async () => {
+      const unauthorizedAddr = signers[5];
+      await expect(
+        votingBase.connect(unauthorizedAddr).updateMinApprovals(pctToRatio(10))
+      )
+        .to.be.revertedWithCustomError(votingBase, 'DaoUnauthorized')
+        .withArgs(
+          dao.address,
+          votingBase.address,
+          unauthorizedAddr.address,
+          UPDATE_VOTING_SETTINGS_PERMISSION_ID
+        );
     });
 
     it('reverts if the minimum approval specified exceeds 100%', async () => {

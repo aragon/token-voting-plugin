@@ -53,3 +53,6 @@ export type TargetConfig = {
   target: string;
   operation: number;
 };
+
+export const latestInitializerVersion = 2;
+export const latestPluginBuild = 3;

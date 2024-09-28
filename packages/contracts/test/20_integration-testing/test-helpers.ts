@@ -6,6 +6,7 @@ import {
 } from '../../typechain';
 import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {PluginUUPSUpgradeable__factory} from '../../typechain/factories/@aragon/osx-v1.0.0/core/plugin';
+import {latestPluginBuild} from '../test-utils/token-voting-constants';
 import {
   DAO_PERMISSIONS,
   PLUGIN_SETUP_PROCESSOR_PERMISSIONS,
@@ -27,7 +28,7 @@ import {expect} from 'chai';
 import {ContractTransaction} from 'ethers';
 import {ethers} from 'hardhat';
 
-const latestBuild = 3;
+const OZ_INITIALIZED_SLOT_POSITION = 0;
 
 export async function installPLugin(
   signer: SignerWithAddress,
@@ -244,7 +245,8 @@ export async function updateFromBuildTest(
   pluginSetupRefLatestBuild: PluginSetupProcessorStructs.PluginSetupRefStruct,
   build: number,
   installationInputs: any[],
-  updateInputs: any[]
+  updateInputs: any[],
+  reinitializedVersion: number
 ) {
   // Grant deployer all required permissions
   await dao
@@ -326,7 +328,7 @@ export async function updateFromBuildTest(
       pluginSetupRefLatestBuild,
       ethers.utils.defaultAbiCoder.encode(
         getNamedTypesFromMetadata(
-          METADATA.build.pluginSetup.prepareUpdate[latestBuild].inputs
+          METADATA.build.pluginSetup.prepareUpdate[latestPluginBuild].inputs
         ),
         updateInputs
       )
@@ -344,6 +346,16 @@ export async function updateFromBuildTest(
       deployer
     ).implementation();
   expect(await plugin.implementation()).to.equal(implementationLatestBuild);
+
+  // check the plugin was reinitialized, OZs `_initialized` at storage slot [0] is correct
+  expect(
+    ethers.BigNumber.from(
+      await ethers.provider.getStorageAt(
+        plugin.address,
+        OZ_INITIALIZED_SLOT_POSITION
+      )
+    ).toNumber()
+  ).to.equal(reinitializedVersion);
 }
 
 // TODO Move into OSX commons as part of Task OS-928.
