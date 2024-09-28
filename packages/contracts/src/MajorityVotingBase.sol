@@ -13,7 +13,7 @@ import {RATIO_BASE, RatioOutOfBounds} from "@aragon/osx-commons-contracts/src/ut
 import {PluginUUPSUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/PluginUUPSUpgradeable.sol";
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
-import {IExecutor, Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+import {Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
 
 import {IMajorityVoting} from "./IMajorityVoting.sol";
 

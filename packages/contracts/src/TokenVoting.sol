@@ -11,7 +11,7 @@ import {_applyRatioCeiled} from "@aragon/osx-commons-contracts/src/utils/math/Ra
 
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
-import {IExecutor, Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+import {Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
 
 import {MajorityVotingBase} from "./MajorityVotingBase.sol";
 
@@ -34,18 +34,6 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
     /// @notice Thrown if the voting power is zero
     error NoVotingPower();
-
-    /// @notice Thrown when initialize is called after it has already been executed.
-    error AlreadyInitialized();
-
-    /// @notice This ensures that the initialize function cannot be called during the upgrade process.
-    modifier onlyCallAtInitialization() {
-        if (_getInitializedVersion() != 0) {
-            revert AlreadyInitialized();
-        }
-
-        _;
-    }
 
     /// @notice Initializes the component.
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
