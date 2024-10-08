@@ -44,6 +44,9 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     bytes32 public constant SET_TARGET_CONFIG_PERMISSION_ID =
         keccak256("SET_TARGET_CONFIG_PERMISSION");
 
+    /// @notice The ID of the permission required to call the `updateMetadata` function.
+    bytes32 public constant UPDATE_METADATA_PERMISSION_ID = keccak256("UPDATE_METADATA_PERMISSION");
+
     /// @notice The ID of the permission required to call the `upgradeToAndCall` function.
     bytes32 internal constant UPGRADE_PLUGIN_PERMISSION_ID = keccak256("UPGRADE_PLUGIN_PERMISSION");
 
@@ -173,7 +176,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
         // Prepare permissions
         PermissionLib.MultiTargetPermission[]
             memory permissions = new PermissionLib.MultiTargetPermission[](
-                tokenSettings.addr != address(0) ? 4 : 5
+                tokenSettings.addr != address(0) ? 5 : 6
             );
 
         // Set plugin permissions to be granted.
@@ -211,10 +214,18 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             permissionId: SET_TARGET_CONFIG_PERMISSION_ID
         });
 
+        permissions[4] = PermissionLib.MultiTargetPermission({
+            operation: PermissionLib.Operation.Grant,
+            where: plugin,
+            who: _dao,
+            condition: PermissionLib.NO_CONDITION,
+            permissionId: UPDATE_METADATA_PERMISSION_ID
+        });
+
         if (tokenSettings.addr == address(0)) {
             bytes32 tokenMintPermission = GovernanceERC20(token).MINT_PERMISSION_ID();
 
-            permissions[4] = PermissionLib.MultiTargetPermission({
+            permissions[5] = PermissionLib.MultiTargetPermission({
                 operation: PermissionLib.Operation.Grant,
                 where: token,
                 who: _dao,
@@ -241,7 +252,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             address votingPowerCondition = address(new VotingPowerCondition(_payload.plugin));
 
             PermissionLib.MultiTargetPermission[]
-                memory permissions = new PermissionLib.MultiTargetPermission[](3);
+                memory permissions = new PermissionLib.MultiTargetPermission[](4);
 
             permissions[0] = PermissionLib.MultiTargetPermission({
                 operation: PermissionLib.Operation.Revoke,
@@ -267,6 +278,14 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                 permissionId: SET_TARGET_CONFIG_PERMISSION_ID
             });
 
+            permissions[3] = PermissionLib.MultiTargetPermission({
+                operation: PermissionLib.Operation.Grant,
+                where: _payload.plugin,
+                who: _dao,
+                condition: PermissionLib.NO_CONDITION,
+                permissionId: UPDATE_METADATA_PERMISSION_ID
+            });
+
             preparedSetupData.permissions = permissions;
             preparedSetupData.helpers = new address[](1);
             preparedSetupData.helpers[0] = votingPowerCondition;
@@ -281,7 +300,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
         SetupPayload calldata _payload
     ) external view returns (PermissionLib.MultiTargetPermission[] memory permissions) {
         // Prepare permissions.
-        permissions = new PermissionLib.MultiTargetPermission[](4);
+        permissions = new PermissionLib.MultiTargetPermission[](5);
 
         // Set permissions to be Revoked.
         permissions[0] = PermissionLib.MultiTargetPermission({
@@ -308,13 +327,21 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             permissionId: SET_TARGET_CONFIG_PERMISSION_ID
         });
 
-        permissions[3] = PermissionLib.MultiTargetPermission(
-            PermissionLib.Operation.Revoke,
-            _payload.plugin,
-            address(type(uint160).max), // ANY_ADDR
-            PermissionLib.NO_CONDITION,
-            TokenVoting(IMPLEMENTATION).CREATE_PROPOSAL_PERMISSION_ID()
-        );
+        permissions[3] = PermissionLib.MultiTargetPermission({
+            operation: PermissionLib.Operation.Revoke,
+            where: _payload.plugin,
+            who: _dao,
+            condition: PermissionLib.NO_CONDITION,
+            permissionId: UPDATE_METADATA_PERMISSION_ID
+        });
+
+        permissions[4] = PermissionLib.MultiTargetPermission({
+            operation: PermissionLib.Operation.Revoke,
+            where: _payload.plugin,
+            who: address(type(uint160).max), // ANY_ADDR
+            condition: PermissionLib.NO_CONDITION,
+            permissionId: TokenVoting(IMPLEMENTATION).CREATE_PROPOSAL_PERMISSION_ID()
+        });
     }
 
     /// @notice Unsatisfiably determines if the token is an IVotes interface.

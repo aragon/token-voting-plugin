@@ -29,6 +29,10 @@ export const SET_TARGET_CONFIG_PERMISSION_ID = ethers.utils.id(
   'SET_TARGET_CONFIG_PERMISSION'
 );
 
+export const UPDATE_METADATA_PERMISSION_ID = ethers.utils.id(
+  'UPDATE_METADATA_PERMISSION'
+);
+
 export const VOTING_EVENTS = {
   VOTING_SETTINGS_UPDATED: 'VotingSettingsUpdated',
   VOTE_CAST: 'VoteCast',
