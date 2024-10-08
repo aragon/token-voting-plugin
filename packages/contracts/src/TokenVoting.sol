@@ -46,9 +46,10 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         VotingSettings calldata _votingSettings,
         IVotesUpgradeable _token,
         TargetConfig calldata _targetConfig,
-        uint256 _minApprovals
+        uint256 _minApprovals,
+        bytes calldata _metadata
     ) external onlyCallAtInitialization reinitializer(2) {
-        __MajorityVotingBase_init(_dao, _votingSettings, _targetConfig, _minApprovals);
+        __MajorityVotingBase_init(_dao, _votingSettings, _targetConfig, _minApprovals, _metadata);
 
         votingToken = _token;
 
@@ -61,13 +62,14 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @param _initData The initialization data to be passed to via `upgradeToAndCall` (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
     function initializeFrom(uint16 _fromBuild, bytes calldata _initData) external reinitializer(2) {
         if (_fromBuild < 3) {
-            (uint256 minApprovals, TargetConfig memory targetConfig) = abi.decode(
-                _initData,
-                (uint256, TargetConfig)
-            );
+            (uint256 minApprovals, TargetConfig memory targetConfig, bytes memory metadata) = abi
+                .decode(_initData, (uint256, TargetConfig, bytes));
+
             _updateMinApprovals(minApprovals);
 
             _setTargetConfig(targetConfig);
+
+            _updateMetadata(metadata);
         }
     }
 
@@ -158,14 +160,13 @@ contract TokenVoting is IMembership, MajorityVotingBase {
             vote(proposalId, _voteOption, _tryEarlyExecution);
         }
 
-        emit ProposalCreated(
-            proposalId,
-            _msgSender(),
-            _startDate,
-            _endDate,
+        _emitProposalCreatedEvent(
             _metadata,
             _actions,
-            _allowFailureMap
+            _allowFailureMap,
+            proposalId,
+            _startDate,
+            _endDate
         );
     }
 
@@ -309,6 +310,26 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         }
 
         return true;
+    }
+
+    /// @dev Helper function to avoid stack too deep in non via-ir compilation mode.
+    function _emitProposalCreatedEvent(
+        bytes calldata _metadata,
+        Action[] calldata _actions,
+        uint256 _allowFailureMap,
+        uint256 proposalId,
+        uint64 _startDate,
+        uint64 _endDate
+    ) private {
+        emit ProposalCreated(
+            proposalId,
+            _msgSender(),
+            _startDate,
+            _endDate,
+            _metadata,
+            _actions,
+            _allowFailureMap
+        );
     }
 
     /// @dev This empty reserved space is put in place to allow future versions to add new

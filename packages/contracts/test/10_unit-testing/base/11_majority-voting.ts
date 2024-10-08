@@ -41,6 +41,7 @@ describe('MajorityVotingMock', function () {
   let votingSettings: MajorityVotingBase.VotingSettingsStruct;
   let minApproval: BigNumber;
   let targetConfig: TargetConfig;
+  let metadata: string;
 
   before(async () => {
     signers = await ethers.getSigners();
@@ -63,6 +64,8 @@ describe('MajorityVotingMock', function () {
       target: dao.address,
       operation: Operation.call,
     };
+
+    metadata = '0x11';
 
     const pluginImplementation = await new MajorityVotingMock__factory(
       signers[0]
@@ -93,7 +96,8 @@ describe('MajorityVotingMock', function () {
         dao.address,
         votingSettings,
         targetConfig,
-        minApproval
+        minApproval,
+        metadata
       );
 
       await expect(
@@ -101,7 +105,8 @@ describe('MajorityVotingMock', function () {
           dao.address,
           votingSettings,
           targetConfig,
-          minApproval
+          minApproval,
+          metadata
         )
       ).to.be.revertedWith('Initializable: contract is already initialized');
     });
@@ -171,7 +176,8 @@ describe('MajorityVotingMock', function () {
         dao.address,
         votingSettings,
         targetConfig,
-        minApproval
+        minApproval,
+        metadata
       );
     });
 
@@ -253,7 +259,8 @@ describe('MajorityVotingMock', function () {
         dao.address,
         votingSettings,
         targetConfig,
-        minApproval
+        minApproval,
+        metadata
       );
     });
 
@@ -292,7 +299,8 @@ describe('MajorityVotingMock', function () {
         dao.address,
         votingSettings,
         targetConfig,
-        minApproval
+        minApproval,
+        metadata
       );
 
       await dao.grant(

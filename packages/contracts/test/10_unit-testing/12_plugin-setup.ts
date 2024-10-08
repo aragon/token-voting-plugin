@@ -62,7 +62,9 @@ type FixtureResult = {
   defaultTargetConfig: TargetConfig;
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
   defaultMinApproval: BigNumber;
+  defaultMetadata: string;
   updateMinApproval: BigNumber;
+  updateMetadata: string;
   updateTargetConfig: TargetConfig;
   prepareInstallationInputs: string;
   prepareUninstallationInputs: string;
@@ -110,6 +112,8 @@ async function fixture(): Promise<FixtureResult> {
     operation: Op.call,
   };
 
+  const defaultMetadata: string = '0x11';
+
   const defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
     votingMode: VotingMode.EarlyExecution,
     supportThreshold: pctToRatio(50),
@@ -131,6 +135,7 @@ async function fixture(): Promise<FixtureResult> {
       Object.values(defaultMintSettings),
       Object.values(defaultTargetConfig),
       defaultMinApproval,
+      defaultMetadata,
     ]
   );
 
@@ -147,13 +152,14 @@ async function fixture(): Promise<FixtureResult> {
     target: pluginSetup.address,
     operation: Op.call,
   };
+  const updateMetadata: string = '0x11';
 
   // Provide update inputs
   const prepareUpdateBuild3Inputs = ethers.utils.defaultAbiCoder.encode(
     getNamedTypesFromMetadata(
       METADATA.build.pluginSetup.prepareUpdate[3].inputs
     ),
-    [updateMinApproval, updateTargetConfig]
+    [updateMinApproval, updateTargetConfig, updateMetadata]
   );
 
   return {
@@ -166,9 +172,11 @@ async function fixture(): Promise<FixtureResult> {
     defaultTokenSettings,
     defaultMintSettings,
     defaultMinApproval,
+    defaultMetadata,
     defaultTargetConfig,
     updateMinApproval,
     updateTargetConfig,
+    updateMetadata,
     prepareInstallationInputs,
     prepareUninstallationInputs,
     prepareUpdateBuild3Inputs,
@@ -199,18 +207,17 @@ describe('TokenVotingSetup', function () {
 
   describe('prepareInstallation', async () => {
     it('fails if data is empty, or not of minimum length', async () => {
-      const {pluginSetup, dao, prepareInstallationInputs} = await loadFixture(
-        fixture
-      );
+      const {pluginSetup, dao, prepareInstallationInputs, defaultMetadata} =
+        await loadFixture(fixture);
 
       // Try calling `prepareInstallation` without input data.
       await expect(pluginSetup.prepareInstallation(dao.address, [])).to.be
         .reverted;
 
-      // Try calling `prepareInstallation` without input data of wrong length.
+      // Try calling `prepareInstallation` with input data of wrong length.
       const trimmedData = prepareInstallationInputs.substring(
         0,
-        prepareInstallationInputs.length - 2
+        prepareInstallationInputs.length - 100
       );
       await expect(pluginSetup.prepareInstallation(dao.address, trimmedData)).to
         .be.reverted;
@@ -230,6 +237,7 @@ describe('TokenVotingSetup', function () {
         defaultTokenSettings,
         defaultMinApproval,
         defaultTargetConfig,
+        defaultMetadata,
       } = await loadFixture(fixture);
 
       const receivers: string[] = [AddressZero];
@@ -244,6 +252,7 @@ describe('TokenVotingSetup', function () {
           {receivers, amounts},
           defaultTargetConfig,
           defaultMinApproval,
+          defaultMetadata,
         ]
       );
 
@@ -276,6 +285,7 @@ describe('TokenVotingSetup', function () {
         defaultMintSettings,
         defaultMinApproval,
         defaultTargetConfig,
+        defaultMetadata,
       } = await loadFixture(fixture);
 
       const data = abiCoder.encode(
@@ -288,6 +298,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultMintSettings),
           defaultTargetConfig,
           defaultMinApproval,
+          defaultMetadata,
         ]
       );
 
@@ -304,6 +315,7 @@ describe('TokenVotingSetup', function () {
         defaultMintSettings,
         defaultMinApproval,
         defaultTargetConfig,
+        defaultMetadata,
       } = await loadFixture(fixture);
 
       const data = abiCoder.encode(
@@ -316,6 +328,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultMintSettings),
           defaultTargetConfig,
           defaultMinApproval,
+          defaultMetadata,
         ]
       );
 
@@ -334,6 +347,7 @@ describe('TokenVotingSetup', function () {
         erc20,
         defaultMinApproval,
         defaultTargetConfig,
+        defaultMetadata,
       } = await loadFixture(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
@@ -367,6 +381,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultMintSettings),
           defaultTargetConfig,
           defaultMinApproval,
+          defaultMetadata,
         ]
       );
 
@@ -427,6 +442,7 @@ describe('TokenVotingSetup', function () {
         erc20,
         defaultTargetConfig,
         defaultMinApproval,
+        defaultMetadata,
       } = await loadFixture(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
@@ -447,6 +463,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultMintSettings),
           defaultTargetConfig,
           defaultMinApproval,
+          defaultMetadata,
         ]
       );
 
@@ -506,6 +523,7 @@ describe('TokenVotingSetup', function () {
         defaultMintSettings,
         defaultMinApproval,
         defaultTargetConfig,
+        defaultMetadata,
       } = await loadFixture(fixture);
 
       const governanceERC20 = await new GovernanceERC20__factory(
@@ -536,6 +554,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultMintSettings),
           defaultTargetConfig,
           defaultMinApproval,
+          defaultMetadata,
         ]
       );
 
@@ -680,6 +699,7 @@ describe('TokenVotingSetup', function () {
         defaultMintSettings,
         defaultMinApproval,
         defaultTargetConfig,
+        defaultMetadata,
       } = await loadFixture(fixture);
 
       const daoAddress = dao.address;
@@ -694,6 +714,7 @@ describe('TokenVotingSetup', function () {
           Object.values(defaultMintSettings),
           defaultTargetConfig,
           defaultMinApproval,
+          defaultMetadata,
         ]
       );
 
@@ -768,8 +789,6 @@ describe('TokenVotingSetup', function () {
         dao,
         prepareInstallationInputs,
         prepareUpdateBuild3Inputs,
-        updateMinApproval,
-        updateTargetConfig,
       } = await loadFixture(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
@@ -849,8 +868,6 @@ describe('TokenVotingSetup', function () {
         dao,
         prepareInstallationInputs,
         prepareUpdateBuild3Inputs,
-        updateMinApproval,
-        updateTargetConfig,
       } = await loadFixture(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(

@@ -14,6 +14,7 @@ import {PluginUUPSUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/Pl
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
 import {Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+import {MetadataExtensionUpgradeable} from "@aragon/osx-commons-contracts/src/utils/metadata/MetadataExtensionUpgradeable.sol";
 
 import {IMajorityVoting} from "./IMajorityVoting.sol";
 
@@ -122,6 +123,7 @@ abstract contract MajorityVotingBase is
     IMajorityVoting,
     Initializable,
     ERC165Upgradeable,
+    MetadataExtensionUpgradeable,
     PluginUUPSUpgradeable,
     ProposalUpgradeable
 {
@@ -300,12 +302,14 @@ abstract contract MajorityVotingBase is
         IDAO _dao,
         VotingSettings calldata _votingSettings,
         TargetConfig calldata _targetConfig,
-        uint256 _minApprovals
+        uint256 _minApprovals,
+        bytes calldata _metadata
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
         _updateMinApprovals(_minApprovals);
         _setTargetConfig(_targetConfig);
+        _updateMetadata(_metadata);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -317,7 +321,12 @@ abstract contract MajorityVotingBase is
         public
         view
         virtual
-        override(ERC165Upgradeable, PluginUUPSUpgradeable, ProposalUpgradeable)
+        override(
+            ERC165Upgradeable,
+            MetadataExtensionUpgradeable,
+            PluginUUPSUpgradeable,
+            ProposalUpgradeable
+        )
         returns (bool)
     {
         // In addition to the current IMajorityVoting interface, also support previous version

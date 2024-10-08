@@ -114,6 +114,12 @@
           "name": "minApproval",
           "type": "uint256",
           "description": "The minimum amount of yes votes needed for the proposal advance."
+        },
+        {
+          "internalType": "bytes",
+          "name": "metadata",
+          "type": "bytes",
+          "description": "The metadata that contains the information about the multisig."
         }
       ]
     },
@@ -127,11 +133,11 @@
         "inputs": []
       },
       "3": {
-        "description": "The information required for the installation.",
+        "description": "The information required for the update.",
         "inputs": [
           {
             "internalType": "uint256",
-            "name": "minApproval",
+            "name": "minApprovals",
             "type": "uint256",
             "description": "The minimum amount of yes votes needed for the proposal advance."
           },
@@ -144,16 +150,22 @@
                 "description": "The target contract to which actions will be forwarded to for execution."
               },
               {
-                "internalType": "enum PluginUUPSUpgradeable.Operation",
+                "internalType": "uint8",
                 "name": "operation",
                 "type": "uint8",
                 "description": "The operation type(either `call` or `delegatecall`) that will be used for execution forwarding."
               }
             ],
-            "internalType": "struct PluginUUPSUpgradeable.TargetConfig",
+            "internalType": "struct TokenVoting.TargetConfig",
             "name": "TargetConfig",
             "type": "tuple",
             "description": "The initial target config"
+          },
+          {
+            "internalType": "bytes",
+            "name": "metadata",
+            "type": "bytes",
+            "description": "The metadata that contains the information about the multisig."
           }
         ]
       }

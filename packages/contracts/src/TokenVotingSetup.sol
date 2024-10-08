@@ -104,7 +104,8 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             // only used for GovernanceERC20(token is not passed)
             GovernanceERC20.MintSettings memory mintSettings,
             PluginUUPSUpgradeable.TargetConfig memory targetConfig,
-            uint256 minApprovals
+            uint256 minApprovals,
+            bytes memory metadata
         ) = abi.decode(
                 _data,
                 (
@@ -112,17 +113,14 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                     TokenSettings,
                     GovernanceERC20.MintSettings,
                     PluginUUPSUpgradeable.TargetConfig,
-                    uint256
+                    uint256,
+                    bytes
                 )
             );
 
         address token = tokenSettings.addr;
-        bool tokenAddressNotZero = token != address(0);
 
-        // Prepare helpers.
-        address[] memory helpers = new address[](2);
-
-        if (tokenAddressNotZero) {
+        if (tokenSettings.addr != address(0)) {
             if (!token.isContract()) {
                 revert TokenNotContract(token);
             }
@@ -153,28 +151,29 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             );
         }
 
-
         // Prepare and deploy plugin proxy.
         plugin = address(tokenVotingBase).deployUUPSProxy(
-            abi.encodeWithSignature(
-                "initialize(address,(uint8,uint32,uint32,uint64,uint256),address,(address,uint8),uint256)",
-                IDAO(_dao),
-                votingSettings,
-                IVotesUpgradeable(token),
-                targetConfig,
-                minApprovals
+            abi.encodeCall(
+                TokenVoting.initialize,
+                (
+                    IDAO(_dao),
+                    votingSettings,
+                    IVotesUpgradeable(token),
+                    targetConfig,
+                    minApprovals,
+                    metadata
+                )
             )
         );
 
-        address votingPowerCondition = address(new VotingPowerCondition(plugin));
-
-        helpers[0] = token;
-        helpers[1] = votingPowerCondition;
+        preparedSetupData.helpers = new address[](2);
+        preparedSetupData.helpers[0] = token;
+        preparedSetupData.helpers[1] = address(new VotingPowerCondition(plugin));
 
         // Prepare permissions
         PermissionLib.MultiTargetPermission[]
             memory permissions = new PermissionLib.MultiTargetPermission[](
-                tokenAddressNotZero ? 4 : 5
+                tokenSettings.addr != address(0) ? 4 : 5
             );
 
         // Set plugin permissions to be granted.
@@ -200,7 +199,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             PermissionLib.Operation.GrantWithCondition,
             plugin,
             address(type(uint160).max), // ANY_ADDR
-            votingPowerCondition,
+            preparedSetupData.helpers[1], // VotingPowerCondition
             TokenVoting(IMPLEMENTATION).CREATE_PROPOSAL_PERMISSION_ID()
         );
 
@@ -212,7 +211,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             permissionId: SET_TARGET_CONFIG_PERMISSION_ID
         });
 
-        if (!tokenAddressNotZero) {
+        if (tokenSettings.addr == address(0)) {
             bytes32 tokenMintPermission = GovernanceERC20(token).MINT_PERMISSION_ID();
 
             permissions[4] = PermissionLib.MultiTargetPermission({
@@ -224,7 +223,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             });
         }
 
-        preparedSetupData.helpers = helpers;
+        // preparedSetupData.helpers = helpers;
         preparedSetupData.permissions = permissions;
     }
 

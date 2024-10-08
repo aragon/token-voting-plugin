@@ -88,6 +88,7 @@ type GlobalFixtureResult = {
   uninitializedPlugin: TokenVoting;
   defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct;
   defaultMinApproval: BigNumber;
+  defaultMetadata: string;
   token: TestGovernanceERC20;
   dao: DAO;
   defaultTargetConfig: TargetConfig;
@@ -143,6 +144,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
   };
 
   const defaultMinApproval = pctToRatio(10);
+  const defaultMetadata = '0x11';
 
   // Deploy an initialized plugin proxy.
   const defaultTargetConfig: TargetConfig = {
@@ -158,6 +160,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
       token.address,
       defaultTargetConfig,
       defaultMinApproval,
+      defaultMetadata,
     ]
   );
   const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitData);
@@ -232,6 +235,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     uninitializedPlugin,
     defaultVotingSettings,
     defaultMinApproval,
+    defaultMetadata,
     defaultTargetConfig,
     token,
     dao,
@@ -273,6 +277,7 @@ describe('TokenVoting', function () {
         initializedPlugin,
         defaultVotingSettings,
         defaultMinApproval,
+        defaultMetadata,
         defaultTargetConfig,
         token,
       } = await loadFixture(globalFixture);
@@ -284,7 +289,8 @@ describe('TokenVoting', function () {
           defaultVotingSettings,
           token.address,
           defaultTargetConfig,
-          defaultMinApproval
+          defaultMinApproval,
+          defaultMetadata
         )
       ).to.be.revertedWithCustomError(initializedPlugin, 'AlreadyInitialized');
     });
@@ -295,6 +301,7 @@ describe('TokenVoting', function () {
         uninitializedPlugin,
         defaultVotingSettings,
         defaultMinApproval,
+        defaultMetadata,
         defaultTargetConfig,
         token,
       } = await loadFixture(globalFixture);
@@ -306,18 +313,20 @@ describe('TokenVoting', function () {
           defaultVotingSettings,
           token.address,
           defaultTargetConfig,
-          defaultMinApproval
+          defaultMinApproval,
+          defaultMetadata
         )
       )
         .to.emit(uninitializedPlugin, 'MembershipContractAnnounced')
         .withArgs(token.address);
     });
 
-    it('sets the voting settings, token and minimal approval', async () => {
+    it('sets the voting settings, token, minimal approval and metadata', async () => {
       const {
         dao,
         uninitializedPlugin: plugin,
         defaultTargetConfig,
+        defaultMetadata,
         token,
       } = await loadFixture(globalFixture);
 
@@ -347,7 +356,8 @@ describe('TokenVoting', function () {
         votingSettings,
         token.address,
         defaultTargetConfig,
-        minApproval
+        minApproval,
+        defaultMetadata
       );
 
       // Check that the voting settings have been set.
@@ -368,6 +378,9 @@ describe('TokenVoting', function () {
 
       // Check the minimal approval has been set.
       expect(await plugin.minApproval()).to.equal(minApproval);
+
+      // Check the metadata has been set.
+      expect(await plugin.getMetadata()).to.equal(defaultMetadata);
     });
   });
 
