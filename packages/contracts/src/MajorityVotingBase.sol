@@ -303,13 +303,13 @@ abstract contract MajorityVotingBase is
         VotingSettings calldata _votingSettings,
         TargetConfig calldata _targetConfig,
         uint256 _minApprovals,
-        bytes calldata _metadata
+        bytes calldata _pluginMetadata
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
         _updateMinApprovals(_minApprovals);
         _setTargetConfig(_targetConfig);
-        _updateMetadata(_metadata);
+        _updateMetadata(_pluginMetadata);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
