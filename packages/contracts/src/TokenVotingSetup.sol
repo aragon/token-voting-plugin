@@ -161,7 +161,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                     IVotesUpgradeable(token),
                     targetConfig,
                     minApprovals,
-                    metadata
+                    pluginMetadata
                 )
             )
         );
