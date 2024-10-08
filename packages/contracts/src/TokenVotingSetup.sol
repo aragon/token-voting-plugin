@@ -223,7 +223,6 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             });
         }
 
-        // preparedSetupData.helpers = helpers;
         preparedSetupData.permissions = permissions;
     }
 
