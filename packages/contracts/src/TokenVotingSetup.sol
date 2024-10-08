@@ -105,7 +105,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             GovernanceERC20.MintSettings memory mintSettings,
             PluginUUPSUpgradeable.TargetConfig memory targetConfig,
             uint256 minApprovals,
-            bytes memory metadata
+            bytes memory pluginMetadata
         ) = abi.decode(
                 _data,
                 (
