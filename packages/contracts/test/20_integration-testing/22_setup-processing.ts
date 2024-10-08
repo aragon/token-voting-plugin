@@ -64,6 +64,7 @@ type FixtureResult = {
   };
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
   defaultMinApproval: BigNumber;
+  defaultMetadata: string;
   defaultTargetConfig: TargetConfig;
   prepareInstallationInputs: string;
   prepareInstallData: any;
@@ -152,6 +153,8 @@ async function fixture(): Promise<FixtureResult> {
     amounts: [],
   };
 
+  const defaultMetadata: string = '0x11';
+
   // Provide uninstallation inputs
   const prepareInstallationInputs = ethers.utils.defaultAbiCoder.encode(
     getNamedTypesFromMetadata(
@@ -163,6 +166,7 @@ async function fixture(): Promise<FixtureResult> {
       Object.values(defaultMintSettings),
       Object.values(defaultTargetConfig),
       defaultMinApproval,
+      defaultMetadata,
     ]
   );
 
@@ -172,9 +176,14 @@ async function fixture(): Promise<FixtureResult> {
     mintSettings: Object.values(defaultMintSettings),
     targetConfig: Object.values(defaultTargetConfig),
     defaultMinApproval,
+    defaultMetadata,
   };
 
-  const prepareUpdateData = [defaultMinApproval, defaultTargetConfig];
+  const prepareUpdateData = [
+    defaultMinApproval,
+    defaultTargetConfig,
+    defaultMetadata,
+  ];
   // Provide update inputs
   // const prepareUpdateBuild3Data = [defaultMinApproval];
   return {
@@ -190,6 +199,7 @@ async function fixture(): Promise<FixtureResult> {
     defaultTokenSettings,
     defaultMintSettings,
     defaultMinApproval,
+    defaultMetadata,
     defaultTargetConfig,
     prepareInstallationInputs,
     prepareInstallData,
@@ -275,6 +285,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       defaultVotingSettings,
       pluginSetupRefLatestBuild,
       defaultMinApproval,
+      defaultMetadata,
       defaultTargetConfig,
     } = await loadFixture(fixture);
 
@@ -303,6 +314,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       mintSettings: [[alice.address], ['1000']],
       defaultTargetConfig,
       defaultMinApproval,
+      defaultMetadata,
     };
 
     const prepareInstallInputType = getNamedTypesFromMetadata(

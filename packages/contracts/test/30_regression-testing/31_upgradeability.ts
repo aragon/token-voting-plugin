@@ -49,6 +49,7 @@ describe('Upgrades', () => {
         defaultInitData.token.address,
         defaultInitData.targetConfig,
         defaultInitData.minApproval,
+        defaultInitData.metadata,
       ],
       INITIALIZE_SIGNATURE,
       currentContractFactory,
@@ -83,6 +84,7 @@ describe('Upgrades', () => {
         defaultInitData.token.address,
         defaultInitData.targetConfig,
         defaultInitData.minApproval,
+        defaultInitData.metadata,
       ],
     ];
 
@@ -129,6 +131,9 @@ describe('Upgrades', () => {
     expect(await newTokenVoting.minApproval()).to.equal(
       defaultInitData.minApproval
     );
+    expect(await newTokenVoting.getMetadata()).to.equal(
+      defaultInitData.metadata
+    );
     expect(await newTokenVoting.getTargetConfig()).to.deep.equal([
       defaultInitData.targetConfig.target,
       defaultInitData.targetConfig.operation,
@@ -142,7 +147,8 @@ describe('Upgrades', () => {
         defaultInitData.votingSettings,
         defaultInitData.token.address,
         defaultInitData.targetConfig,
-        defaultInitData.minApproval
+        defaultInitData.minApproval,
+        defaultInitData.metadata
       )
     ).to.be.revertedWithCustomError(proxy, 'AlreadyInitialized');
   });
@@ -173,6 +179,7 @@ describe('Upgrades', () => {
         defaultInitData.token.address,
         defaultInitData.targetConfig,
         defaultInitData.minApproval,
+        defaultInitData.metadata,
       ],
     ];
 
@@ -218,6 +225,9 @@ describe('Upgrades', () => {
     expect(await newTokenVoting.minApproval()).to.equal(
       defaultInitData.minApproval
     );
+    expect(await newTokenVoting.getMetadata()).to.equal(
+      defaultInitData.metadata
+    );
     expect(await newTokenVoting.getTargetConfig()).to.deep.equal([
       defaultInitData.targetConfig.target,
       defaultInitData.targetConfig.operation,
@@ -231,7 +241,8 @@ describe('Upgrades', () => {
         defaultInitData.votingSettings,
         defaultInitData.token.address,
         defaultInitData.targetConfig,
-        defaultInitData.minApproval
+        defaultInitData.minApproval,
+        defaultInitData.metadata
       )
     ).to.be.revertedWithCustomError(proxy, 'AlreadyInitialized');
   });
@@ -248,6 +259,7 @@ type FixtureResult = {
     token: TestGovernanceERC20;
     minApproval: BigNumber;
     targetConfig: TargetConfig;
+    metadata: string;
   };
   encodedParamsForUpgrade: string;
 };
@@ -286,15 +298,17 @@ async function fixture(): Promise<FixtureResult> {
       target: dao.address,
       operation: Operation.call,
     },
+    metadata: '0x11',
   };
 
   // initial data is minApproval and targetConfig
   const encodedParamsForUpgrade = ethers.utils.defaultAbiCoder.encode(
-    ['uint256', 'address', 'uint8'],
+    ['uint256', 'address', 'uint8', 'bytes'],
     [
       defaultInitData.minApproval,
       defaultInitData.targetConfig.target,
       defaultInitData.targetConfig.operation,
+      defaultInitData.metadata,
     ]
   );
 
