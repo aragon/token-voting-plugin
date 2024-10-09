@@ -19,7 +19,7 @@ import {
   MINT_PERMISSION_ID,
   SET_TARGET_CONFIG_PERMISSION_ID,
   TargetConfig,
-  UPDATE_METADATA_PERMISSION_ID,
+  SET_METADATA_PERMISSION_ID,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
 } from '../test-utils/token-voting-constants';
 import {Operation as Op} from '../test-utils/token-voting-constants';
@@ -435,7 +435,7 @@ describe('TokenVotingSetup', function () {
           plugin,
           dao.address,
           AddressZero,
-          UPDATE_METADATA_PERMISSION_ID,
+          SET_METADATA_PERMISSION_ID,
         ],
       ]);
     });
@@ -615,7 +615,7 @@ describe('TokenVotingSetup', function () {
           plugin,
           dao.address,
           AddressZero,
-          UPDATE_METADATA_PERMISSION_ID,
+          SET_METADATA_PERMISSION_ID,
         ],
       ]);
     });
@@ -699,7 +699,7 @@ describe('TokenVotingSetup', function () {
           plugin,
           dao.address,
           AddressZero,
-          UPDATE_METADATA_PERMISSION_ID,
+          SET_METADATA_PERMISSION_ID,
         ],
         [
           Operation.Grant,
@@ -887,7 +887,7 @@ describe('TokenVotingSetup', function () {
           plugin,
           dao.address,
           AddressZero,
-          UPDATE_METADATA_PERMISSION_ID,
+          SET_METADATA_PERMISSION_ID,
         ],
       ]);
     });
@@ -972,7 +972,7 @@ describe('TokenVotingSetup', function () {
           plugin,
           dao.address,
           AddressZero,
-          UPDATE_METADATA_PERMISSION_ID,
+          SET_METADATA_PERMISSION_ID,
         ],
       ]);
     });
@@ -1071,7 +1071,7 @@ describe('TokenVotingSetup', function () {
           plugin,
           dao.address,
           AddressZero,
-          UPDATE_METADATA_PERMISSION_ID,
+          SET_METADATA_PERMISSION_ID,
         ],
         [
           Operation.Revoke,

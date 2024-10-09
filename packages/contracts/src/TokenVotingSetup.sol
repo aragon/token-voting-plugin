@@ -14,7 +14,7 @@ import {GovernanceWrappedERC20} from "./ERC20/governance/GovernanceWrappedERC20.
 
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {PermissionLib} from "@aragon/osx-commons-contracts/src/permission/PermissionLib.sol";
-import {PluginUUPSUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/PluginUUPSUpgradeable.sol";
+import {IPlugin} from "@aragon/osx-commons-contracts/src/plugin/IPlugin.sol";
 import {IPluginSetup} from "@aragon/osx-commons-contracts/src/plugin/setup/IPluginSetup.sol";
 import {PluginUpgradeableSetup} from "@aragon/osx-commons-contracts/src/plugin/setup/PluginUpgradeableSetup.sol";
 
@@ -44,8 +44,8 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     bytes32 public constant SET_TARGET_CONFIG_PERMISSION_ID =
         keccak256("SET_TARGET_CONFIG_PERMISSION");
 
-    /// @notice The ID of the permission required to call the `updateMetadata` function.
-    bytes32 public constant UPDATE_METADATA_PERMISSION_ID = keccak256("UPDATE_METADATA_PERMISSION");
+    /// @notice The ID of the permission required to call the `setMetadata` function.
+    bytes32 public constant SET_METADATA_PERMISSION_ID = keccak256("SET_METADATA_PERMISSION");
 
     /// @notice The ID of the permission required to call the `upgradeToAndCall` function.
     bytes32 internal constant UPGRADE_PLUGIN_PERMISSION_ID = keccak256("UPGRADE_PLUGIN_PERMISSION");
@@ -106,7 +106,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             TokenSettings memory tokenSettings,
             // only used for GovernanceERC20(token is not passed)
             GovernanceERC20.MintSettings memory mintSettings,
-            PluginUUPSUpgradeable.TargetConfig memory targetConfig,
+            IPlugin.TargetConfig memory targetConfig,
             uint256 minApprovals,
             bytes memory pluginMetadata
         ) = abi.decode(
@@ -115,7 +115,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                     MajorityVotingBase.VotingSettings,
                     TokenSettings,
                     GovernanceERC20.MintSettings,
-                    PluginUUPSUpgradeable.TargetConfig,
+                    IPlugin.TargetConfig,
                     uint256,
                     bytes
                 )
@@ -219,7 +219,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             where: plugin,
             who: _dao,
             condition: PermissionLib.NO_CONDITION,
-            permissionId: UPDATE_METADATA_PERMISSION_ID
+            permissionId: SET_METADATA_PERMISSION_ID
         });
 
         if (tokenSettings.addr == address(0)) {
@@ -283,7 +283,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                 where: _payload.plugin,
                 who: _dao,
                 condition: PermissionLib.NO_CONDITION,
-                permissionId: UPDATE_METADATA_PERMISSION_ID
+                permissionId: SET_METADATA_PERMISSION_ID
             });
 
             preparedSetupData.permissions = permissions;
@@ -332,7 +332,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             where: _payload.plugin,
             who: _dao,
             condition: PermissionLib.NO_CONDITION,
-            permissionId: UPDATE_METADATA_PERMISSION_ID
+            permissionId: SET_METADATA_PERMISSION_ID
         });
 
         permissions[4] = PermissionLib.MultiTargetPermission({

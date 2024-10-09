@@ -49,7 +49,13 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         uint256 _minApprovals,
         bytes calldata _pluginMetadata
     ) external onlyCallAtInitialization reinitializer(2) {
-        __MajorityVotingBase_init(_dao, _votingSettings, _targetConfig, _minApprovals, _pluginMetadata);
+        __MajorityVotingBase_init(
+            _dao,
+            _votingSettings,
+            _targetConfig,
+            _minApprovals,
+            _pluginMetadata
+        );
 
         votingToken = _token;
 
@@ -62,14 +68,17 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @param _initData The initialization data to be passed to via `upgradeToAndCall` (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
     function initializeFrom(uint16 _fromBuild, bytes calldata _initData) external reinitializer(2) {
         if (_fromBuild < 3) {
-            (uint256 minApprovals, TargetConfig memory targetConfig, bytes memory pluginMetadata) = abi
-                .decode(_initData, (uint256, TargetConfig, bytes));
+            (
+                uint256 minApprovals,
+                TargetConfig memory targetConfig,
+                bytes memory pluginMetadata
+            ) = abi.decode(_initData, (uint256, TargetConfig, bytes));
 
             _updateMinApprovals(minApprovals);
 
             _setTargetConfig(targetConfig);
 
-            _updateMetadata(pluginMetadata);
+            _setMetadata(pluginMetadata);
         }
     }
 

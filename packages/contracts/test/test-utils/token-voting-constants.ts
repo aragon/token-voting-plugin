@@ -29,8 +29,8 @@ export const SET_TARGET_CONFIG_PERMISSION_ID = ethers.utils.id(
   'SET_TARGET_CONFIG_PERMISSION'
 );
 
-export const UPDATE_METADATA_PERMISSION_ID = ethers.utils.id(
-  'UPDATE_METADATA_PERMISSION'
+export const SET_METADATA_PERMISSION_ID = ethers.utils.id(
+  'SET_METADATA_PERMISSION'
 );
 
 export const VOTING_EVENTS = {

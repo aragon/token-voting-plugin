@@ -309,7 +309,7 @@ abstract contract MajorityVotingBase is
         _updateVotingSettings(_votingSettings);
         _updateMinApprovals(_minApprovals);
         _setTargetConfig(_targetConfig);
-        _updateMetadata(_pluginMetadata);
+        _setMetadata(_pluginMetadata);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
