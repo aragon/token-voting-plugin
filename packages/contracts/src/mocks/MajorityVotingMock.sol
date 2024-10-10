@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.8;
 
-import {IExecutor, Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+import {Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
 
 import {MajorityVotingBase, IDAO} from "../MajorityVotingBase.sol";
 

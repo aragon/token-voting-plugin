@@ -98,8 +98,11 @@ type GlobalFixtureResult = {
 
 let chainId: number;
 
-async function createProposalId(pluginAddress: string, metadata: string) {
-  let blockNumber = (await ethers.provider.getBlock('latest')).number;
+async function createProposalId(
+  pluginAddress: string,
+  metadata: string
+): Promise<BigNumber> {
+  const blockNumber = (await ethers.provider.getBlock('latest')).number;
   return BigNumber.from(
     ethers.utils.keccak256(
       ethers.utils.defaultAbiCoder.encode(

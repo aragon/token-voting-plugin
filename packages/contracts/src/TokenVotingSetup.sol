@@ -9,7 +9,6 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
 
 import {GovernanceERC20} from "./ERC20/governance/GovernanceERC20.sol";
-import {IGovernanceWrappedERC20} from "./ERC20/governance/IGovernanceWrappedERC20.sol";
 import {GovernanceWrappedERC20} from "./ERC20/governance/GovernanceWrappedERC20.sol";
 
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
