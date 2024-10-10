@@ -17,13 +17,6 @@ contract MajorityVotingMock is MajorityVotingBase {
         __MajorityVotingBase_init(_dao, _votingSettings, _targetConfig, _minApprovals, _metadata);
     }
 
-    function createProposalId(
-        Action[] calldata _actions,
-        bytes memory _metadata
-    ) public pure override returns (uint256) {
-        return uint256(keccak256(abi.encode(_actions, _metadata)));
-    }
-
     function createProposal(
         bytes calldata /* _metadata */,
         Action[] calldata /* _actions */,
