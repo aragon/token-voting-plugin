@@ -130,7 +130,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
         (_startDate, _endDate) = _validateProposalDates(_startDate, _endDate);
 
-        proposalId = _createProposalId(keccak256(_metadata));
+        proposalId = _createProposalId(keccak256(abi.encode(_actions, _metadata)));
 
         // Store proposal related information
         Proposal storage proposal_ = proposals[proposalId];

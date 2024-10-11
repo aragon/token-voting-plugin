@@ -69,6 +69,7 @@ import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
+import {defaultAbiCoder, keccak256} from 'ethers/lib/utils';
 import {ethers} from 'hardhat';
 
 type GlobalFixtureResult = {
@@ -100,19 +101,21 @@ let chainId: number;
 
 async function createProposalId(
   pluginAddress: string,
+  actions: DAOStructs.ActionStruct[],
   metadata: string
 ): Promise<BigNumber> {
   const blockNumber = (await ethers.provider.getBlock('latest')).number;
+  const salt = keccak256(
+    defaultAbiCoder.encode(
+      ['tuple(address to,uint256 value,bytes data)[]', 'bytes'],
+      [actions, metadata]
+    )
+  );
   return BigNumber.from(
-    ethers.utils.keccak256(
-      ethers.utils.defaultAbiCoder.encode(
+    keccak256(
+      defaultAbiCoder.encode(
         ['uint256', 'uint256', 'address', 'bytes32'],
-        [
-          chainId,
-          blockNumber + 1,
-          pluginAddress,
-          ethers.utils.keccak256(metadata),
-        ]
+        [chainId, blockNumber + 1, pluginAddress, salt]
       )
     )
   );
@@ -566,7 +569,11 @@ describe('TokenVoting', function () {
         ['uint256', 'uint256', 'bool'],
         [1, 2, true]
       );
-      const proposalId = await createProposalId(plugin.address, dummyMetadata);
+      const proposalId = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
 
       await plugin[CREATE_PROPOSAL_SIGNATURE_IProposal](
         dummyMetadata,
@@ -604,7 +611,11 @@ describe('TokenVoting', function () {
       ]);
 
       await setTotalSupply(token, 5);
-      const proposalId = await createProposalId(plugin.address, dummyMetadata);
+      const proposalId = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
       await plugin[CREATE_PROPOSAL_SIGNATURE_IProposal](
         dummyMetadata,
         dummyActions,
@@ -651,6 +662,7 @@ describe('TokenVoting', function () {
         const endDate = (await time.latest()) + TIME.DAY;
         const expectedProposalId = await createProposalId(
           plugin.address,
+          dummyActions,
           dummyMetadata
         );
         const tx = await plugin
@@ -798,7 +810,11 @@ describe('TokenVoting', function () {
           );
 
         // Transaction 3: Create the proposal as Bob.
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
         const tx3 = await plugin
           .connect(bob)
           [CREATE_PROPOSAL_SIGNATURE](
@@ -943,7 +959,11 @@ describe('TokenVoting', function () {
 
         // Check that Alice can create a proposal although she delegated to Bob.
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         const tx = await plugin
           .connect(alice)
@@ -1238,7 +1258,7 @@ describe('TokenVoting', function () {
       // Create a proposal with zero as an input for `startDate` and `endDate`
       const startDate = 0; // now
       const endDate = 0; // startDate + minDuration
-      const id = await createProposalId(plugin.address, dummyMetadata);
+      const id = await createProposalId(plugin.address, [], dummyMetadata);
 
       const creationTx = await plugin
         .connect(alice)
@@ -1300,7 +1320,11 @@ describe('TokenVoting', function () {
 
       // Create a proposal.
       const endDate = (await time.latest()) + TIME.DAY;
-      const id = await createProposalId(plugin.address, dummyMetadata);
+      const id = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
       const tx = await plugin[CREATE_PROPOSAL_SIGNATURE](
         dummyMetadata,
         dummyActions,
@@ -1344,7 +1368,11 @@ describe('TokenVoting', function () {
 
       // Create a proposal
       const endDate = (await time.latest()) + TIME.DAY;
-      const id = await createProposalId(plugin.address, dummyMetadata);
+      const id = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
 
       const tx = await plugin[CREATE_PROPOSAL_SIGNATURE](
         dummyMetadata,
@@ -1381,7 +1409,11 @@ describe('TokenVoting', function () {
       await token.setBalance(alice.address, 10);
 
       // Create a proposal as Alice.
-      const id = await createProposalId(plugin.address, dummyMetadata);
+      const id = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
 
       const tx = await plugin
         .connect(alice)
@@ -1469,7 +1501,11 @@ describe('TokenVoting', function () {
       await token.setBalance(alice.address, 10);
 
       // Create a proposal as Alice.
-      const id = await createProposalId(plugin.address, dummyMetadata);
+      const id = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
 
       const tx = await plugin
         .connect(alice)
@@ -1544,7 +1580,11 @@ describe('TokenVoting', function () {
       const endDate = startDate + TIME.DAY;
       expect(await time.latest()).to.be.lessThan(startDate);
 
-      const id = await createProposalId(plugin.address, dummyMetadata);
+      const id = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
 
       await expect(
         plugin
@@ -1613,7 +1653,11 @@ describe('TokenVoting', function () {
 
         const startDate = (await time.latest()) + TIME.HOUR;
         const endDate = startDate + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -1640,7 +1684,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -1674,7 +1722,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -1736,7 +1788,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -1865,7 +1921,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
         await plugin
@@ -1912,7 +1972,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
         await plugin[CREATE_PROPOSAL_SIGNATURE](
@@ -1957,7 +2021,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
         await plugin[CREATE_PROPOSAL_SIGNATURE](
@@ -2005,7 +2073,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
         await plugin[CREATE_PROPOSAL_SIGNATURE](
@@ -2054,7 +2126,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
         await plugin[CREATE_PROPOSAL_SIGNATURE](
@@ -2181,7 +2257,11 @@ describe('TokenVoting', function () {
 
         // Create a proposal
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2226,7 +2306,11 @@ describe('TokenVoting', function () {
 
         // Create a Proposal
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2285,7 +2369,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
         await plugin[CREATE_PROPOSAL_SIGNATURE](
@@ -2325,7 +2413,11 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2401,7 +2493,11 @@ describe('TokenVoting', function () {
         )) as TokenVoting;
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2447,7 +2543,11 @@ describe('TokenVoting', function () {
 
         // Create a Proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2525,7 +2625,11 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2651,7 +2755,11 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2709,7 +2817,11 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2749,7 +2861,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2799,7 +2915,11 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2849,7 +2969,11 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -2978,7 +3102,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -3015,7 +3143,11 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -3058,7 +3190,11 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -3101,7 +3237,11 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -3142,7 +3282,11 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -3187,7 +3331,11 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -3286,7 +3434,11 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -3319,7 +3471,11 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
-        const id = await createProposalId(plugin.address, dummyMetadata);
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
@@ -3430,7 +3586,11 @@ describe('TokenVoting', function () {
             dummyActions,
           } = await loadFixture(localFixture);
           const endDate = (await time.latest()) + TIME.DAY;
-          const id = await createProposalId(plugin.address, dummyMetadata);
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
 
           // Create a proposal.
           await plugin[CREATE_PROPOSAL_SIGNATURE](
@@ -3485,7 +3645,11 @@ describe('TokenVoting', function () {
 
           // Create a proposal.
           const endDate = (await time.latest()) + TIME.DAY;
-          const id = await createProposalId(plugin.address, dummyMetadata);
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
 
           await plugin[CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
@@ -3589,7 +3753,11 @@ describe('TokenVoting', function () {
             dummyActions,
           } = await loadFixture(localFixture);
           const endDate = (await time.latest()) + TIME.DAY;
-          const id = await createProposalId(plugin.address, dummyMetadata);
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
 
           await plugin[CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
@@ -3631,7 +3799,11 @@ describe('TokenVoting', function () {
             dummyActions,
           } = await loadFixture(localFixture);
           const endDate = (await time.latest()) + TIME.DAY;
-          const id = await createProposalId(plugin.address, dummyMetadata);
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
 
           await plugin[CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
@@ -3698,7 +3870,11 @@ describe('TokenVoting', function () {
           // Check that Alice has one more vote than Bob.
           expect(balanceAlice.sub(balanceBob)).to.eq(1);
 
-          const id = await createProposalId(plugin.address, dummyMetadata);
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
 
           // Create a proposal.
           await plugin[CREATE_PROPOSAL_SIGNATURE](
