@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.8;
 
-import {IExecutor, Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+import {Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
 
 import {MajorityVotingBase, IDAO} from "../MajorityVotingBase.sol";
 
@@ -15,13 +15,6 @@ contract MajorityVotingMock is MajorityVotingBase {
         bytes calldata _metadata
     ) public initializer {
         __MajorityVotingBase_init(_dao, _votingSettings, _targetConfig, _minApprovals, _metadata);
-    }
-
-    function createProposalId(
-        Action[] calldata _actions,
-        bytes memory _metadata
-    ) public pure override returns (uint256) {
-        return uint256(keccak256(abi.encode(_actions, _metadata)));
     }
 
     function createProposal(
@@ -55,7 +48,7 @@ contract MajorityVotingMock is MajorityVotingBase {
         );
     }
 
-    function createProposalParamsABI() external pure override returns (string memory) {
+    function customProposalParamsABI() external pure override returns (string memory) {
         return "[uint256 allowFailureMap, uint8 voteOption, bool tryEarlyExecution]";
     }
 
