@@ -6,6 +6,7 @@ import {
 import {UnsupportedNetworkError} from '@aragon/osx-commons-sdk';
 import {PluginRepo, PluginRepo__factory} from '@aragon/osx-ethers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
+import {DeployFunction} from 'hardhat-deploy/types';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import path from 'path';
 
@@ -104,3 +105,7 @@ export const skipUpgrade = async (hre: HardhatRuntimeEnvironment) => {
 
   return false;
 };
+
+const func: DeployFunction = async function () {};
+export default func;
+func.tags = ['UpgradeRepo'];
