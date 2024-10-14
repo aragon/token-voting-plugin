@@ -1,7 +1,12 @@
 import {createDaoProxy} from '../20_integration-testing/test-helpers';
-import {TestGovernanceERC20} from '../../typechain';
+import {TestGovernanceERC20, TokenVoting} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src';
-import {INITIALIZE_SIGNATURE} from '../test-utils/token-voting-constants';
+import {
+  INITIALIZE_SIGNATURE,
+  latestInitializerVersion,
+  Operation,
+  TargetConfig,
+} from '../test-utils/token-voting-constants';
 import {
   TokenVoting_V1_0_0__factory,
   TokenVoting_V1_3_0__factory,
@@ -25,6 +30,11 @@ import {expect} from 'chai';
 import {BigNumber} from 'ethers';
 import {ethers} from 'hardhat';
 
+const AlreadyInitializedSignature =
+  TokenVoting__factory.createInterface().encodeErrorResult(
+    'AlreadyInitialized'
+  );
+
 describe('Upgrades', () => {
   it('upgrades to a new implementation', async () => {
     const {deployer, alice, dao, defaultInitData} = await loadFixture(fixture);
@@ -37,7 +47,9 @@ describe('Upgrades', () => {
         dao.address,
         defaultInitData.votingSettings,
         defaultInitData.token.address,
+        defaultInitData.targetConfig,
         defaultInitData.minApproval,
+        defaultInitData.metadata,
       ],
       INITIALIZE_SIGNATURE,
       currentContractFactory,
@@ -46,25 +58,55 @@ describe('Upgrades', () => {
     );
   });
 
-  it('upgrades from v1.0.0', async () => {
-    const {deployer, alice, dao, defaultInitData} = await loadFixture(fixture);
+  it('upgrades from v1.0.0 with `initializeFrom`', async () => {
+    const {deployer, alice, dao, defaultInitData, encodedParamsForUpgrade} =
+      await loadFixture(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
     const legacyContractFactory = new TokenVoting_V1_0_0__factory(deployer);
 
-    const {fromImplementation, toImplementation} =
+    const data = [
+      deployer,
+      alice,
+      [
+        dao.address,
+        defaultInitData.votingSettings,
+        defaultInitData.token.address,
+      ],
+      'initialize',
+      legacyContractFactory,
+      currentContractFactory,
+      PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
+      dao,
+      'initialize',
+      [
+        dao.address,
+        defaultInitData.votingSettings,
+        defaultInitData.token.address,
+        defaultInitData.targetConfig,
+        defaultInitData.minApproval,
+        defaultInitData.metadata,
+      ],
+    ];
+
+    // Ensure that on the `upgrade`, `initialize` can not be called.
+    try {
       await deployAndUpgradeFromToCheck(
-        deployer,
-        alice,
-        [
-          dao.address,
-          defaultInitData.votingSettings,
-          defaultInitData.token.address,
-        ],
-        'initialize',
-        legacyContractFactory,
-        currentContractFactory,
-        PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
-        dao
+        // @ts-ignore
+        ...data
+      );
+      throw new Error('');
+    } catch (err: any) {
+      expect(err.data).to.equal(AlreadyInitializedSignature);
+    }
+
+    data[8] = 'initializeFrom';
+    // @ts-ignore
+    data[9] = [latestInitializerVersion, encodedParamsForUpgrade];
+
+    const {proxy, fromImplementation, toImplementation} =
+      await deployAndUpgradeFromToCheck(
+        // @ts-ignore
+        ...data
       );
 
     expect(toImplementation).to.not.equal(fromImplementation); // The build did change
@@ -78,31 +120,90 @@ describe('Upgrades', () => {
 
     expect(fromProtocolVersion).to.not.deep.equal(toProtocolVersion);
     expect(fromProtocolVersion).to.deep.equal([1, 0, 0]);
-    expect(toProtocolVersion).to.deep.equal([1, 4, 0]); // TODO Check this automatically
+    expect(toProtocolVersion).to.deep.equal([1, 4, 0]);
+
+    // expects the plugin was reinitialized
+    const newTokenVoting = TokenVoting__factory.connect(
+      proxy.address,
+      deployer
+    );
+
+    expect(await newTokenVoting.minApproval()).to.equal(
+      defaultInitData.minApproval
+    );
+    expect(await newTokenVoting.getMetadata()).to.equal(
+      defaultInitData.metadata
+    );
+    expect(await newTokenVoting.getTargetConfig()).to.deep.equal([
+      defaultInitData.targetConfig.target,
+      defaultInitData.targetConfig.operation,
+    ]);
+
+    // `initializeFrom` was called on the upgrade, make sure
+    // `initialize` can not be called.
+    await expect(
+      proxy.initialize(
+        dao.address,
+        defaultInitData.votingSettings,
+        defaultInitData.token.address,
+        defaultInitData.targetConfig,
+        defaultInitData.minApproval,
+        defaultInitData.metadata
+      )
+    ).to.be.revertedWithCustomError(proxy, 'AlreadyInitialized');
   });
 
-  it('from v1.3.0', async () => {
-    const {deployer, alice, dao, defaultInitData} = await loadFixture(fixture);
+  it('upgrades from v1.3.0 with `initializeFrom`', async () => {
+    const {deployer, alice, dao, defaultInitData, encodedParamsForUpgrade} =
+      await loadFixture(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
     const legacyContractFactory = new TokenVoting_V1_3_0__factory(deployer);
 
-    const {fromImplementation, toImplementation} =
+    const data = [
+      deployer,
+      alice,
+      [
+        dao.address,
+        defaultInitData.votingSettings,
+        defaultInitData.token.address,
+      ],
+      'initialize',
+      legacyContractFactory,
+      currentContractFactory,
+      PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
+      dao,
+      'initialize',
+      [
+        dao.address,
+        defaultInitData.votingSettings,
+        defaultInitData.token.address,
+        defaultInitData.targetConfig,
+        defaultInitData.minApproval,
+        defaultInitData.metadata,
+      ],
+    ];
+
+    // Ensure that on the `upgrade`, `initialize` can not be called.
+    try {
       await deployAndUpgradeFromToCheck(
-        deployer,
-        alice,
-        [
-          dao.address,
-          defaultInitData.votingSettings,
-          defaultInitData.token.address,
-        ],
-        'initialize',
-        legacyContractFactory,
-        currentContractFactory,
-        PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
-        dao
+        // @ts-ignore
+        ...data
+      );
+      throw new Error('');
+    } catch (err: any) {
+      expect(err.data).to.equal(AlreadyInitializedSignature);
+    }
+    data[8] = 'initializeFrom';
+    // @ts-ignore
+    data[9] = [latestInitializerVersion, encodedParamsForUpgrade];
+
+    const {proxy, fromImplementation, toImplementation} =
+      await deployAndUpgradeFromToCheck(
+        // @ts-ignore
+        ...data
       );
 
-    expect(toImplementation).to.not.equal(fromImplementation);
+    expect(toImplementation).to.not.equal(fromImplementation); // The build did change
 
     const fromProtocolVersion = await getProtocolVersion(
       legacyContractFactory.attach(fromImplementation)
@@ -113,7 +214,37 @@ describe('Upgrades', () => {
 
     expect(fromProtocolVersion).to.not.deep.equal(toProtocolVersion);
     expect(fromProtocolVersion).to.deep.equal([1, 0, 0]);
-    expect(toProtocolVersion).to.deep.equal([1, 4, 0]); // TODO Check this automatically
+    expect(toProtocolVersion).to.deep.equal([1, 4, 0]);
+
+    // expects the plugin was reinitialized
+    const newTokenVoting = TokenVoting__factory.connect(
+      proxy.address,
+      deployer
+    );
+
+    expect(await newTokenVoting.minApproval()).to.equal(
+      defaultInitData.minApproval
+    );
+    expect(await newTokenVoting.getMetadata()).to.equal(
+      defaultInitData.metadata
+    );
+    expect(await newTokenVoting.getTargetConfig()).to.deep.equal([
+      defaultInitData.targetConfig.target,
+      defaultInitData.targetConfig.operation,
+    ]);
+
+    // `initializeFrom` was called on the upgrade, make sure
+    // `initialize` can not be called.
+    await expect(
+      proxy.initialize(
+        dao.address,
+        defaultInitData.votingSettings,
+        defaultInitData.token.address,
+        defaultInitData.targetConfig,
+        defaultInitData.minApproval,
+        defaultInitData.metadata
+      )
+    ).to.be.revertedWithCustomError(proxy, 'AlreadyInitialized');
   });
 });
 
@@ -122,13 +253,15 @@ type FixtureResult = {
   alice: SignerWithAddress;
   bob: SignerWithAddress;
   carol: SignerWithAddress;
-
   dao: DAO;
   defaultInitData: {
     votingSettings: MajorityVotingBase.VotingSettingsStruct;
     token: TestGovernanceERC20;
     minApproval: BigNumber;
+    targetConfig: TargetConfig;
+    metadata: string;
   };
+  encodedParamsForUpgrade: string;
 };
 
 async function fixture(): Promise<FixtureResult> {
@@ -161,7 +294,23 @@ async function fixture(): Promise<FixtureResult> {
     votingSettings,
     token: token,
     minApproval: pctToRatio(10),
+    targetConfig: {
+      target: dao.address,
+      operation: Operation.call,
+    },
+    metadata: '0x11',
   };
+
+  // initial data is minApproval and targetConfig
+  const encodedParamsForUpgrade = ethers.utils.defaultAbiCoder.encode(
+    ['uint256', 'address', 'uint8', 'bytes'],
+    [
+      defaultInitData.minApproval,
+      defaultInitData.targetConfig.target,
+      defaultInitData.targetConfig.operation,
+      defaultInitData.metadata,
+    ]
+  );
 
   return {
     deployer,
@@ -170,5 +319,6 @@ async function fixture(): Promise<FixtureResult> {
     carol,
     dao,
     defaultInitData,
+    encodedParamsForUpgrade,
   };
 }

@@ -3,6 +3,11 @@ import {GovernanceERC20} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {getProductionNetworkName, findPluginRepo} from '../../utils/helpers';
 import {
+  Operation,
+  TargetConfig,
+  latestInitializerVersion,
+} from '../test-utils/token-voting-constants';
+import {
   GovernanceERC20__factory,
   TokenVotingSetup,
   TokenVotingSetup__factory,
@@ -59,6 +64,8 @@ type FixtureResult = {
   };
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
   defaultMinApproval: BigNumber;
+  defaultMetadata: string;
+  defaultTargetConfig: TargetConfig;
   prepareInstallationInputs: string;
   prepareInstallData: any;
   prepareUpdateData: any;
@@ -130,6 +137,11 @@ async function fixture(): Promise<FixtureResult> {
 
   const defaultMinApproval = pctToRatio(30);
 
+  const defaultTargetConfig = {
+    target: dao.address,
+    operation: Operation.call,
+  };
+
   const defaultTokenSettings = {
     addr: token.address,
     name: '', // only relevant if `address(0)` is provided as the token address
@@ -141,6 +153,8 @@ async function fixture(): Promise<FixtureResult> {
     amounts: [],
   };
 
+  const defaultMetadata: string = '0x11';
+
   // Provide uninstallation inputs
   const prepareInstallationInputs = ethers.utils.defaultAbiCoder.encode(
     getNamedTypesFromMetadata(
@@ -150,7 +164,9 @@ async function fixture(): Promise<FixtureResult> {
       Object.values(defaultVotingSettings),
       Object.values(defaultTokenSettings),
       Object.values(defaultMintSettings),
+      Object.values(defaultTargetConfig),
       defaultMinApproval,
+      defaultMetadata,
     ]
   );
 
@@ -158,10 +174,16 @@ async function fixture(): Promise<FixtureResult> {
     votingSettings: Object.values(defaultVotingSettings),
     tokenSettings: Object.values(defaultTokenSettings),
     mintSettings: Object.values(defaultMintSettings),
+    targetConfig: Object.values(defaultTargetConfig),
     defaultMinApproval,
+    defaultMetadata,
   };
 
-  const prepareUpdateData = [defaultMinApproval];
+  const prepareUpdateData = [
+    defaultMinApproval,
+    defaultTargetConfig,
+    defaultMetadata,
+  ];
   // Provide update inputs
   // const prepareUpdateBuild3Data = [defaultMinApproval];
   return {
@@ -177,6 +199,8 @@ async function fixture(): Promise<FixtureResult> {
     defaultTokenSettings,
     defaultMintSettings,
     defaultMinApproval,
+    defaultMetadata,
+    defaultTargetConfig,
     prepareInstallationInputs,
     prepareInstallData,
     prepareUpdateData,
@@ -233,6 +257,8 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
     expect(await plugin.isMember(alice.address)).to.be.false;
     expect(await plugin.isMember(deployer.address)).to.be.true;
 
+    const condition = results.preparedEvent.args.preparedSetupData.helpers[1];
+
     // Uninstall the current build.
     await uninstallPLugin(
       deployer,
@@ -246,7 +272,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
         ),
         []
       ),
-      [pluginToken]
+      [pluginToken, condition]
     );
   });
 
@@ -259,6 +285,8 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       defaultVotingSettings,
       pluginSetupRefLatestBuild,
       defaultMinApproval,
+      defaultMetadata,
+      defaultTargetConfig,
     } = await loadFixture(fixture);
 
     // Grant deployer all required permissions
@@ -284,7 +312,9 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       votingSettings: Object.values(defaultVotingSettings),
       tokenSettings: [ethers.constants.AddressZero, 'testToken', 'TEST'],
       mintSettings: [[alice.address], ['1000']],
+      defaultTargetConfig,
       defaultMinApproval,
+      defaultMetadata,
     };
 
     const prepareInstallInputType = getNamedTypesFromMetadata(
@@ -314,6 +344,8 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
     expect(await plugin.isMember(alice.address)).to.be.true;
     expect(await plugin.isMember(deployer.address)).to.be.false;
 
+    const condition = results.preparedEvent.args.preparedSetupData.helpers[1];
+
     // Uninstall the current build.
     await uninstallPLugin(
       deployer,
@@ -327,7 +359,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
         ),
         []
       ),
-      [pluginToken]
+      [pluginToken, condition]
     );
   });
 
@@ -350,7 +382,8 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       pluginSetupRefLatestBuild,
       1,
       Object.values(prepareInstallData),
-      prepareUpdateData
+      prepareUpdateData,
+      latestInitializerVersion
     );
   });
 
@@ -374,7 +407,8 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
       pluginSetupRefLatestBuild,
       2,
       Object.values(prepareInstallData),
-      prepareUpdateData
+      prepareUpdateData,
+      latestInitializerVersion
     );
   });
 });

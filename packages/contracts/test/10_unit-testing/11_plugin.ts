@@ -9,6 +9,8 @@ import {
   IProposal__factory,
   IProtocolVersion__factory,
   ProxyFactory__factory,
+  VotingPowerCondition__factory,
+  CustomExecutorMock__factory,
 } from '../../typechain';
 import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
@@ -27,6 +29,13 @@ import {
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
   INITIALIZE_SIGNATURE,
   INITIALIZE_SIGNATURE_OLD,
+  Operation,
+  TargetConfig,
+  CREATE_PROPOSAL_SIGNATURE,
+  CREATE_PROPOSAL_PERMISSION_ID,
+  ANY_ADDR,
+  CREATE_PROPOSAL_SIGNATURE_IProposal,
+  SET_TARGET_CONFIG_PERMISSION_ID,
 } from '../test-utils/token-voting-constants';
 import {
   TokenVoting__factory,
@@ -50,11 +59,17 @@ import {
   RATIO_BASE,
   DAO_PERMISSIONS,
 } from '@aragon/osx-commons-sdk';
-import {DAO, DAOStructs, DAO__factory} from '@aragon/osx-ethers';
+import {
+  DAO,
+  DAOStructs,
+  DAO__factory,
+  MajorityVotingBase__factory,
+} from '@aragon/osx-ethers';
 import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
+import {defaultAbiCoder, keccak256} from 'ethers/lib/utils';
 import {ethers} from 'hardhat';
 
 type GlobalFixtureResult = {
@@ -74,11 +89,37 @@ type GlobalFixtureResult = {
   uninitializedPlugin: TokenVoting;
   defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct;
   defaultMinApproval: BigNumber;
+  defaultMetadata: string;
   token: TestGovernanceERC20;
   dao: DAO;
+  defaultTargetConfig: TargetConfig;
   dummyActions: DAOStructs.ActionStruct[];
   dummyMetadata: string;
 };
+
+let chainId: number;
+
+async function createProposalId(
+  pluginAddress: string,
+  actions: DAOStructs.ActionStruct[],
+  metadata: string
+): Promise<BigNumber> {
+  const blockNumber = (await ethers.provider.getBlock('latest')).number;
+  const salt = keccak256(
+    defaultAbiCoder.encode(
+      ['tuple(address to,uint256 value,bytes data)[]', 'bytes'],
+      [actions, metadata]
+    )
+  );
+  return BigNumber.from(
+    keccak256(
+      defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'address', 'bytes32'],
+        [chainId, blockNumber + 1, pluginAddress, salt]
+      )
+    )
+  );
+}
 
 async function globalFixture(): Promise<GlobalFixtureResult> {
   const [
@@ -128,10 +169,24 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
   };
 
   const defaultMinApproval = pctToRatio(10);
+  const defaultMetadata = '0x11';
+
+  // Deploy an initialized plugin proxy.
+  const defaultTargetConfig: TargetConfig = {
+    target: dao.address,
+    operation: Operation.call,
+  };
 
   const pluginInitData = pluginImplementation.interface.encodeFunctionData(
     INITIALIZE_SIGNATURE,
-    [dao.address, defaultVotingSettings, token.address, defaultMinApproval]
+    [
+      dao.address,
+      defaultVotingSettings,
+      token.address,
+      defaultTargetConfig,
+      defaultMinApproval,
+      defaultMetadata,
+    ]
   );
   const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitData);
   const proxyCreatedEvent1 = findEvent<ProxyCreatedEvent>(
@@ -181,6 +236,13 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     },
   ];
 
+  await grantCreateProposalPermissions(
+    deployer,
+    dao,
+    initializedPlugin,
+    uninitializedPlugin
+  );
+
   return {
     deployer,
     alice,
@@ -198,6 +260,8 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     uninitializedPlugin,
     defaultVotingSettings,
     defaultMinApproval,
+    defaultMetadata,
+    defaultTargetConfig,
     token,
     dao,
     dummyActions,
@@ -205,7 +269,35 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
   };
 }
 
+async function grantCreateProposalPermissions(
+  deployer: SignerWithAddress,
+  dao: DAO,
+  initializedPlugin: TokenVoting,
+  uninitializedPlugin: TokenVoting
+) {
+  const condition = await new VotingPowerCondition__factory(deployer).deploy(
+    initializedPlugin.address
+  );
+
+  await dao.grantWithCondition(
+    initializedPlugin.address,
+    ANY_ADDR,
+    CREATE_PROPOSAL_PERMISSION_ID,
+    condition.address
+  );
+
+  await dao.grantWithCondition(
+    uninitializedPlugin.address,
+    ANY_ADDR,
+    CREATE_PROPOSAL_PERMISSION_ID,
+    condition.address
+  );
+}
+
 describe('TokenVoting', function () {
+  before(async () => {
+    chainId = (await ethers.provider.getNetwork()).chainId;
+  });
   describe('initialize', async () => {
     it('reverts if trying to re-initialize', async () => {
       const {
@@ -213,6 +305,8 @@ describe('TokenVoting', function () {
         initializedPlugin,
         defaultVotingSettings,
         defaultMinApproval,
+        defaultMetadata,
+        defaultTargetConfig,
         token,
       } = await loadFixture(globalFixture);
 
@@ -222,26 +316,11 @@ describe('TokenVoting', function () {
           dao.address,
           defaultVotingSettings,
           token.address,
-          defaultMinApproval
+          defaultTargetConfig,
+          defaultMinApproval,
+          defaultMetadata
         )
-      ).to.be.revertedWith('Initializable: contract is already initialized');
-    });
-
-    it('reverts if using DEPRECATED intialize function', async () => {
-      const {dao, uninitializedPlugin, defaultVotingSettings, token} =
-        await loadFixture(globalFixture);
-
-      // Try to call deprecated function (previous function with no minApproval param)
-      await expect(
-        uninitializedPlugin[INITIALIZE_SIGNATURE_OLD](
-          dao.address,
-          defaultVotingSettings,
-          token.address
-        )
-      ).to.be.revertedWithCustomError(
-        uninitializedPlugin,
-        'FunctionDeprecated'
-      );
+      ).to.be.revertedWithCustomError(initializedPlugin, 'AlreadyInitialized');
     });
 
     it('emits the `MembershipContractAnnounced` event', async () => {
@@ -250,6 +329,8 @@ describe('TokenVoting', function () {
         uninitializedPlugin,
         defaultVotingSettings,
         defaultMinApproval,
+        defaultMetadata,
+        defaultTargetConfig,
         token,
       } = await loadFixture(globalFixture);
 
@@ -259,17 +340,21 @@ describe('TokenVoting', function () {
           dao.address,
           defaultVotingSettings,
           token.address,
-          defaultMinApproval
+          defaultTargetConfig,
+          defaultMinApproval,
+          defaultMetadata
         )
       )
         .to.emit(uninitializedPlugin, 'MembershipContractAnnounced')
         .withArgs(token.address);
     });
 
-    it('sets the voting settings, token and minimal approval', async () => {
+    it('sets the voting settings, token, minimal approval and metadata', async () => {
       const {
         dao,
         uninitializedPlugin: plugin,
+        defaultTargetConfig,
+        defaultMetadata,
         token,
       } = await loadFixture(globalFixture);
 
@@ -298,7 +383,9 @@ describe('TokenVoting', function () {
         dao.address,
         votingSettings,
         token.address,
-        minApproval
+        defaultTargetConfig,
+        minApproval,
+        defaultMetadata
       );
 
       // Check that the voting settings have been set.
@@ -319,6 +406,9 @@ describe('TokenVoting', function () {
 
       // Check the minimal approval has been set.
       expect(await plugin.minApproval()).to.equal(minApproval);
+
+      // Check the metadata has been set.
+      expect(await plugin.getMetadata()).to.equal(defaultMetadata);
     });
   });
 
@@ -438,6 +528,111 @@ describe('TokenVoting', function () {
     });
   });
 
+  // These tests ensure that overriden `createProposal` function from `IProposal`
+  // successfully creates a proposal with default values(when `data` is not passed)
+  // and with custom values when it's passed.
+  describe('Proposal creation: IProposal Interface Function', async () => {
+    let voteSettingsWithMinProposerVotingPower: MajorityVotingBase.VotingSettingsStruct;
+
+    before(async () => {
+      voteSettingsWithMinProposerVotingPower = {
+        votingMode: VotingMode.EarlyExecution,
+        supportThreshold: pctToRatio(0),
+        minParticipation: pctToRatio(0),
+        minDuration: TIME.HOUR,
+        minProposerVotingPower: 0,
+      };
+    });
+
+    it('creates proposal with default values if `data` param is encoded with custom values', async () => {
+      const {
+        deployer,
+        initializedPlugin: plugin,
+        token,
+        dummyActions,
+        dummyMetadata,
+      } = await loadFixture(globalFixture);
+
+      await plugin.updateVotingSettings(voteSettingsWithMinProposerVotingPower);
+
+      // Make sure the supply is not zero.
+      await setBalances(token, [
+        {
+          receiver: deployer.address,
+          amount: 1,
+        },
+      ]);
+
+      await setTotalSupply(token, 5);
+
+      const data = ethers.utils.defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'bool'],
+        [1, 2, true]
+      );
+      const proposalId = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
+
+      await plugin[CREATE_PROPOSAL_SIGNATURE_IProposal](
+        dummyMetadata,
+        dummyActions,
+        0,
+        0,
+        data
+      );
+
+      const proposal = await plugin.getProposal(proposalId);
+      expect(proposal.allowFailureMap).to.equal(1);
+      expect(await plugin.getVoteOption(proposalId, deployer.address)).to.equal(
+        2
+      );
+      expect(proposal.executed).to.be.true;
+    });
+
+    it('creates proposal with default values if `data` param is passed as empty', async () => {
+      const {
+        deployer,
+        initializedPlugin: plugin,
+        token,
+        dummyActions,
+        dummyMetadata,
+      } = await loadFixture(globalFixture);
+
+      await plugin.updateVotingSettings(voteSettingsWithMinProposerVotingPower);
+
+      // Make sure the supply is not zero.
+      await setBalances(token, [
+        {
+          receiver: deployer.address,
+          amount: 1,
+        },
+      ]);
+
+      await setTotalSupply(token, 5);
+      const proposalId = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
+      await plugin[CREATE_PROPOSAL_SIGNATURE_IProposal](
+        dummyMetadata,
+        dummyActions,
+        0,
+        0,
+        '0x'
+      );
+
+      const proposal = await plugin.getProposal(proposalId);
+      expect(proposal.allowFailureMap).to.equal(0);
+      expect(await plugin.getVoteOption(proposalId, deployer.address)).to.equal(
+        0
+      );
+      expect(proposal.executed).to.be.false;
+    });
+  });
+
   describe('Proposal creation', async () => {
     let voteSettingsWithMinProposerVotingPower: MajorityVotingBase.VotingSettingsStruct;
 
@@ -465,9 +660,14 @@ describe('TokenVoting', function () {
 
         // Create a proposal with Alice despite her having no voting power.
         const endDate = (await time.latest()) + TIME.DAY;
+        const expectedProposalId = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
         const tx = await plugin
           .connect(alice)
-          .createProposal(
+          [CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -477,12 +677,11 @@ describe('TokenVoting', function () {
             false
           );
 
-        const id = 0;
         const event = findEvent<ProposalCreatedEvent>(
           await tx.wait(),
           'ProposalCreated'
         );
-        expect(event.args.proposalId).to.equal(id);
+        expect(event.args.proposalId).to.equal(expectedProposalId);
       });
     });
 
@@ -496,6 +695,7 @@ describe('TokenVoting', function () {
           token,
           dummyActions,
           dummyMetadata,
+          dao,
         } = await loadFixture(globalFixture);
 
         await plugin
@@ -514,7 +714,7 @@ describe('TokenVoting', function () {
         await expect(
           plugin
             .connect(alice)
-            .createProposal(
+            [CREATE_PROPOSAL_SIGNATURE](
               dummyMetadata,
               dummyActions,
               0,
@@ -524,14 +724,19 @@ describe('TokenVoting', function () {
               false
             )
         )
-          .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
-          .withArgs(alice.address);
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            alice.address,
+            CREATE_PROPOSAL_PERMISSION_ID
+          );
 
         // Create a proposal as Bob.
         await expect(
           plugin
             .connect(bob)
-            .createProposal(
+            [CREATE_PROPOSAL_SIGNATURE](
               dummyMetadata,
               dummyActions,
               0,
@@ -546,6 +751,7 @@ describe('TokenVoting', function () {
       it('reverts if `_msgSender` owns no tokens and has no tokens delegated to her/him in the current block although having them in the last block', async () => {
         const {
           deployer,
+          dao,
           alice,
           bob,
           initializedPlugin: plugin,
@@ -585,7 +791,7 @@ describe('TokenVoting', function () {
         await expect(
           plugin
             .connect(alice)
-            .createProposal(
+            [CREATE_PROPOSAL_SIGNATURE](
               dummyMetadata,
               dummyActions,
               0,
@@ -595,13 +801,23 @@ describe('TokenVoting', function () {
               false
             )
         )
-          .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
-          .withArgs(alice.address);
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            alice.address,
+            CREATE_PROPOSAL_PERMISSION_ID
+          );
 
         // Transaction 3: Create the proposal as Bob.
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
         const tx3 = await plugin
           .connect(bob)
-          .createProposal(
+          [CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -610,7 +826,6 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-        const id = 0;
 
         // Check the balances before the block is mined. Note that `balanceOf` is a view function,
         // whose result will be immediately available and does not rely on the block to be mined.
@@ -658,6 +873,7 @@ describe('TokenVoting', function () {
         const {
           deployer,
           alice,
+          dao,
           bob,
           initializedPlugin: plugin,
           token,
@@ -682,7 +898,7 @@ describe('TokenVoting', function () {
         await expect(
           plugin
             .connect(bob)
-            .createProposal(
+            [CREATE_PROPOSAL_SIGNATURE](
               dummyMetadata,
               dummyActions,
               0,
@@ -692,14 +908,19 @@ describe('TokenVoting', function () {
               false
             )
         )
-          .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
-          .withArgs(bob.address);
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            bob.address,
+            CREATE_PROPOSAL_PERMISSION_ID
+          );
 
         // Check that Alice who has enough balance can create a proposal.
         await expect(
           plugin
             .connect(alice)
-            .createProposal(
+            [CREATE_PROPOSAL_SIGNATURE](
               dummyMetadata,
               dummyActions,
               0,
@@ -738,9 +959,15 @@ describe('TokenVoting', function () {
 
         // Check that Alice can create a proposal although she delegated to Bob.
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
         const tx = await plugin
           .connect(alice)
-          .createProposal(
+          [CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -753,7 +980,7 @@ describe('TokenVoting', function () {
           await tx.wait(),
           'ProposalCreated'
         );
-        expect(event.args.proposalId).to.equal(0);
+        expect(event.args.proposalId).to.equal(id);
       });
 
       it('creates a proposal if `_msgSender` owns no tokens but has enough tokens delegated to her/him in the current block', async () => {
@@ -787,7 +1014,7 @@ describe('TokenVoting', function () {
         await expect(
           plugin
             .connect(bob)
-            .createProposal(
+            [CREATE_PROPOSAL_SIGNATURE](
               dummyMetadata,
               dummyActions,
               0,
@@ -804,6 +1031,7 @@ describe('TokenVoting', function () {
           deployer,
           alice,
           bob,
+          dao,
           initializedPlugin: plugin,
           token,
           dummyActions,
@@ -834,7 +1062,7 @@ describe('TokenVoting', function () {
         await expect(
           plugin
             .connect(alice)
-            .createProposal(
+            [CREATE_PROPOSAL_SIGNATURE](
               dummyMetadata,
               dummyActions,
               0,
@@ -844,8 +1072,13 @@ describe('TokenVoting', function () {
               false
             )
         )
-          .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
-          .withArgs(alice.address);
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            alice.address,
+            CREATE_PROPOSAL_PERMISSION_ID
+          );
 
         // As Alice delegate all votes to Bob.
         await token.connect(alice).delegate(bob.address);
@@ -854,7 +1087,7 @@ describe('TokenVoting', function () {
         await expect(
           plugin
             .connect(alice)
-            .createProposal(
+            [CREATE_PROPOSAL_SIGNATURE](
               dummyMetadata,
               dummyActions,
               0,
@@ -864,8 +1097,13 @@ describe('TokenVoting', function () {
               false
             )
         )
-          .to.be.revertedWithCustomError(plugin, 'ProposalCreationForbidden')
-          .withArgs(alice.address);
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            alice.address,
+            CREATE_PROPOSAL_PERMISSION_ID
+          );
       });
     });
 
@@ -884,7 +1122,7 @@ describe('TokenVoting', function () {
       await expect(
         plugin
           .connect(alice)
-          .createProposal(
+          [CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -917,7 +1155,7 @@ describe('TokenVoting', function () {
       await expect(
         plugin
           .connect(alice)
-          .createProposal(
+          [CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -956,7 +1194,7 @@ describe('TokenVoting', function () {
       await expect(
         plugin
           .connect(alice)
-          .createProposal(
+          [CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -991,7 +1229,7 @@ describe('TokenVoting', function () {
       await expect(
         plugin
           .connect(alice)
-          .createProposal(
+          [CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -1020,10 +1258,11 @@ describe('TokenVoting', function () {
       // Create a proposal with zero as an input for `startDate` and `endDate`
       const startDate = 0; // now
       const endDate = 0; // startDate + minDuration
+      const id = await createProposalId(plugin.address, [], dummyMetadata);
 
       const creationTx = await plugin
         .connect(alice)
-        .createProposal(
+        [CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           [],
           0,
@@ -1032,7 +1271,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-      const id = 0;
 
       const expectedStartDate = BigNumber.from(await time.latest());
       const expectedEndDate = expectedStartDate.add(
@@ -1082,7 +1320,12 @@ describe('TokenVoting', function () {
 
       // Create a proposal.
       const endDate = (await time.latest()) + TIME.DAY;
-      const tx = await plugin.createProposal(
+      const id = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
+      const tx = await plugin[CREATE_PROPOSAL_SIGNATURE](
         dummyMetadata,
         dummyActions,
         0,
@@ -1091,7 +1334,7 @@ describe('TokenVoting', function () {
         VoteOption.None,
         false
       );
-      const id = 0;
+
       const event = findEvent<ProposalCreatedEvent>(
         await tx.wait(),
         'ProposalCreated'
@@ -1125,7 +1368,13 @@ describe('TokenVoting', function () {
 
       // Create a proposal
       const endDate = (await time.latest()) + TIME.DAY;
-      const tx = await plugin.createProposal(
+      const id = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
+
+      const tx = await plugin[CREATE_PROPOSAL_SIGNATURE](
         dummyMetadata,
         dummyActions,
         0,
@@ -1134,7 +1383,7 @@ describe('TokenVoting', function () {
         VoteOption.None,
         false
       );
-      const id = 0;
+
       const event = findEvent<ProposalCreatedEvent>(
         await tx.wait(),
         'ProposalCreated'
@@ -1160,9 +1409,15 @@ describe('TokenVoting', function () {
       await token.setBalance(alice.address, 10);
 
       // Create a proposal as Alice.
+      const id = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
+
       const tx = await plugin
         .connect(alice)
-        .createProposal(
+        [CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           allowFailureMap,
@@ -1171,7 +1426,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-      const id = 0;
 
       // Check that the `ProposalCreated` event is emitted and `VoteCast` is not.
       await expect(tx)
@@ -1247,9 +1501,15 @@ describe('TokenVoting', function () {
       await token.setBalance(alice.address, 10);
 
       // Create a proposal as Alice.
+      const id = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
+
       const tx = await plugin
         .connect(alice)
-        .createProposal(
+        [CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -1258,7 +1518,6 @@ describe('TokenVoting', function () {
           VoteOption.Yes,
           false
         );
-      const id = 0;
 
       // Check that the `ProposalCreated` and `VoteCast` events are emitted with the expected data.
       await expect(tx)
@@ -1320,11 +1579,17 @@ describe('TokenVoting', function () {
       const startDate = (await time.latest()) + TIME.HOUR;
       const endDate = startDate + TIME.DAY;
       expect(await time.latest()).to.be.lessThan(startDate);
-      const id = 0;
+
+      const id = await createProposalId(
+        plugin.address,
+        dummyActions,
+        dummyMetadata
+      );
+
       await expect(
         plugin
           .connect(alice)
-          .createProposal(
+          [CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -1338,7 +1603,7 @@ describe('TokenVoting', function () {
         .withArgs(id, alice.address, VoteOption.Yes);
 
       // Check that the proposal can be created without voting (by setting `_voteOption` to `VoteOption.None`).
-      const tx = await plugin.createProposal(
+      const tx = await plugin[CREATE_PROPOSAL_SIGNATURE](
         dummyMetadata,
         dummyActions,
         0,
@@ -1388,8 +1653,13 @@ describe('TokenVoting', function () {
 
         const startDate = (await time.latest()) + TIME.HOUR;
         const endDate = startDate + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -1398,7 +1668,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         await expect(plugin.connect(alice).vote(id, VoteOption.Yes, false))
           .to.be.revertedWithCustomError(plugin, 'VoteCastForbidden')
@@ -1415,8 +1684,13 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -1425,7 +1699,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // check the mallory has 0 token
         expect(await token.balanceOf(mallory.address)).to.equal(0);
@@ -1449,8 +1722,13 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -1459,7 +1737,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote with Alice.
         await expect(plugin.connect(alice).vote(id, VoteOption.Yes, false))
@@ -1511,8 +1788,13 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -1521,7 +1803,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Check that voting is possible but don't vote using `callStatic`
         await expect(
@@ -1571,6 +1852,7 @@ describe('TokenVoting', function () {
           judy,
           mallory,
           initializedPlugin,
+          uninitializedPlugin,
           token,
           dao,
           dummyActions,
@@ -1639,11 +1921,16 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
         await plugin
           .connect(alice)
-          .createProposal(
+          [CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -1652,7 +1939,6 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-        const id = 0;
 
         // Vote as Alice.
         await plugin.connect(alice).vote(id, VoteOption.Yes, false);
@@ -1686,9 +1972,14 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -1697,7 +1988,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote with enough voters so that the execution criteria are met.
         // Vote with enough votes so that the execution criteria and the vote outcome cannot change anymore,
@@ -1731,9 +2021,14 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -1742,7 +2037,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote with enough voters so that the execution criteria are met.
         await voteWithSigners(plugin, id, {
@@ -1779,9 +2073,14 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -1790,7 +2089,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote with enough voters so that the execution criteria are met.
         await voteWithSigners(plugin, id, {
@@ -1828,9 +2126,14 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -1839,7 +2142,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Try to execute it while the vote is not decided yet.
         await expect(plugin.execute(id))
@@ -1885,6 +2187,7 @@ describe('TokenVoting', function () {
           judy,
           mallory,
           initializedPlugin,
+          uninitializedPlugin,
           token,
           dao,
           dummyActions,
@@ -1907,7 +2210,7 @@ describe('TokenVoting', function () {
         ].map(signer => token.setBalance(signer.address, amount));
         await Promise.all(promises);
 
-        // Update Voting settings
+        // // Update Voting settings
         const newVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
           votingMode: VotingMode.EarlyExecution,
           supportThreshold: pctToRatio(50),
@@ -1954,7 +2257,13 @@ describe('TokenVoting', function () {
 
         // Create a proposal
         const endDate = (await time.latest()) + TIME.DAY;
-        await plugin.createProposal(
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -1963,7 +2272,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote with Alice.
         await plugin.connect(alice).vote(id, VoteOption.Yes, false);
@@ -1998,7 +2306,13 @@ describe('TokenVoting', function () {
 
         // Create a Proposal
         const endDate = (await time.latest()) + TIME.DAY;
-        await plugin.createProposal(
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2007,7 +2321,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote with enough votes so that the vote is almost already decided.
         // If the remaining 50 votes become `No`s, the proposal would be defeated because the support threshold wouldn't be exceeded.
@@ -2056,9 +2369,14 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
         // Create a proposal.
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2067,7 +2385,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote with enough people so that execution criteria are met.
         await voteWithSigners(plugin, id, {
@@ -2096,7 +2413,13 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        await plugin.createProposal(
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2105,7 +2428,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Set Bob's and Carol's balances.
         await token.setBalance(bob.address, 5);
@@ -2126,6 +2448,85 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
       });
 
+      it('executes target with delegate call', async () => {
+        let {
+          alice,
+          bob,
+          carol,
+          dave,
+          eve,
+          frank,
+          grace,
+          harold,
+          ivan,
+          dummyMetadata,
+          dummyActions,
+          deployer,
+          dao,
+          initializedPlugin: plugin,
+        } = await loadFixture(localFixture);
+
+        const executorFactory = new CustomExecutorMock__factory(deployer);
+        const executor = await executorFactory.deploy();
+
+        const abiA = CustomExecutorMock__factory.abi;
+        const abiB = TokenVoting__factory.abi;
+
+        // @ts-ignore
+        const mergedABI = abiA.concat(abiB);
+
+        await dao.grant(
+          plugin.address,
+          deployer.address,
+          SET_TARGET_CONFIG_PERMISSION_ID
+        );
+
+        await plugin.connect(deployer).setTargetConfig({
+          target: executor.address,
+          operation: Operation.delegatecall,
+        });
+
+        // @ts-ignore
+        const pluginMerged = (await ethers.getContractAt(
+          mergedABI,
+          plugin.address
+        )) as TokenVoting;
+
+        const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
+          dummyMetadata,
+          dummyActions,
+          0,
+          0,
+          endDate,
+          VoteOption.None,
+          false
+        );
+
+        // Vote with enough people so that execution criteria are met.
+        await voteWithSigners(plugin, id, {
+          yes: [alice, bob, carol, dave, eve], // 50 yes
+          no: [frank, grace, harold], // 30 votes
+          abstain: [ivan], // 10 votes
+        });
+
+        // Advance after the end date.
+        await time.increaseTo(endDate);
+
+        // Check that the vote is executable because support > 50%, participation > 20%, and the voting period is over.
+        expect(await plugin.canExecute(id)).to.equal(true);
+
+        await expect(plugin.execute(id))
+          .to.emit(pluginMerged, 'ExecutedCustom')
+          .to.emit(pluginMerged, 'ProposalExecuted');
+      });
+
       it('executes the vote immediately when the vote is decided early and the tryEarlyExecution options is selected', async () => {
         const {
           alice,
@@ -2142,7 +2543,13 @@ describe('TokenVoting', function () {
 
         // Create a Proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        await plugin.createProposal(
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2151,7 +2558,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote 40 votes for `Yes`. The proposal can still get defeated if the remaining 60 votes vote for `No`.
         await voteWithSigners(plugin, id, {
@@ -2183,7 +2589,9 @@ describe('TokenVoting', function () {
           );
 
           expect(event.args.actor).to.equal(plugin.address);
-          expect(event.args.callId).to.equal(proposalIdToBytes32(id));
+          expect(event.args.callId).to.equal(
+            ethers.utils.hexZeroPad(id.toHexString(), 32)
+          );
           expect(event.args.actions.length).to.equal(1);
           expect(event.args.actions[0].to).to.equal(dummyActions[0].to);
           expect(event.args.actions[0].value).to.equal(dummyActions[0].value);
@@ -2217,7 +2625,13 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        await plugin.createProposal(
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2226,7 +2640,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Check that it cannot be executed because it is not decided yet.
         await expect(plugin.execute(id))
@@ -2342,7 +2755,13 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        await plugin.createProposal(
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2351,7 +2770,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote two times for `Yes` as Alice.
         await plugin.connect(alice).vote(id, VoteOption.Yes, false);
@@ -2399,7 +2817,13 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        await plugin.createProposal(
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2408,7 +2832,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote with enough votes so that the vote is already decided.
         await voteWithSigners(plugin, id, {
@@ -2438,8 +2861,13 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2448,7 +2876,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote with enough votes so that the support threshold and minimal participation are met.
         await voteWithSigners(plugin, id, {
@@ -2488,7 +2915,13 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        await plugin.createProposal(
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2497,7 +2930,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Vote 40 votes for `Yes`. The proposal can still get defeated if the remaining 60 votes vote for `No`.
         await voteWithSigners(plugin, id, {
@@ -2537,7 +2969,13 @@ describe('TokenVoting', function () {
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
-        await plugin.createProposal(
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2546,7 +2984,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // Check that it cannot be executed because the vote is not decided yet.
         await expect(plugin.execute(id))
@@ -2665,8 +3102,13 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2675,7 +3117,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         await plugin.connect(alice).vote(id, VoteOption.Yes, false);
 
@@ -2702,8 +3143,13 @@ describe('TokenVoting', function () {
         } = await loadFixture(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2712,7 +3158,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         await voteWithSigners(plugin, id, {
           yes: [alice, carol], // 20 votes
@@ -2745,8 +3190,13 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2755,7 +3205,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         await voteWithSigners(plugin, id, {
           yes: [alice], // 10 votes
@@ -2788,8 +3237,13 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2798,7 +3252,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         await voteWithSigners(plugin, id, {
           yes: [alice, dave, eve], // 30 votes
@@ -2829,8 +3282,13 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2839,7 +3297,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         await voteWithSigners(plugin, id, {
           yes: [alice, bob, carol], // 30 votes
@@ -2874,8 +3331,13 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2884,7 +3346,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         await voteWithSigners(plugin, id, {
           yes: [alice, bob, carol, dave, eve], // 50 votes
@@ -2973,8 +3434,13 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -2983,7 +3449,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         // does not execute early
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
@@ -3006,8 +3471,13 @@ describe('TokenVoting', function () {
           dummyActions,
         } = await loadFixture(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
 
-        await plugin.createProposal(
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
           dummyMetadata,
           dummyActions,
           0,
@@ -3016,7 +3486,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-        const id = 0;
 
         await plugin.connect(alice).vote(id, VoteOption.Yes, false);
 
@@ -3117,9 +3586,14 @@ describe('TokenVoting', function () {
             dummyActions,
           } = await loadFixture(localFixture);
           const endDate = (await time.latest()) + TIME.DAY;
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
 
           // Create a proposal.
-          await plugin.createProposal(
+          await plugin[CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -3128,7 +3602,6 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-          const id = 0;
 
           // Vote `Yes` with Alice who has 99.9999% of the voting power.
           await plugin.connect(alice).vote(id, VoteOption.Yes, false);
@@ -3172,7 +3645,13 @@ describe('TokenVoting', function () {
 
           // Create a proposal.
           const endDate = (await time.latest()) + TIME.DAY;
-          await plugin.createProposal(
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
+
+          await plugin[CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -3181,7 +3660,6 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-          const id = 0;
 
           //Vote `Yes` with Alice who has 99.9999% of the total supply.
           await plugin.connect(alice).vote(id, VoteOption.Yes, false);
@@ -3275,8 +3753,13 @@ describe('TokenVoting', function () {
             dummyActions,
           } = await loadFixture(localFixture);
           const endDate = (await time.latest()) + TIME.DAY;
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
 
-          await plugin.createProposal(
+          await plugin[CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -3285,7 +3768,6 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-          const id = 0;
 
           await plugin.connect(alice).vote(id, VoteOption.Yes, false);
 
@@ -3317,8 +3799,13 @@ describe('TokenVoting', function () {
             dummyActions,
           } = await loadFixture(localFixture);
           const endDate = (await time.latest()) + TIME.DAY;
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
 
-          await plugin.createProposal(
+          await plugin[CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -3327,7 +3814,6 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-          const id = 0;
 
           await plugin.connect(alice).vote(id, VoteOption.Yes, false);
           expect(await plugin.isMinParticipationReached(id)).to.be.false;
@@ -3384,8 +3870,14 @@ describe('TokenVoting', function () {
           // Check that Alice has one more vote than Bob.
           expect(balanceAlice.sub(balanceBob)).to.eq(1);
 
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
+
           // Create a proposal.
-          await plugin.createProposal(
+          await plugin[CREATE_PROPOSAL_SIGNATURE](
             dummyMetadata,
             dummyActions,
             0,
@@ -3394,7 +3886,6 @@ describe('TokenVoting', function () {
             VoteOption.None,
             false
           );
-          const id = 0;
 
           // Check that Alice and Bob's balances add up to the total voting power.
           const snapshotBlock = (await plugin.getProposal(id)).parameters

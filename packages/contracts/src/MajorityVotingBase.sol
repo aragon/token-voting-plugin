@@ -12,6 +12,9 @@ import {ProposalUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/exte
 import {RATIO_BASE, RatioOutOfBounds} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
 import {PluginUUPSUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/PluginUUPSUpgradeable.sol";
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
+import {Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+import {MetadataExtensionUpgradeable} from "@aragon/osx-commons-contracts/src/utils/metadata/MetadataExtensionUpgradeable.sol";
 
 import {IMajorityVoting} from "./IMajorityVoting.sol";
 
@@ -120,6 +123,7 @@ abstract contract MajorityVotingBase is
     IMajorityVoting,
     Initializable,
     ERC165Upgradeable,
+    MetadataExtensionUpgradeable,
     PluginUUPSUpgradeable,
     ProposalUpgradeable
 {
@@ -173,9 +177,10 @@ abstract contract MajorityVotingBase is
         ProposalParameters parameters;
         Tally tally;
         mapping(address => IMajorityVoting.VoteOption) voters;
-        IDAO.Action[] actions;
+        Action[] actions;
         uint256 allowFailureMap;
         uint256 minApprovalPower;
+        TargetConfig targetConfig; // added in v1.3
     }
 
     /// @notice A container for the proposal parameters at the time of proposal creation.
@@ -214,11 +219,18 @@ abstract contract MajorityVotingBase is
             this.getProposal.selector ^
             this.updateVotingSettings.selector ^
             this.updateMinApprovals.selector ^
-            this.createProposal.selector;
+            bytes4(
+                keccak256(
+                    "createProposal(bytes,(address,uint256,bytes)[],uint256,uint64,uint64,uint8,bool)"
+                )
+            );
 
     /// @notice The ID of the permission required to call the `updateVotingSettings` function.
     bytes32 public constant UPDATE_VOTING_SETTINGS_PERMISSION_ID =
         keccak256("UPDATE_VOTING_SETTINGS_PERMISSION");
+
+    /// @notice The ID of the permission required to call the `addAddresses` and `removeAddresses` functions.
+    bytes32 public constant CREATE_PROPOSAL_PERMISSION_ID = keccak256("CREATE_PROPOSAL_PERMISSION");
 
     /// @notice A mapping between proposal IDs and proposal information.
     // solhint-disable-next-line named-parameters-mapping
@@ -259,6 +271,10 @@ abstract contract MajorityVotingBase is
     /// @param proposalId The ID of the proposal.
     error ProposalExecutionForbidden(uint256 proposalId);
 
+    /// @notice Thrown if the proposal with same actions and metadata already exists.
+    /// @param proposalId The id of the proposal.
+    error ProposalAlreadyExists(uint256 proposalId);
+
     /// @notice Emitted when the voting settings are updated.
     /// @param votingMode A parameter to select the vote mode.
     /// @param supportThreshold The support threshold value.
@@ -285,11 +301,15 @@ abstract contract MajorityVotingBase is
     function __MajorityVotingBase_init(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
-        uint256 _minApprovals
+        TargetConfig calldata _targetConfig,
+        uint256 _minApprovals,
+        bytes calldata _pluginMetadata
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
         _updateMinApprovals(_minApprovals);
+        _setTargetConfig(_targetConfig);
+        _setMetadata(_pluginMetadata);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -301,12 +321,17 @@ abstract contract MajorityVotingBase is
         public
         view
         virtual
-        override(ERC165Upgradeable, PluginUUPSUpgradeable, ProposalUpgradeable)
+        override(
+            ERC165Upgradeable,
+            MetadataExtensionUpgradeable,
+            PluginUUPSUpgradeable,
+            ProposalUpgradeable
+        )
         returns (bool)
     {
         // In addition to the current IMajorityVoting interface, also support previous version
-        // that did not include the isMinApprovalReached() and minApproval() functions, same
-        // happens with MAJORITY_VOTING_BASE_INTERFACE which did not included updateMinApprovals().
+        // that did not include the `isMinApprovalReached` and `minApproval` functions, same
+        // happens with MAJORITY_VOTING_BASE_INTERFACE which did not include `updateMinApprovals`.
         return
             _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ||
             _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ^ this.updateMinApprovals.selector ||
@@ -362,7 +387,9 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IMajorityVoting
-    function canExecute(uint256 _proposalId) public view virtual returns (bool) {
+    function canExecute(
+        uint256 _proposalId
+    ) public view virtual override(IMajorityVoting, IProposal) returns (bool) {
         return _canExecute(_proposalId);
     }
 
@@ -469,7 +496,7 @@ abstract contract MajorityVotingBase is
             bool executed,
             ProposalParameters memory parameters,
             Tally memory tally,
-            IDAO.Action[] memory actions,
+            Action[] memory actions,
             uint256 allowFailureMap
         )
     {
@@ -491,7 +518,6 @@ abstract contract MajorityVotingBase is
         _updateVotingSettings(_votingSettings);
     }
 
-    // todo TBD define if permission should be the same one as update settings
     /// @notice Updates the minimal approval value.
     /// @param _minApprovals The new minimal approval value.
     function updateMinApprovals(
@@ -517,7 +543,7 @@ abstract contract MajorityVotingBase is
     /// @return proposalId The ID of the proposal.
     function createProposal(
         bytes calldata _metadata,
-        IDAO.Action[] calldata _actions,
+        Action[] calldata _actions,
         uint256 _allowFailureMap,
         uint64 _startDate,
         uint64 _endDate,
@@ -540,14 +566,19 @@ abstract contract MajorityVotingBase is
     /// @notice Internal function to execute a vote. It assumes the queried proposal exists.
     /// @param _proposalId The ID of the proposal.
     function _execute(uint256 _proposalId) internal virtual {
-        proposals[_proposalId].executed = true;
+        Proposal storage proposal_ = proposals[_proposalId];
 
-        _executeProposal(
-            dao(),
-            _proposalId,
-            proposals[_proposalId].actions,
-            proposals[_proposalId].allowFailureMap
+        proposal_.executed = true;
+
+        _execute(
+            proposal_.targetConfig.target,
+            bytes32(_proposalId),
+            proposal_.actions,
+            proposal_.allowFailureMap,
+            proposal_.targetConfig.operation
         );
+
+        emit ProposalExecuted(_proposalId);
     }
 
     /// @notice Internal function to check if a voter can vote. It assumes the queried proposal exists.
