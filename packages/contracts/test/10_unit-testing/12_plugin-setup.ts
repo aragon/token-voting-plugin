@@ -397,8 +397,8 @@ describe('TokenVotingSetup', function () {
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(2);
       expect(helpers).to.be.deep.equal([
-        anticipatedWrappedTokenAddress,
         anticipatedCondition,
+        anticipatedWrappedTokenAddress,
       ]);
       expect(permissions.length).to.be.equal(5);
       expect(permissions).to.deep.equal([
@@ -577,8 +577,8 @@ describe('TokenVotingSetup', function () {
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(2);
       expect(helpers).to.be.deep.equal([
-        governanceERC20.address,
         anticipatedCondition,
+        governanceERC20.address,
       ]);
       expect(permissions.length).to.be.equal(5);
       expect(permissions).to.deep.equal([
@@ -661,8 +661,8 @@ describe('TokenVotingSetup', function () {
       expect(plugin).to.be.equal(anticipatedPluginAddress);
       expect(helpers.length).to.be.equal(2);
       expect(helpers).to.be.deep.equal([
-        anticipatedTokenAddress,
         anticipatedCondition,
+        anticipatedTokenAddress,
       ]);
       expect(permissions.length).to.be.equal(6);
       expect(permissions).to.deep.equal([

@@ -257,7 +257,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
     expect(await plugin.isMember(alice.address)).to.be.false;
     expect(await plugin.isMember(deployer.address)).to.be.true;
 
-    const condition = results.preparedEvent.args.preparedSetupData.helpers[1];
+    const condition = results.preparedEvent.args.preparedSetupData.helpers[0];
 
     // Uninstall the current build.
     await uninstallPLugin(
@@ -272,7 +272,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
         ),
         []
       ),
-      [pluginToken, condition]
+      [condition, pluginToken]
     );
   });
 
@@ -344,7 +344,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
     expect(await plugin.isMember(alice.address)).to.be.true;
     expect(await plugin.isMember(deployer.address)).to.be.false;
 
-    const condition = results.preparedEvent.args.preparedSetupData.helpers[1];
+    const condition = results.preparedEvent.args.preparedSetupData.helpers[0];
 
     // Uninstall the current build.
     await uninstallPLugin(
@@ -359,7 +359,7 @@ describe(`PluginSetup processing on network '${productionNetworkName}'`, functio
         ),
         []
       ),
-      [pluginToken, condition]
+      [condition, pluginToken]
     );
   });
 

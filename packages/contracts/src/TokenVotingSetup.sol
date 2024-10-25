@@ -169,8 +169,8 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
         );
 
         preparedSetupData.helpers = new address[](2);
-        preparedSetupData.helpers[0] = token;
-        preparedSetupData.helpers[1] = address(new VotingPowerCondition(plugin));
+        preparedSetupData.helpers[0] = address(new VotingPowerCondition(plugin));
+        preparedSetupData.helpers[1] = token;
 
         // Prepare permissions
         PermissionLib.MultiTargetPermission[]
@@ -201,7 +201,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             PermissionLib.Operation.GrantWithCondition,
             plugin,
             address(type(uint160).max), // ANY_ADDR
-            preparedSetupData.helpers[1], // VotingPowerCondition
+            preparedSetupData.helpers[0], // VotingPowerCondition
             TokenVoting(IMPLEMENTATION).CREATE_PROPOSAL_PERMISSION_ID()
         );
 
