@@ -2168,7 +2168,7 @@ describe('TokenVoting', function () {
           .withArgs(id);
       });
 
-      it.only('can not execute even if participation and support are met when caller does not have permission', async () => {
+      it('can not execute even if participation and support are met when caller does not have permission', async () => {
         const {
           alice,
           bob,

@@ -49,6 +49,10 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     /// @notice The ID of the permission required to call the `upgradeToAndCall` function.
     bytes32 internal constant UPGRADE_PLUGIN_PERMISSION_ID = keccak256("UPGRADE_PLUGIN_PERMISSION");
 
+    /// @notice The ID of the permission required to call the `execute` function.
+    bytes32 internal constant EXECUTE_PROPOSAL_PERMISSION_ID =
+        keccak256("EXECUTE_PROPOSAL_PERMISSION");
+
     /// @notice A special address encoding permissions that are valid for any address `who` or `where`.
     address internal constant ANY_ADDR = address(type(uint160).max);
 
@@ -203,7 +207,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
         permissions[2] = PermissionLib.MultiTargetPermission(
             PermissionLib.Operation.GrantWithCondition,
             plugin,
-            ANY_ADDR, // ANY_ADDR
+            ANY_ADDR,
             preparedSetupData.helpers[0], // VotingPowerCondition
             TokenVoting(IMPLEMENTATION).CREATE_PROPOSAL_PERMISSION_ID()
         );
@@ -229,7 +233,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             where: plugin,
             who: ANY_ADDR,
             condition: PermissionLib.NO_CONDITION,
-            permissionId: TokenVoting(IMPLEMENTATION).EXECUTE_PROPOSAL_PERMISSION_ID()
+            permissionId: EXECUTE_PROPOSAL_PERMISSION_ID
         });
 
         if (tokenSettings.addr == address(0)) {
@@ -301,7 +305,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                 where: _payload.plugin,
                 who: ANY_ADDR,
                 condition: PermissionLib.NO_CONDITION,
-                permissionId: TokenVoting(IMPLEMENTATION).EXECUTE_PROPOSAL_PERMISSION_ID()
+                permissionId: EXECUTE_PROPOSAL_PERMISSION_ID
             });
 
             preparedSetupData.permissions = permissions;
@@ -366,7 +370,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             where: _payload.plugin,
             who: ANY_ADDR,
             condition: PermissionLib.NO_CONDITION,
-            permissionId: TokenVoting(IMPLEMENTATION).EXECUTE_PROPOSAL_PERMISSION_ID()
+            permissionId: EXECUTE_PROPOSAL_PERMISSION_ID
         });
     }
 

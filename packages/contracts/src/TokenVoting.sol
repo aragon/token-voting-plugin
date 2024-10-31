@@ -269,7 +269,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
         if (
             _canExecute(_proposalId) &&
-            dao().hasPermission(address(this), _voter, EXECUTE_PROPOSAL_PERMISSION_ID, msg.data)
+            dao().hasPermission(address(this), _voter, EXECUTE_PROPOSAL_PERMISSION_ID, _msgData())
         ) {
             _execute(_proposalId);
         }
