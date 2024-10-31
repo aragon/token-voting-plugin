@@ -2167,6 +2167,64 @@ describe('TokenVoting', function () {
           .to.be.revertedWithCustomError(plugin, 'ProposalExecutionForbidden')
           .withArgs(id);
       });
+
+      it.only('can not execute even if participation and support are met when caller does not have permission', async () => {
+        const {
+          alice,
+          bob,
+          carol,
+          dave,
+          eve,
+          frank,
+          grace,
+          initializedPlugin: plugin,
+          dummyMetadata,
+          dummyActions,
+          dao,
+        } = await loadFixture(localFixture);
+
+        const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        // Create a proposal.
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
+          dummyMetadata,
+          dummyActions,
+          0,
+          0,
+          endDate,
+          VoteOption.None,
+          false
+        );
+
+        // Vote with enough voters so that the execution criteria are met.
+        await voteWithSigners(plugin, id, {
+          yes: [alice, bob, carol], // 30 votes
+          no: [dave, eve], // 20 votes
+          abstain: [frank, grace], // 20 votes
+        });
+
+        // Wait until the vote is over.
+        await time.increaseTo(endDate);
+
+        // Check that the proposal can be executed.
+        expect(await plugin.isSupportThresholdReached(id)).to.be.true;
+        expect(await plugin.isMinParticipationReached(id)).to.be.true;
+        expect(await plugin.canExecute(id)).to.equal(true);
+
+        await expect(plugin.connect(alice).execute(id))
+          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+          .withArgs(
+            dao.address,
+            plugin.address,
+            alice.address,
+            EXECUTE_PROPOSAL_PERMISSION_ID
+          );
+      });
     });
 
     describe('Early Execution', async () => {
