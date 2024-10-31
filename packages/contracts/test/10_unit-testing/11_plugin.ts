@@ -199,23 +199,10 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     deployer
   );
 
-  // Grant deployer the permission to execute proposals
+  // Grant ANY_ADDR the permission to execute proposals
   await dao
     .connect(deployer)
-    .grant(
-      initializedPlugin.address,
-      deployer.address,
-      EXECUTE_PROPOSAL_PERMISSION_ID
-    );
-
-  // Grant grace the permission to execute proposals
-  await dao
-    .connect(deployer)
-    .grant(
-      initializedPlugin.address,
-      grace.address,
-      EXECUTE_PROPOSAL_PERMISSION_ID
-    );
+    .grant(initializedPlugin.address, ANY_ADDR, EXECUTE_PROPOSAL_PERMISSION_ID);
 
   // Grant deployer the permission to update the voting settings
   await dao
@@ -2216,6 +2203,13 @@ describe('TokenVoting', function () {
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
 
+        // Revoke execute permission from ANY_ADDR
+        await dao.revoke(
+          plugin.address,
+          ANY_ADDR,
+          EXECUTE_PROPOSAL_PERMISSION_ID
+        );
+
         await expect(plugin.connect(alice).execute(id))
           .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
           .withArgs(
@@ -2722,6 +2716,65 @@ describe('TokenVoting', function () {
         await expect(plugin.execute(id))
           .to.be.revertedWithCustomError(plugin, 'ProposalExecutionForbidden')
           .withArgs(id);
+      });
+
+      it.only('record vote correctly without executing even when tryEarlyExecution options is selected', async () => {
+        const {
+          alice,
+          bob,
+          carol,
+          dave,
+          eve,
+          frank,
+          grace,
+          dao,
+          initializedPlugin: plugin,
+          dummyMetadata,
+          dummyActions,
+        } = await loadFixture(localFixture);
+
+        // Create a Proposal.
+        const endDate = (await time.latest()) + TIME.DAY;
+        const id = await createProposalId(
+          plugin.address,
+          dummyActions,
+          dummyMetadata
+        );
+
+        await plugin[CREATE_PROPOSAL_SIGNATURE](
+          dummyMetadata,
+          dummyActions,
+          0,
+          0,
+          endDate,
+          VoteOption.None,
+          false
+        );
+
+        // Vote 40 votes for `Yes`. The proposal can still get defeated if the remaining 60 votes vote for `No`.
+        await voteWithSigners(plugin, id, {
+          yes: [alice, bob, carol, dave, eve], // 50 votes
+          no: [], // 0 votes
+          abstain: [], // 0 votes
+        });
+
+        // Check that the proposal cannot be early executed and didn't execute yet.
+        expect((await plugin.getProposal(id)).executed).to.equal(false);
+        expect(await plugin.canExecute(id)).to.equal(false);
+
+        // Revoke execute permission from ANY_ADDR
+        await dao.revoke(
+          plugin.address,
+          ANY_ADDR,
+          EXECUTE_PROPOSAL_PERMISSION_ID
+        );
+
+        // Vote `Yes` with Frank with `tryEarlyExecution` being turned on.
+        // The vote is decided now, but proposal should not be executed yet.
+        await plugin.connect(frank).vote(id, VoteOption.Yes, true);
+        // Check that the proposal can be executed but didn't execute yet.
+        expect((await plugin.getProposal(id)).executed).to.equal(false);
+        expect(await plugin.canExecute(id)).to.equal(true);
       });
     });
 
