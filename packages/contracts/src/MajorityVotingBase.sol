@@ -229,10 +229,10 @@ abstract contract MajorityVotingBase is
     bytes32 public constant UPDATE_VOTING_SETTINGS_PERMISSION_ID =
         keccak256("UPDATE_VOTING_SETTINGS_PERMISSION");
 
-    /// @notice The ID of the permission required to call the `addAddresses` and `removeAddresses` functions.
+    /// @notice The ID of the permission required to call the `createProposal` functions.
     bytes32 public constant CREATE_PROPOSAL_PERMISSION_ID = keccak256("CREATE_PROPOSAL_PERMISSION");
 
-    /// @notice The ID of the permission required to call the `addAddresses` and `removeAddresses` functions.
+    /// @notice The ID of the permission required to call the `execute` functions.
     bytes32 public constant EXECUTE_PROPOSAL_PERMISSION_ID =
         keccak256("EXECUTE_PROPOSAL_PERMISSION");
 
