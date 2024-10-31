@@ -27,6 +27,7 @@ import {
 import {
   TOKEN_VOTING_INTERFACE,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
+  EXECUTE_PROPOSAL_PERMISSION_ID,
   INITIALIZE_SIGNATURE,
   INITIALIZE_SIGNATURE_OLD,
   Operation,
@@ -197,6 +198,24 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     proxyCreatedEvent1.args.proxy,
     deployer
   );
+
+  // Grant deployer the permission to execute proposals
+  await dao
+    .connect(deployer)
+    .grant(
+      initializedPlugin.address,
+      deployer.address,
+      EXECUTE_PROPOSAL_PERMISSION_ID
+    );
+
+  // Grant grace the permission to execute proposals
+  await dao
+    .connect(deployer)
+    .grant(
+      initializedPlugin.address,
+      grace.address,
+      EXECUTE_PROPOSAL_PERMISSION_ID
+    );
 
   // Grant deployer the permission to update the voting settings
   await dao

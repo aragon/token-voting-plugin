@@ -15,6 +15,10 @@ export const MAJORITY_VOTING_BASE_INTERFACE = new ethers.utils.Interface([
   'function createProposal(bytes,tuple(address,uint256,bytes)[],uint256,uint64,uint64,uint8,bool)',
 ]);
 
+export const EXECUTE_PROPOSAL_PERMISSION_ID = ethers.utils.id(
+  'EXECUTE_PROPOSAL_PERMISSION'
+);
+
 export const UPDATE_VOTING_SETTINGS_PERMISSION_ID = ethers.utils.id(
   'UPDATE_VOTING_SETTINGS_PERMISSION'
 );
