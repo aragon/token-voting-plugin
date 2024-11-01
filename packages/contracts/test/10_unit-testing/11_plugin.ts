@@ -2718,7 +2718,7 @@ describe('TokenVoting', function () {
           .withArgs(id);
       });
 
-      it.only('record vote correctly without executing even when tryEarlyExecution options is selected', async () => {
+      it('record vote correctly without executing even when tryEarlyExecution options is selected', async () => {
         const {
           alice,
           bob,
