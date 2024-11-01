@@ -229,8 +229,12 @@ abstract contract MajorityVotingBase is
     bytes32 public constant UPDATE_VOTING_SETTINGS_PERMISSION_ID =
         keccak256("UPDATE_VOTING_SETTINGS_PERMISSION");
 
-    /// @notice The ID of the permission required to call the `addAddresses` and `removeAddresses` functions.
+    /// @notice The ID of the permission required to call the `createProposal` functions.
     bytes32 public constant CREATE_PROPOSAL_PERMISSION_ID = keccak256("CREATE_PROPOSAL_PERMISSION");
+
+    /// @notice The ID of the permission required to call the `execute` function.
+    bytes32 public constant EXECUTE_PROPOSAL_PERMISSION_ID =
+        keccak256("EXECUTE_PROPOSAL_PERMISSION");
 
     /// @notice A mapping between proposal IDs and proposal information.
     // solhint-disable-next-line named-parameters-mapping
@@ -362,7 +366,7 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IMajorityVoting
-    function execute(uint256 _proposalId) public virtual {
+    function execute(uint256 _proposalId) public virtual auth(EXECUTE_PROPOSAL_PERMISSION_ID) {
         if (!_canExecute(_proposalId)) {
             revert ProposalExecutionForbidden(_proposalId);
         }

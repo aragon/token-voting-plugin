@@ -21,6 +21,7 @@ import {
   TargetConfig,
   SET_METADATA_PERMISSION_ID,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
+  EXECUTE_PROPOSAL_PERMISSION_ID,
 } from '../test-utils/token-voting-constants';
 import {Operation as Op} from '../test-utils/token-voting-constants';
 import {
@@ -400,7 +401,7 @@ describe('TokenVotingSetup', function () {
         anticipatedCondition,
         anticipatedWrappedTokenAddress,
       ]);
-      expect(permissions.length).to.be.equal(5);
+      expect(permissions.length).to.be.equal(6);
       expect(permissions).to.deep.equal([
         [
           Operation.Grant,
@@ -436,6 +437,13 @@ describe('TokenVotingSetup', function () {
           dao.address,
           AddressZero,
           SET_METADATA_PERMISSION_ID,
+        ],
+        [
+          Operation.Grant,
+          plugin,
+          ANY_ADDR,
+          AddressZero,
+          EXECUTE_PROPOSAL_PERMISSION_ID,
         ],
       ]);
     });
@@ -580,7 +588,7 @@ describe('TokenVotingSetup', function () {
         anticipatedCondition,
         governanceERC20.address,
       ]);
-      expect(permissions.length).to.be.equal(5);
+      expect(permissions.length).to.be.equal(6);
       expect(permissions).to.deep.equal([
         [
           Operation.Grant,
@@ -616,6 +624,13 @@ describe('TokenVotingSetup', function () {
           dao.address,
           AddressZero,
           SET_METADATA_PERMISSION_ID,
+        ],
+        [
+          Operation.Grant,
+          plugin,
+          ANY_ADDR,
+          AddressZero,
+          EXECUTE_PROPOSAL_PERMISSION_ID,
         ],
       ]);
     });
@@ -664,7 +679,7 @@ describe('TokenVotingSetup', function () {
         anticipatedCondition,
         anticipatedTokenAddress,
       ]);
-      expect(permissions.length).to.be.equal(6);
+      expect(permissions.length).to.be.equal(7);
       expect(permissions).to.deep.equal([
         [
           Operation.Grant,
@@ -700,6 +715,13 @@ describe('TokenVotingSetup', function () {
           dao.address,
           AddressZero,
           SET_METADATA_PERMISSION_ID,
+        ],
+        [
+          Operation.Grant,
+          plugin,
+          ANY_ADDR,
+          AddressZero,
+          EXECUTE_PROPOSAL_PERMISSION_ID,
         ],
         [
           Operation.Grant,
@@ -858,7 +880,7 @@ describe('TokenVotingSetup', function () {
       });
 
       expect(helpers).to.deep.equal([anticipatedCondition]);
-      expect(permissions.length).to.be.eql(4);
+      expect(permissions.length).to.be.eql(5);
       expect(permissions).to.deep.equal([
         [
           Operation.Revoke,
@@ -881,13 +903,19 @@ describe('TokenVotingSetup', function () {
           AddressZero,
           SET_TARGET_CONFIG_PERMISSION_ID,
         ],
-
         [
           Operation.Grant,
           plugin,
           dao.address,
           AddressZero,
           SET_METADATA_PERMISSION_ID,
+        ],
+        [
+          Operation.Grant,
+          plugin,
+          ANY_ADDR,
+          AddressZero,
+          EXECUTE_PROPOSAL_PERMISSION_ID,
         ],
       ]);
     });
@@ -944,7 +972,7 @@ describe('TokenVotingSetup', function () {
         )
       );
       expect(helpers).to.be.eql([anticipatedCondition]);
-      expect(permissions.length).to.be.eql(4);
+      expect(permissions.length).to.be.eql(5);
       expect(permissions).to.deep.equal([
         [
           Operation.Revoke,
@@ -973,6 +1001,13 @@ describe('TokenVotingSetup', function () {
           dao.address,
           AddressZero,
           SET_METADATA_PERMISSION_ID,
+        ],
+        [
+          Operation.Grant,
+          plugin,
+          ANY_ADDR,
+          AddressZero,
+          EXECUTE_PROPOSAL_PERMISSION_ID,
         ],
       ]);
     });
@@ -1080,9 +1115,16 @@ describe('TokenVotingSetup', function () {
           AddressZero,
           CREATE_PROPOSAL_PERMISSION_ID,
         ],
+        [
+          Operation.Revoke,
+          plugin,
+          ANY_ADDR,
+          AddressZero,
+          EXECUTE_PROPOSAL_PERMISSION_ID,
+        ],
       ];
 
-      expect(permissions1.length).to.be.equal(5);
+      expect(permissions1.length).to.be.equal(6);
       expect(permissions1).to.deep.equal(essentialPermissions);
 
       const permissions2 = await pluginSetup.callStatic.prepareUninstallation(
@@ -1094,7 +1136,7 @@ describe('TokenVotingSetup', function () {
         }
       );
 
-      expect(permissions2.length).to.be.equal(5);
+      expect(permissions2.length).to.be.equal(6);
       expect(permissions2).to.deep.equal(essentialPermissions);
     });
   });
