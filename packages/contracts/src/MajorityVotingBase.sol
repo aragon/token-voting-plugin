@@ -261,6 +261,10 @@ abstract contract MajorityVotingBase is
     /// @param sender The sender address.
     error ProposalCreationForbidden(address sender);
 
+    /// @notice Thrown when a proposal doesn't exist.
+    /// @param proposalId The ID of the proposal which doesn't exist.
+    error NonexistentProposal(uint256 proposalId);
+
     /// @notice Thrown if an account is not allowed to cast a vote. This can be because the vote
     /// - has not started,
     /// - has ended,
@@ -387,6 +391,10 @@ abstract contract MajorityVotingBase is
         address _voter,
         VoteOption _voteOption
     ) public view virtual returns (bool) {
+        if (!_proposalExists(_proposalId)) {
+            revert NonexistentProposal(_proposalId);
+        }
+
         return _canVote(_proposalId, _voter, _voteOption);
     }
 
@@ -394,11 +402,19 @@ abstract contract MajorityVotingBase is
     function canExecute(
         uint256 _proposalId
     ) public view virtual override(IMajorityVoting) returns (bool) {
+        if (!_proposalExists(_proposalId)) {
+            revert NonexistentProposal(_proposalId);
+        }
+
         return _canExecute(_proposalId);
     }
 
     /// @inheritdoc IProposal
     function hasSucceeded(uint256 _proposalId) public view virtual returns (bool) {
+        if (!_proposalExists(_proposalId)) {
+            revert NonexistentProposal(_proposalId);
+        }
+
         return _hasSucceeded(_proposalId);
     }
 
@@ -412,6 +428,8 @@ abstract contract MajorityVotingBase is
             (RATIO_BASE - proposal_.parameters.supportThreshold) * proposal_.tally.yes >
             proposal_.parameters.supportThreshold * proposal_.tally.no;
     }
+
+    // is it possible that isSupportThresholdReachedEarly returns true, where isSupportThresholdReached returns false
 
     /// @inheritdoc IMajorityVoting
     function isSupportThresholdReachedEarly(
@@ -693,6 +711,13 @@ abstract contract MajorityVotingBase is
             minDuration: _votingSettings.minDuration,
             minProposerVotingPower: _votingSettings.minProposerVotingPower
         });
+    }
+
+    /// @notice Checks if proposal exists or not.
+    /// @param _proposalId The ID of the proposal.
+    /// @return Returns `true` if proposal exists, otherwise false.
+    function _proposalExists(uint256 _proposalId) private view returns (bool) {
+        return proposals[_proposalId].parameters.snapshotBlock != 0;
     }
 
     /// @notice Internal function to update minimal approval value.

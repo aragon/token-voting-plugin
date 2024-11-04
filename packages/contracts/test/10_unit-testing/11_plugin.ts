@@ -1483,8 +1483,10 @@ describe('TokenVoting', function () {
       expect(proposal.tally.no).to.equal(0);
       expect(proposal.tally.abstain).to.equal(0);
 
-      expect(await plugin.canVote(1, alice.address, VoteOption.Yes)).to.equal(
-        false
+      expect(await plugin.canVote(id, alice.address, VoteOption.Yes)).to.be
+        .true;
+      expect(await plugin.getVoteOption(id, alice.address)).to.equal(
+        VoteOption.None
       );
 
       expect(proposal.actions.length).to.equal(1);
@@ -1649,6 +1651,24 @@ describe('TokenVoting', function () {
         dummyMetadata: string;
       }>
     ) {
+      it('reverts if proposal does not exist', async () => {
+        const {initializedPlugin: plugin} = await loadFixture(localFixture);
+
+        const id = 10;
+
+        await expect(plugin.canExecute(id))
+          .to.be.revertedWithCustomError(plugin, 'NonexistentProposal')
+          .withArgs(id);
+
+        await expect(plugin.canVote(id, plugin.address, VoteOption.Yes))
+          .to.be.revertedWithCustomError(plugin, 'NonexistentProposal')
+          .withArgs(id);
+
+        await expect(plugin.hasSucceeded(id))
+          .to.be.revertedWithCustomError(plugin, 'NonexistentProposal')
+          .withArgs(id);
+      });
+
       it('does not allow voting, when the vote has not started yet', async () => {
         const {
           alice,
