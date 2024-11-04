@@ -2010,6 +2010,8 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(false);
+        // Still return false as voting mode is Standard and proposal is still open.
+        expect(await plugin.hasSucceeded(id)).to.be.false;
       });
 
       it('can execute normally if participation and support are met', async () => {
@@ -2062,6 +2064,8 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
+
+        expect(await plugin.hasSucceeded(id)).to.be.true;
       });
 
       it('does not execute early when voting with the `tryEarlyExecution` option', async () => {
@@ -2413,6 +2417,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
+        expect(await plugin.hasSucceeded(id)).to.be.true;
 
         // Advance time after the end date.
         await time.increaseTo(endDate);
@@ -2421,6 +2426,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
+        expect(await plugin.hasSucceeded(id)).to.be.true;
       });
 
       it('can execute normally if participation is large enough', async () => {
@@ -2464,11 +2470,15 @@ describe('TokenVoting', function () {
           abstain: [ivan], // 10 votes
         });
 
+        expect(await plugin.hasSucceeded(id)).to.be.true;
+
         // Advance after the end date.
         await time.increaseTo(endDate);
 
         // Check that the vote is executable because support > 50%, participation > 20%, and the voting period is over.
         expect(await plugin.canExecute(id)).to.equal(true);
+
+        expect(await plugin.hasSucceeded(id)).to.be.true;
       });
 
       it('cannot execute normally if participation is too low', async () => {
@@ -2517,6 +2527,7 @@ describe('TokenVoting', function () {
 
         // Check that the vote is not executable because the participation with 19% is still too low, despite a support of 67% and the voting period being over.
         expect(await plugin.canExecute(id)).to.equal(false);
+        expect(await plugin.hasSucceeded(id)).to.be.false;
       });
 
       it('executes target with delegate call', async () => {
@@ -2596,6 +2607,9 @@ describe('TokenVoting', function () {
         await expect(plugin.execute(id))
           .to.emit(pluginMerged, 'ExecutedCustom')
           .to.emit(pluginMerged, 'ProposalExecuted');
+
+        // It still should return `true` even if proposal has executed.
+        expect(await plugin.hasSucceeded(id)).to.be.true;
       });
 
       it('executes the vote immediately when the vote is decided early and the tryEarlyExecution options is selected', async () => {
@@ -2974,6 +2988,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(false);
+        expect(await plugin.hasSucceeded(id)).to.be.false;
       });
 
       it('can execute normally if participation and support are met', async () => {
@@ -3019,6 +3034,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(false);
+        expect(await plugin.hasSucceeded(id)).to.be.false;
 
         // Advance time to the end date.
         await time.increaseTo(endDate);
@@ -3027,6 +3043,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
+        expect(await plugin.hasSucceeded(id)).to.be.true;
       });
 
       it('does not execute early when voting with the `tryEarlyExecution` option', async () => {
