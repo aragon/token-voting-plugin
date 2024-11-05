@@ -3,6 +3,7 @@ import {
   SupportedNetworks,
   getLatestNetworkDeployment,
   getNetworkNameByAlias,
+  getPluginEnsDomain,
 } from '@aragon/osx-commons-configs';
 import {UnsupportedNetworkError, findEvent} from '@aragon/osx-commons-sdk';
 import {
@@ -53,12 +54,13 @@ export function getProductionNetworkName(
 }
 
 export function pluginEnsDomain(hre: HardhatRuntimeEnvironment): string {
-  const network = getProductionNetworkName(hre);
-  if (network === SupportedNetworks.SEPOLIA) {
-    return `${PLUGIN_REPO_ENS_SUBDOMAIN_NAME}.plugin.aragon-dao.eth`;
-  } else {
-    return `${PLUGIN_REPO_ENS_SUBDOMAIN_NAME}.plugin.dao.eth`;
+  const network = getNetworkNameByAlias(getProductionNetworkName(hre));
+  if (network === null) {
+    throw new UnsupportedNetworkError(getProductionNetworkName(hre));
   }
+
+  const pluginEnsDomain = getPluginEnsDomain(network);
+  return `${PLUGIN_REPO_ENS_SUBDOMAIN_NAME}.${pluginEnsDomain}`;
 }
 
 export async function findPluginRepo(
