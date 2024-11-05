@@ -23,3 +23,7 @@ export {GovernanceWrappedERC20__factory as GovernanceWrappedERC20_V1_0_0__factor
 export {GovernanceWrappedERC20__factory as GovernanceWrappedERC20_V1_3_0__factory} from '../../typechain/factories/@aragon/osx-v1.3.0/token/ERC20/governance/GovernanceWrappedERC20__factory';
 export {GovernanceWrappedERC20__factory} from '../../typechain/factories/src/ERC20/governance/GovernanceWrappedERC20__factory';
 export {GovernanceWrappedERC20} from '../../typechain/src/ERC20/governance/GovernanceWrappedERC20';
+
+/* Majority Voting Base */
+export {IMajorityVoting__factory as IMajorityVoting_V1_3_0__factory} from '../../typechain/factories/@aragon/osx-v1.0.0/plugins/governance/majority-voting/IMajorityVoting__factory';
+export {MajorityVotingBase__factory} from '../../typechain/factories/src/MajorityVotingBase__factory';

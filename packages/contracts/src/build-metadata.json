@@ -88,6 +88,38 @@
           "name": "mintSettings",
           "type": "tuple",
           "description": "The token mint settings struct containing the `receivers` and `amounts`."
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "target",
+              "type": "address",
+              "description": "The target contract to which actions will be forwarded to for execution."
+            },
+            {
+              "internalType": "uint8",
+              "name": "operation",
+              "type": "uint8",
+              "description": "The operation type(either `call` or `delegatecall`) that will be used for execution forwarding."
+            }
+          ],
+          "internalType": "struct TokenVoting.TargetConfig",
+          "name": "TargetConfig",
+          "type": "tuple",
+          "description": "The initial target config"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minApproval",
+          "type": "uint256",
+          "description": "The minimum amount of yes votes needed for the proposal advance."
+        },
+        {
+          "internalType": "bytes",
+          "name": "metadata",
+          "type": "bytes",
+          "description": "The metadata that contains the information about the multisig."
         }
       ]
     },
@@ -99,6 +131,43 @@
       "2": {
         "description": "No input is required for the update.",
         "inputs": []
+      },
+      "3": {
+        "description": "The information required for the update.",
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "minApprovals",
+            "type": "uint256",
+            "description": "The minimum amount of yes votes needed for the proposal advance."
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "target",
+                "type": "address",
+                "description": "The target contract to which actions will be forwarded to for execution."
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8",
+                "description": "The operation type(either `call` or `delegatecall`) that will be used for execution forwarding."
+              }
+            ],
+            "internalType": "struct TokenVoting.TargetConfig",
+            "name": "TargetConfig",
+            "type": "tuple",
+            "description": "The initial target config"
+          },
+          {
+            "internalType": "bytes",
+            "name": "metadata",
+            "type": "bytes",
+            "description": "The metadata that contains the information about the multisig."
+          }
+        ]
       }
     },
     "prepareUninstallation": {

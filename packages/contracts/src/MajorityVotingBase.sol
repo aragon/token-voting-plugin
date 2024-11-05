@@ -12,6 +12,9 @@ import {ProposalUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/exte
 import {RATIO_BASE, RatioOutOfBounds} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
 import {PluginUUPSUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/PluginUUPSUpgradeable.sol";
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
+import {Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+import {MetadataExtensionUpgradeable} from "@aragon/osx-commons-contracts/src/utils/metadata/MetadataExtensionUpgradeable.sol";
 
 import {IMajorityVoting} from "./IMajorityVoting.sol";
 
@@ -120,6 +123,7 @@ abstract contract MajorityVotingBase is
     IMajorityVoting,
     Initializable,
     ERC165Upgradeable,
+    MetadataExtensionUpgradeable,
     PluginUUPSUpgradeable,
     ProposalUpgradeable
 {
@@ -165,6 +169,7 @@ abstract contract MajorityVotingBase is
     /// @param voters The votes casted by the voters.
     /// @param actions The actions to be executed when the proposal passes.
     /// @param allowFailureMap A bitmap allowing the proposal to succeed, even if individual actions might revert.
+    /// @param minApprovalPower The minimum amount of yes votes power needed for the proposal advance.
     /// If the bit at index `i` is 1, the proposal succeeds even if the `i`th action reverts.
     /// A failure map value of 0 requires every action to not revert.
     struct Proposal {
@@ -172,8 +177,10 @@ abstract contract MajorityVotingBase is
         ProposalParameters parameters;
         Tally tally;
         mapping(address => IMajorityVoting.VoteOption) voters;
-        IDAO.Action[] actions;
+        Action[] actions;
         uint256 allowFailureMap;
+        uint256 minApprovalPower;
+        TargetConfig targetConfig; // added in v1.3
     }
 
     /// @notice A container for the proposal parameters at the time of proposal creation.
@@ -211,11 +218,23 @@ abstract contract MajorityVotingBase is
             this.totalVotingPower.selector ^
             this.getProposal.selector ^
             this.updateVotingSettings.selector ^
-            this.createProposal.selector;
+            this.updateMinApprovals.selector ^
+            bytes4(
+                keccak256(
+                    "createProposal(bytes,(address,uint256,bytes)[],uint256,uint64,uint64,uint8,bool)"
+                )
+            );
 
     /// @notice The ID of the permission required to call the `updateVotingSettings` function.
     bytes32 public constant UPDATE_VOTING_SETTINGS_PERMISSION_ID =
         keccak256("UPDATE_VOTING_SETTINGS_PERMISSION");
+
+    /// @notice The ID of the permission required to call the `createProposal` functions.
+    bytes32 public constant CREATE_PROPOSAL_PERMISSION_ID = keccak256("CREATE_PROPOSAL_PERMISSION");
+
+    /// @notice The ID of the permission required to call the `execute` function.
+    bytes32 public constant EXECUTE_PROPOSAL_PERMISSION_ID =
+        keccak256("EXECUTE_PROPOSAL_PERMISSION");
 
     /// @notice A mapping between proposal IDs and proposal information.
     // solhint-disable-next-line named-parameters-mapping
@@ -223,6 +242,10 @@ abstract contract MajorityVotingBase is
 
     /// @notice The struct storing the voting settings.
     VotingSettings private votingSettings;
+
+    /// @notice The minimal ratio of yes votes needed for a proposal succeed.
+    /// @dev is not on the VotingSettings for compatibility reasons.
+    uint256 private minApprovals; // added in v1.3
 
     /// @notice Thrown if a date is out of bounds.
     /// @param limit The limit value.
@@ -238,6 +261,10 @@ abstract contract MajorityVotingBase is
     /// @param sender The sender address.
     error ProposalCreationForbidden(address sender);
 
+    /// @notice Thrown when a proposal doesn't exist.
+    /// @param proposalId The ID of the proposal which doesn't exist.
+    error NonexistentProposal(uint256 proposalId);
+
     /// @notice Thrown if an account is not allowed to cast a vote. This can be because the vote
     /// - has not started,
     /// - has ended,
@@ -251,6 +278,10 @@ abstract contract MajorityVotingBase is
     /// @notice Thrown if the proposal execution is forbidden.
     /// @param proposalId The ID of the proposal.
     error ProposalExecutionForbidden(uint256 proposalId);
+
+    /// @notice Thrown if the proposal with same actions and metadata already exists.
+    /// @param proposalId The id of the proposal.
+    error ProposalAlreadyExists(uint256 proposalId);
 
     /// @notice Emitted when the voting settings are updated.
     /// @param votingMode A parameter to select the vote mode.
@@ -266,6 +297,10 @@ abstract contract MajorityVotingBase is
         uint256 minProposerVotingPower
     );
 
+    /// @notice Emitted when the min approval value is updated.
+    /// @param minApprovals The minimum amount of yes votes needed for a proposal succeed.
+    event VotingMinApprovalUpdated(uint256 minApprovals);
+
     /// @notice Initializes the component to be used by inheriting contracts.
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
     /// @param _dao The IDAO interface of the associated DAO.
@@ -273,10 +308,16 @@ abstract contract MajorityVotingBase is
     // solhint-disable-next-line func-name-mixedcase
     function __MajorityVotingBase_init(
         IDAO _dao,
-        VotingSettings calldata _votingSettings
+        VotingSettings calldata _votingSettings,
+        TargetConfig calldata _targetConfig,
+        uint256 _minApprovals,
+        bytes calldata _pluginMetadata
     ) internal onlyInitializing {
         __PluginUUPSUpgradeable_init(_dao);
         _updateVotingSettings(_votingSettings);
+        _updateMinApprovals(_minApprovals);
+        _setTargetConfig(_targetConfig);
+        _setMetadata(_pluginMetadata);
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -288,12 +329,25 @@ abstract contract MajorityVotingBase is
         public
         view
         virtual
-        override(ERC165Upgradeable, PluginUUPSUpgradeable, ProposalUpgradeable)
+        override(
+            ERC165Upgradeable,
+            MetadataExtensionUpgradeable,
+            PluginUUPSUpgradeable,
+            ProposalUpgradeable
+        )
         returns (bool)
     {
+        // In addition to the current IMajorityVoting interface, also support previous version
+        // that did not include the `isMinApprovalReached` and `minApproval` functions, same
+        // happens with MAJORITY_VOTING_BASE_INTERFACE which did not include `updateMinApprovals`.
         return
             _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ||
+            _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ^ this.updateMinApprovals.selector ||
             _interfaceId == type(IMajorityVoting).interfaceId ||
+            _interfaceId ==
+            type(IMajorityVoting).interfaceId ^
+                this.isMinApprovalReached.selector ^
+                this.minApproval.selector ||
             super.supportsInterface(_interfaceId);
     }
 
@@ -316,7 +370,7 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IMajorityVoting
-    function execute(uint256 _proposalId) public virtual {
+    function execute(uint256 _proposalId) public virtual auth(EXECUTE_PROPOSAL_PERMISSION_ID) {
         if (!_canExecute(_proposalId)) {
             revert ProposalExecutionForbidden(_proposalId);
         }
@@ -337,12 +391,31 @@ abstract contract MajorityVotingBase is
         address _voter,
         VoteOption _voteOption
     ) public view virtual returns (bool) {
+        if (!_proposalExists(_proposalId)) {
+            revert NonexistentProposal(_proposalId);
+        }
+
         return _canVote(_proposalId, _voter, _voteOption);
     }
 
     /// @inheritdoc IMajorityVoting
-    function canExecute(uint256 _proposalId) public view virtual returns (bool) {
+    function canExecute(
+        uint256 _proposalId
+    ) public view virtual override(IMajorityVoting) returns (bool) {
+        if (!_proposalExists(_proposalId)) {
+            revert NonexistentProposal(_proposalId);
+        }
+
         return _canExecute(_proposalId);
+    }
+
+    /// @inheritdoc IProposal
+    function hasSucceeded(uint256 _proposalId) public view virtual returns (bool) {
+        if (!_proposalExists(_proposalId)) {
+            revert NonexistentProposal(_proposalId);
+        }
+
+        return _hasSucceeded(_proposalId);
     }
 
     /// @inheritdoc IMajorityVoting
@@ -384,6 +457,16 @@ abstract contract MajorityVotingBase is
         return
             proposal_.tally.yes + proposal_.tally.no + proposal_.tally.abstain >=
             proposal_.parameters.minVotingPower;
+    }
+
+    /// @inheritdoc IMajorityVoting
+    function isMinApprovalReached(uint256 _proposalId) public view virtual returns (bool) {
+        return proposals[_proposalId].tally.yes >= proposals[_proposalId].minApprovalPower;
+    }
+
+    /// @inheritdoc IMajorityVoting
+    function minApproval() public view virtual returns (uint256) {
+        return minApprovals;
     }
 
     /// @inheritdoc IMajorityVoting
@@ -438,7 +521,7 @@ abstract contract MajorityVotingBase is
             bool executed,
             ProposalParameters memory parameters,
             Tally memory tally,
-            IDAO.Action[] memory actions,
+            Action[] memory actions,
             uint256 allowFailureMap
         )
     {
@@ -460,6 +543,14 @@ abstract contract MajorityVotingBase is
         _updateVotingSettings(_votingSettings);
     }
 
+    /// @notice Updates the minimal approval value.
+    /// @param _minApprovals The new minimal approval value.
+    function updateMinApprovals(
+        uint256 _minApprovals
+    ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
+        _updateMinApprovals(_minApprovals);
+    }
+
     /// @notice Creates a new majority voting proposal.
     /// @param _metadata The metadata of the proposal.
     /// @param _actions The actions that will be executed after the proposal passes.
@@ -477,7 +568,7 @@ abstract contract MajorityVotingBase is
     /// @return proposalId The ID of the proposal.
     function createProposal(
         bytes calldata _metadata,
-        IDAO.Action[] calldata _actions,
+        Action[] calldata _actions,
         uint256 _allowFailureMap,
         uint64 _startDate,
         uint64 _endDate,
@@ -500,14 +591,19 @@ abstract contract MajorityVotingBase is
     /// @notice Internal function to execute a vote. It assumes the queried proposal exists.
     /// @param _proposalId The ID of the proposal.
     function _execute(uint256 _proposalId) internal virtual {
-        proposals[_proposalId].executed = true;
+        Proposal storage proposal_ = proposals[_proposalId];
 
-        _executeProposal(
-            dao(),
-            _proposalId,
-            proposals[_proposalId].actions,
-            proposals[_proposalId].allowFailureMap
+        proposal_.executed = true;
+
+        _execute(
+            proposal_.targetConfig.target,
+            bytes32(_proposalId),
+            proposal_.actions,
+            proposal_.allowFailureMap,
+            proposal_.targetConfig.operation
         );
+
+        emit ProposalExecuted(_proposalId);
     }
 
     /// @notice Internal function to check if a voter can vote. It assumes the queried proposal exists.
@@ -521,17 +617,11 @@ abstract contract MajorityVotingBase is
         VoteOption _voteOption
     ) internal view virtual returns (bool);
 
-    /// @notice Internal function to check if a proposal can be executed. It assumes the queried proposal exists.
+    /// @notice An internal function that checks if the proposal succeeded or not.
     /// @param _proposalId The ID of the proposal.
-    /// @return True if the proposal can be executed, false otherwise.
-    /// @dev Threshold and minimal values are compared with `>` and `>=` comparators, respectively.
-    function _canExecute(uint256 _proposalId) internal view virtual returns (bool) {
+    /// @return Returns `true` if the proposal succeeded depending on the thresholds and voting modes.
+    function _hasSucceeded(uint256 _proposalId) internal view virtual returns (bool) {
         Proposal storage proposal_ = proposals[_proposalId];
-
-        // Verify that the vote has not been executed already.
-        if (proposal_.executed) {
-            return false;
-        }
 
         if (_isProposalOpen(proposal_)) {
             // Early execution
@@ -550,8 +640,26 @@ abstract contract MajorityVotingBase is
         if (!isMinParticipationReached(_proposalId)) {
             return false;
         }
+        if (!isMinApprovalReached(_proposalId)) {
+            return false;
+        }
 
         return true;
+    }
+
+    /// @notice Internal function to check if a proposal can be executed. It assumes the queried proposal exists.
+    /// @param _proposalId The ID of the proposal.
+    /// @return True if the proposal can be executed, false otherwise.
+    /// @dev Threshold and minimal values are compared with `>` and `>=` comparators, respectively.
+    function _canExecute(uint256 _proposalId) internal view virtual returns (bool) {
+        Proposal storage proposal_ = proposals[_proposalId];
+
+        // Verify that the vote has not been executed already.
+        if (proposal_.executed) {
+            return false;
+        }
+
+        return _hasSucceeded(_proposalId);
     }
 
     /// @notice Internal function to check if a proposal vote is still open.
@@ -570,7 +678,7 @@ abstract contract MajorityVotingBase is
     /// @param _votingSettings The voting settings to be validated and updated.
     function _updateVotingSettings(VotingSettings calldata _votingSettings) internal virtual {
         // Require the support threshold value to be in the interval [0, 10^6-1],
-        // because `>` comparision is used in the support criterion and >100% could never be reached.
+        // because `>` comparison is used in the support criterion and >100% could never be reached.
         if (_votingSettings.supportThreshold > RATIO_BASE - 1) {
             revert RatioOutOfBounds({
                 limit: RATIO_BASE - 1,
@@ -579,7 +687,7 @@ abstract contract MajorityVotingBase is
         }
 
         // Require the minimum participation value to be in the interval [0, 10^6],
-        // because `>=` comparision is used in the participation criterion.
+        // because `>=` comparison is used in the participation criterion.
         if (_votingSettings.minParticipation > RATIO_BASE) {
             revert RatioOutOfBounds({limit: RATIO_BASE, actual: _votingSettings.minParticipation});
         }
@@ -601,6 +709,26 @@ abstract contract MajorityVotingBase is
             minDuration: _votingSettings.minDuration,
             minProposerVotingPower: _votingSettings.minProposerVotingPower
         });
+    }
+
+    /// @notice Checks if proposal exists or not.
+    /// @param _proposalId The ID of the proposal.
+    /// @return Returns `true` if proposal exists, otherwise false.
+    function _proposalExists(uint256 _proposalId) private view returns (bool) {
+        return proposals[_proposalId].parameters.snapshotBlock != 0;
+    }
+
+    /// @notice Internal function to update minimal approval value.
+    /// @param _minApprovals The new minimal approval value.
+    function _updateMinApprovals(uint256 _minApprovals) internal virtual {
+        // Require the minimum approval value to be in the interval [0, 10^6],
+        // because `>=` comparison is used in the participation criterion.
+        if (_minApprovals > RATIO_BASE) {
+            revert RatioOutOfBounds({limit: RATIO_BASE, actual: _minApprovals});
+        }
+
+        minApprovals = _minApprovals;
+        emit VotingMinApprovalUpdated(_minApprovals);
     }
 
     /// @notice Validates and returns the proposal vote dates.
@@ -644,5 +772,5 @@ abstract contract MajorityVotingBase is
     /// new variables without shifting down storage in the inheritance chain
     /// (see [OpenZeppelin's guide about storage gaps]
     /// (https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps)).
-    uint256[47] private __gap;
+    uint256[46] private __gap;
 }

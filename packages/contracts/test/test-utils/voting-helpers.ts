@@ -18,7 +18,7 @@ export enum VotingMode {
 
 export async function voteWithSigners(
   votingContract: Contract,
-  proposalId: number,
+  proposalId: BigNumber,
   ballot: {
     yes: SignerWithAddress[];
     no: SignerWithAddress[];
