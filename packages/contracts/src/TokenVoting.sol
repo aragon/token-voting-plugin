@@ -10,6 +10,9 @@ import {IMembership} from "@aragon/osx-commons-contracts/src/plugin/extensions/m
 import {_applyRatioCeiled} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
 
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
+import {Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
+
 import {MajorityVotingBase} from "./MajorityVotingBase.sol";
 
 /// @title TokenVoting
@@ -17,14 +20,13 @@ import {MajorityVotingBase} from "./MajorityVotingBase.sol";
 /// @notice The majority voting implementation using an
 /// [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
 /// compatible governance token.
-/// @dev v1.3 (Release 1, Build 3)
+/// @dev v1.3 (Release 1, Build 3). For each upgrade, if the reinitialization step is required, increment the version numbers in the modifier for both the initialize and initializeFrom functions.
 /// @custom:security-contact sirt@aragon.org
 contract TokenVoting is IMembership, MajorityVotingBase {
     using SafeCastUpgradeable for uint256;
 
     /// @notice The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contract.
-    bytes4 internal constant TOKEN_VOTING_INTERFACE_ID =
-        this.initialize.selector ^ this.getVotingToken.selector;
+    bytes4 internal constant TOKEN_VOTING_INTERFACE_ID = this.getVotingToken.selector;
 
     /// @notice An [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
     /// compatible contract referencing the token being used for voting.
@@ -38,16 +40,46 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @param _dao The IDAO interface of the associated DAO.
     /// @param _votingSettings The voting settings.
     /// @param _token The [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used for voting.
+    /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
     function initialize(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
-        IVotesUpgradeable _token
-    ) external initializer {
-        __MajorityVotingBase_init(_dao, _votingSettings);
+        IVotesUpgradeable _token,
+        TargetConfig calldata _targetConfig,
+        uint256 _minApprovals,
+        bytes calldata _pluginMetadata
+    ) external onlyCallAtInitialization reinitializer(2) {
+        __MajorityVotingBase_init(
+            _dao,
+            _votingSettings,
+            _targetConfig,
+            _minApprovals,
+            _pluginMetadata
+        );
 
         votingToken = _token;
 
         emit MembershipContractAnnounced({definingContract: address(_token)});
+    }
+
+    /// @notice Reinitializes the TokenVoting after an upgrade from a previous protocol version.For each reinitialization step, use the `_fromBuild` version to decide which internal functions to call for reinitialization.
+    /// @dev WARNING: The contract should only be upgradeable through PSP to ensure that _fromBuild is not incorrectly passed, and that the appropriate permissions for the upgrade are properly configured.
+    /// @param _fromBuild The build version number of the previous implementation contract this upgrade is transitioning from.
+    /// @param _initData The initialization data to be passed to via `upgradeToAndCall` (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
+    function initializeFrom(uint16 _fromBuild, bytes calldata _initData) external reinitializer(2) {
+        if (_fromBuild < 3) {
+            (
+                uint256 minApprovals,
+                TargetConfig memory targetConfig,
+                bytes memory pluginMetadata
+            ) = abi.decode(_initData, (uint256, TargetConfig, bytes));
+
+            _updateMinApprovals(minApprovals);
+
+            _setTargetConfig(targetConfig);
+
+            _setMetadata(pluginMetadata);
+        }
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -76,30 +108,13 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @inheritdoc MajorityVotingBase
     function createProposal(
         bytes calldata _metadata,
-        IDAO.Action[] calldata _actions,
+        Action[] calldata _actions,
         uint256 _allowFailureMap,
         uint64 _startDate,
         uint64 _endDate,
         VoteOption _voteOption,
         bool _tryEarlyExecution
-    ) external override returns (uint256 proposalId) {
-        // Check that either `_msgSender` owns enough tokens or has enough voting power from being a delegatee.
-        {
-            uint256 minProposerVotingPower_ = minProposerVotingPower();
-
-            if (minProposerVotingPower_ != 0) {
-                // Because of the checks in `TokenVotingSetup`, we can assume that `votingToken`
-                // is an [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token.
-                if (
-                    votingToken.getVotes(_msgSender()) < minProposerVotingPower_ &&
-                    IERC20Upgradeable(address(votingToken)).balanceOf(_msgSender()) <
-                    minProposerVotingPower_
-                ) {
-                    revert ProposalCreationForbidden(_msgSender());
-                }
-            }
-        }
-
+    ) public override auth(CREATE_PROPOSAL_PERMISSION_ID) returns (uint256 proposalId) {
         uint256 snapshotBlock;
         unchecked {
             // The snapshot block must be mined already to
@@ -115,17 +130,14 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
         (_startDate, _endDate) = _validateProposalDates(_startDate, _endDate);
 
-        proposalId = _createProposal({
-            _creator: _msgSender(),
-            _metadata: _metadata,
-            _startDate: _startDate,
-            _endDate: _endDate,
-            _actions: _actions,
-            _allowFailureMap: _allowFailureMap
-        });
+        proposalId = _createProposalId(keccak256(abi.encode(_actions, _metadata)));
 
         // Store proposal related information
         Proposal storage proposal_ = proposals[proposalId];
+
+        if (proposal_.parameters.snapshotBlock != 0) {
+            revert ProposalAlreadyExists(proposalId);
+        }
 
         proposal_.parameters.startDate = _startDate;
         proposal_.parameters.endDate = _endDate;
@@ -136,6 +148,10 @@ contract TokenVoting is IMembership, MajorityVotingBase {
             totalVotingPower_,
             minParticipation()
         );
+
+        proposal_.minApprovalPower = _applyRatioCeiled(totalVotingPower_, minApproval());
+
+        proposal_.targetConfig = getTargetConfig();
 
         // Reduce costs
         if (_allowFailureMap != 0) {
@@ -152,6 +168,51 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         if (_voteOption != VoteOption.None) {
             vote(proposalId, _voteOption, _tryEarlyExecution);
         }
+
+        _emitProposalCreatedEvent(
+            _metadata,
+            _actions,
+            _allowFailureMap,
+            proposalId,
+            _startDate,
+            _endDate
+        );
+    }
+
+    /// @inheritdoc IProposal
+    function createProposal(
+        bytes calldata _metadata,
+        Action[] calldata _actions,
+        uint64 _startDate,
+        uint64 _endDate,
+        bytes memory _data
+    ) external override returns (uint256 proposalId) {
+        // Note that this calls public function for permission check.
+        uint256 allowFailureMap;
+        VoteOption _voteOption = VoteOption.None;
+        bool tryEarlyExecution;
+
+        if (_data.length != 0) {
+            (allowFailureMap, _voteOption, tryEarlyExecution) = abi.decode(
+                _data,
+                (uint256, VoteOption, bool)
+            );
+        }
+
+        proposalId = createProposal(
+            _metadata,
+            _actions,
+            allowFailureMap,
+            _startDate,
+            _endDate,
+            _voteOption,
+            tryEarlyExecution
+        );
+    }
+
+    /// @inheritdoc IProposal
+    function customProposalParamsABI() external pure override returns (string memory) {
+        return "(uint256 allowFailureMap, uint8 voteOption, bool tryEarlyExecution)";
     }
 
     /// @inheritdoc IMembership
@@ -202,7 +263,14 @@ contract TokenVoting is IMembership, MajorityVotingBase {
             votingPower: votingPower
         });
 
-        if (_tryEarlyExecution && _canExecute(_proposalId)) {
+        if (!_tryEarlyExecution) {
+            return;
+        }
+
+        if (
+            _canExecute(_proposalId) &&
+            dao().hasPermission(address(this), _voter, EXECUTE_PROPOSAL_PERMISSION_ID, _msgData())
+        ) {
             _execute(_proposalId);
         }
     }
@@ -239,6 +307,26 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         }
 
         return true;
+    }
+
+    /// @dev Helper function to avoid stack too deep in non via-ir compilation mode.
+    function _emitProposalCreatedEvent(
+        bytes calldata _metadata,
+        Action[] calldata _actions,
+        uint256 _allowFailureMap,
+        uint256 proposalId,
+        uint64 _startDate,
+        uint64 _endDate
+    ) private {
+        emit ProposalCreated(
+            proposalId,
+            _msgSender(),
+            _startDate,
+            _endDate,
+            _metadata,
+            _actions,
+            _allowFailureMap
+        );
     }
 
     /// @dev This empty reserved space is put in place to allow future versions to add new

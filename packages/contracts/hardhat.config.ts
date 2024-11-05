@@ -156,7 +156,7 @@ const config: HardhatUserConfig = {
     deploy: './deploy',
   },
   mocha: {
-    timeout: 60_000,
+    timeout: 6000000,
   },
   solidity: {
     version: '0.8.17',

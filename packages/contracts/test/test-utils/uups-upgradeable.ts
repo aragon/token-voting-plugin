@@ -33,7 +33,7 @@ export async function deployAndUpgradeSelfCheck(
     {
       kind: 'uups',
       initializer: initializerName,
-      unsafeAllow: ['constructor'],
+      unsafeAllow: ['constructor', 'delegatecall'],
       constructorArgs: [],
     }
   );
@@ -49,7 +49,7 @@ export async function deployAndUpgradeSelfCheck(
   if (managingContract === undefined) {
     await expect(
       upgrades.upgradeProxy(proxy.address, factory.connect(upgrader), {
-        unsafeAllow: ['constructor'],
+        unsafeAllow: ['constructor', 'delegatecall'],
         constructorArgs: [],
       })
     )
@@ -62,7 +62,7 @@ export async function deployAndUpgradeSelfCheck(
   else {
     await expect(
       upgrades.upgradeProxy(proxy.address, factory.connect(upgrader), {
-        unsafeAllow: ['constructor'],
+        unsafeAllow: ['constructor', 'delegatecall'],
         constructorArgs: [],
       })
     )
@@ -102,20 +102,22 @@ export async function deployAndUpgradeFromToCheck(
   from: ContractFactory,
   to: ContractFactory,
   upgradePermissionId: string,
-  managingDao?: DAO | PluginRepo
+  managingDao?: DAO | PluginRepo,
+  reinitializerName?: string,
+  reinitArgs?: any
 ): Promise<{
   proxy: Contract;
   fromImplementation: string;
   toImplementation: string;
 }> {
   // Deploy proxy and implementation
-  const proxy = await upgrades.deployProxy(
+  let proxy = await upgrades.deployProxy(
     from.connect(deployer),
     Object.values(initArgs),
     {
       kind: 'uups',
       initializer: initializerName,
-      unsafeAllow: ['constructor'],
+      unsafeAllow: ['constructor', 'delegatecall'],
       constructorArgs: [],
     }
   );
@@ -134,7 +136,7 @@ export async function deployAndUpgradeFromToCheck(
   if (managingDao === undefined) {
     await expect(
       upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
-        unsafeAllow: ['constructor'],
+        unsafeAllow: ['constructor', 'delegatecall'],
         constructorArgs: [],
       })
     )
@@ -145,7 +147,7 @@ export async function deployAndUpgradeFromToCheck(
   } else {
     await expect(
       upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
-        unsafeAllow: ['constructor'],
+        unsafeAllow: ['constructor', 'delegatecall'],
         constructorArgs: [],
       })
     )
@@ -155,10 +157,19 @@ export async function deployAndUpgradeFromToCheck(
     await managingDao.connect(deployer).grant(...grantArgs);
   }
 
+  let call;
+  if (reinitializerName && reinitArgs) {
+    call = {
+      fn: reinitializerName,
+      args: reinitArgs,
+    };
+  }
+
   // Upgrade the proxy to a new implementation from a different factory
-  await upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
-    unsafeAllow: ['constructor'],
+  proxy = await upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
+    unsafeAllow: ['constructor', 'delegatecall'],
     constructorArgs: [],
+    call,
   });
 
   const toImplementation = await ethers.provider

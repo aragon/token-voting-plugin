@@ -144,6 +144,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             _pluginSetup: setup.address,
             _buildMetadata: buildMetadataURI,
             _releaseMetadata: releaseMetadataURI,
+            _buildMetadata: ethers.utils.hexlify(
+              ethers.utils.toUtf8Bytes(buildMetadataURI)
+            ),
+            _releaseMetadata: ethers.utils.hexlify(
+              ethers.utils.toUtf8Bytes(releaseMetadataURI)
+            ),
           },
         },
       ],
