@@ -429,8 +429,6 @@ abstract contract MajorityVotingBase is
             proposal_.parameters.supportThreshold * proposal_.tally.no;
     }
 
-    // is it possible that isSupportThresholdReachedEarly returns true, where isSupportThresholdReached returns false
-
     /// @inheritdoc IMajorityVoting
     function isSupportThresholdReachedEarly(
         uint256 _proposalId
