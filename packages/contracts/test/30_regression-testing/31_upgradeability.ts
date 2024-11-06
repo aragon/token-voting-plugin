@@ -96,6 +96,9 @@ describe('Upgrades', () => {
       );
       throw new Error('');
     } catch (err: any) {
+      if (err.data === undefined) {
+        throw err;
+      }
       expect(err.data).to.equal(AlreadyInitializedSignature);
     }
 
@@ -191,6 +194,9 @@ describe('Upgrades', () => {
       );
       throw new Error('');
     } catch (err: any) {
+      if (err.data === undefined) {
+        throw err;
+      }
       expect(err.data).to.equal(AlreadyInitializedSignature);
     }
     data[8] = 'initializeFrom';
