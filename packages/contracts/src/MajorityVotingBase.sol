@@ -403,7 +403,7 @@ abstract contract MajorityVotingBase is
     /// @inheritdoc IMajorityVoting
     function canExecute(
         uint256 _proposalId
-    ) public view virtual override(IMajorityVoting) returns (bool) {
+    ) public view virtual override(IMajorityVoting, IProposal) returns (bool) {
         if (!_proposalExists(_proposalId)) {
             revert NonexistentProposal(_proposalId);
         }
