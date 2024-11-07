@@ -1,5 +1,5 @@
 import {createDaoProxy} from '../20_integration-testing/test-helpers';
-import {TestGovernanceERC20, TokenVoting} from '../../typechain';
+import {TestGovernanceERC20} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src';
 import {
   INITIALIZE_SIGNATURE,
@@ -91,7 +91,7 @@ describe('Upgrades', () => {
     // Ensure that on the `upgrade`, `initialize` can not be called.
     try {
       await deployAndUpgradeFromToCheck(
-        // @ts-ignore
+        // @ts-expect-error correct data type
         ...data
       );
       throw new Error('');
@@ -100,12 +100,12 @@ describe('Upgrades', () => {
     }
 
     data[8] = 'initializeFrom';
-    // @ts-ignore
+    // @ts-expect-error types castings will work
     data[9] = [latestInitializerVersion, encodedParamsForUpgrade];
 
     const {proxy, fromImplementation, toImplementation} =
       await deployAndUpgradeFromToCheck(
-        // @ts-ignore
+        // @ts-expect-error correct data type
         ...data
       );
 
@@ -186,7 +186,8 @@ describe('Upgrades', () => {
     // Ensure that on the `upgrade`, `initialize` can not be called.
     try {
       await deployAndUpgradeFromToCheck(
-        // @ts-ignore
+                // @ts-expect-error correct data type
+
         ...data
       );
       throw new Error('');
@@ -194,12 +195,12 @@ describe('Upgrades', () => {
       expect(err.data).to.equal(AlreadyInitializedSignature);
     }
     data[8] = 'initializeFrom';
-    // @ts-ignore
+        // @ts-expect-error types castings will work
     data[9] = [latestInitializerVersion, encodedParamsForUpgrade];
 
     const {proxy, fromImplementation, toImplementation} =
       await deployAndUpgradeFromToCheck(
-        // @ts-ignore
+                // @ts-expect-error correct data type
         ...data
       );
 
