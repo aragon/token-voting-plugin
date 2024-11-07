@@ -186,7 +186,7 @@ describe('Upgrades', () => {
     // Ensure that on the `upgrade`, `initialize` can not be called.
     try {
       await deployAndUpgradeFromToCheck(
-                // @ts-expect-error correct data type
+        // @ts-expect-error correct data type
 
         ...data
       );
@@ -195,12 +195,12 @@ describe('Upgrades', () => {
       expect(err.data).to.equal(AlreadyInitializedSignature);
     }
     data[8] = 'initializeFrom';
-        // @ts-expect-error types castings will work
+    // @ts-expect-error types castings will work
     data[9] = [latestInitializerVersion, encodedParamsForUpgrade];
 
     const {proxy, fromImplementation, toImplementation} =
       await deployAndUpgradeFromToCheck(
-                // @ts-expect-error correct data type
+        // @ts-expect-error correct data type
         ...data
       );
 

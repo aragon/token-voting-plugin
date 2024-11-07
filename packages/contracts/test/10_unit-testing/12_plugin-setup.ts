@@ -208,8 +208,9 @@ describe('TokenVotingSetup', function () {
 
   describe('prepareInstallation', async () => {
     it('fails if data is empty, or not of minimum length', async () => {
-      const {pluginSetup, dao, prepareInstallationInputs} =
-        await loadFixture(fixture);
+      const {pluginSetup, dao, prepareInstallationInputs} = await loadFixture(
+        fixture
+      );
 
       // Try calling `prepareInstallation` without input data.
       await expect(pluginSetup.prepareInstallation(dao.address, [])).to.be

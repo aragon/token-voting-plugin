@@ -59,11 +59,7 @@ import {
   RATIO_BASE,
   DAO_PERMISSIONS,
 } from '@aragon/osx-commons-sdk';
-import {
-  DAO,
-  DAOStructs,
-  DAO__factory,
-} from '@aragon/osx-ethers';
+import {DAO, DAOStructs, DAO__factory} from '@aragon/osx-ethers';
 import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
