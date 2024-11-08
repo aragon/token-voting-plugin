@@ -53,19 +53,13 @@ import {
 import {
   findEvent,
   findEventTopicLog,
-  proposalIdToBytes32,
   TIME,
   getInterfaceId,
   pctToRatio,
   RATIO_BASE,
   DAO_PERMISSIONS,
 } from '@aragon/osx-commons-sdk';
-import {
-  DAO,
-  DAOStructs,
-  DAO__factory,
-  MajorityVotingBase__factory,
-} from '@aragon/osx-ethers';
+import {DAO, DAOStructs, DAO__factory} from '@aragon/osx-ethers';
 import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
@@ -1878,7 +1872,6 @@ describe('TokenVoting', function () {
           judy,
           mallory,
           initializedPlugin,
-          uninitializedPlugin,
           token,
           dao,
           dummyActions,
@@ -2282,7 +2275,6 @@ describe('TokenVoting', function () {
           judy,
           mallory,
           initializedPlugin,
-          uninitializedPlugin,
           token,
           dao,
           dummyActions,
@@ -2551,7 +2543,7 @@ describe('TokenVoting', function () {
       });
 
       it('executes target with delegate call', async () => {
-        let {
+        const {
           alice,
           bob,
           carol,
@@ -2574,7 +2566,7 @@ describe('TokenVoting', function () {
         const abiA = CustomExecutorMock__factory.abi;
         const abiB = TokenVoting__factory.abi;
 
-        // @ts-ignore
+        // @ts-expect-error correct abi type
         const mergedABI = abiA.concat(abiB);
 
         await dao.grant(
@@ -2588,7 +2580,6 @@ describe('TokenVoting', function () {
           operation: Operation.delegatecall,
         });
 
-        // @ts-ignore
         const pluginMerged = (await ethers.getContractAt(
           mergedABI,
           plugin.address
@@ -2760,7 +2751,6 @@ describe('TokenVoting', function () {
           dave,
           eve,
           frank,
-          grace,
           dao,
           initializedPlugin: plugin,
           dummyMetadata,

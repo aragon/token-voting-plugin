@@ -10,7 +10,6 @@ import {
   IERC20Upgradeable__factory,
   IVotesUpgradeable__factory,
 } from '../../typechain';
-import {plugins} from '../../typechain/@aragon/osx-v1.0.0';
 import {IGovernanceWrappedERC20__factory} from '../../typechain/factories/src/ERC20/governance';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {
@@ -209,8 +208,9 @@ describe('TokenVotingSetup', function () {
 
   describe('prepareInstallation', async () => {
     it('fails if data is empty, or not of minimum length', async () => {
-      const {pluginSetup, dao, prepareInstallationInputs, defaultMetadata} =
-        await loadFixture(fixture);
+      const {pluginSetup, dao, prepareInstallationInputs} = await loadFixture(
+        fixture
+      );
 
       // Try calling `prepareInstallation` without input data.
       await expect(pluginSetup.prepareInstallation(dao.address, [])).to.be
