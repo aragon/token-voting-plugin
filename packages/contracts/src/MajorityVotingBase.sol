@@ -369,8 +369,10 @@ abstract contract MajorityVotingBase is
         _vote(_proposalId, _voteOption, account, _tryEarlyExecution);
     }
 
-    /// @inheritdoc IMajorityVoting
-    function execute(uint256 _proposalId) public virtual auth(EXECUTE_PROPOSAL_PERMISSION_ID) {
+    /// @inheritdoc IProposal
+    function execute(
+        uint256 _proposalId
+    ) public virtual override(IMajorityVoting, IProposal) auth(EXECUTE_PROPOSAL_PERMISSION_ID) {
         if (!_canExecute(_proposalId)) {
             revert ProposalExecutionForbidden(_proposalId);
         }
@@ -401,7 +403,7 @@ abstract contract MajorityVotingBase is
     /// @inheritdoc IMajorityVoting
     function canExecute(
         uint256 _proposalId
-    ) public view virtual override(IMajorityVoting) returns (bool) {
+    ) public view virtual override(IMajorityVoting, IProposal) returns (bool) {
         if (!_proposalExists(_proposalId)) {
             revert NonexistentProposal(_proposalId);
         }
