@@ -1,5 +1,5 @@
 import {METADATA, VERSION} from '../../plugin-settings';
-import {GovernanceERC20} from '../../typechain';
+import {GovernanceERC20, TokenVoting__factory} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {getProductionNetworkName, findPluginRepo} from '../../utils/helpers';
 import {
@@ -37,7 +37,6 @@ import {
   PluginSetupProcessorStructs,
   PluginSetupProcessor__factory,
   DAO,
-  TokenVoting__factory,
 } from '@aragon/osx-ethers';
 import {BigNumber} from '@ethersproject/bignumber';
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
