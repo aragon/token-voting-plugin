@@ -21,7 +21,7 @@ import {IMajorityVoting} from "./IMajorityVoting.sol";
 /* solhint-enable max-line-length */
 
 /// @title MajorityVotingBase
-/// @author Aragon X - 2022-2023
+/// @author Aragon X - 2022-2024
 /// @notice The abstract implementation of majority voting plugins.
 ///
 /// ### Parameterization
@@ -243,8 +243,8 @@ abstract contract MajorityVotingBase is
     /// @notice The struct storing the voting settings.
     VotingSettings private votingSettings;
 
-    /// @notice The minimal ratio of yes votes needed for a proposal succeed.
-    /// @dev is not on the VotingSettings for compatibility reasons.
+    /// @notice The minimum ratio of yes votes needed for a proposal to succeed.
+    /// @dev Not included in VotingSettings for compatibility reasons.
     uint256 private minApprovals; // added in v1.3
 
     /// @notice Thrown if a date is out of bounds.
