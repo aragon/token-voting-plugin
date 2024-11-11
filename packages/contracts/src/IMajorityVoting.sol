@@ -62,7 +62,8 @@ interface IMajorityVoting {
     /// $$\texttt{participation} = \frac{N_\text{yes}+N_\text{no}+N_\text{abstain}}{N_\text{total}}$$
     /// for a proposal is greater or equal than the minimum participation value.
     /// @param _proposalId The ID of the proposal.
-    /// @return Returns `true` if the participation is greater or equal than the minimum participation and `false` otherwise.
+    /// @return Returns `true` if the participation is greater or equal than the minimum participation,
+    /// and `false` otherwise.
     function isMinParticipationReached(uint256 _proposalId) external view returns (bool);
 
     /// @notice Checks if the min approval value defined as:

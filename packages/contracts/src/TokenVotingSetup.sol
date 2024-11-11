@@ -68,18 +68,19 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     // solhint-disable-next-line immutable-vars-naming
     address public immutable governanceWrappedERC20Base;
 
-    /// @notice The token settings struct.
-    /// @param addr The token address. If this is `address(0)`, a new `GovernanceERC20` token is deployed.
-    /// If not, the existing token is wrapped as an `GovernanceWrappedERC20`.
-    /// @param name The token name. This parameter is only relevant if the token address is `address(0)`.
-    /// @param symbol The token symbol. This parameter is only relevant if the token address is `address(0)`.
+    /// @notice Configuration settings for a token used within the governance system.
+    /// @param addr The token address. If set to `address(0)`, a new `GovernanceERC20` token is deployed.
+    /// If the address implements `IVotes`, it will be used directly; otherwise,
+    /// it is wrapped as `GovernanceWrappedERC20`.
+    /// @param name The name of the token, relevant only if a new token is deployed (i.e., `addr` is `address(0)`).
+    /// @param symbol The symbol of the token, relevant only if a new token is deployed (i.e., `addr` is `address(0)`).
     struct TokenSettings {
         address addr;
         string name;
         string symbol;
     }
 
-    /// @notice Thrown if token address is passed which is not a token.
+    /// @notice Thrown if the passed token address is not a token contract.
     /// @param token The token address
     error TokenNotContract(address token);
 

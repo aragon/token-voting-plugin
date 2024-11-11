@@ -169,9 +169,12 @@ abstract contract MajorityVotingBase is
     /// @param voters The votes casted by the voters.
     /// @param actions The actions to be executed when the proposal passes.
     /// @param allowFailureMap A bitmap allowing the proposal to succeed, even if individual actions might revert.
-    /// @param minApprovalPower The minimum amount of yes votes power needed for the proposal advance.
     /// If the bit at index `i` is 1, the proposal succeeds even if the `i`th action reverts.
     /// A failure map value of 0 requires every action to not revert.
+    /// @param minApprovalPower The minimum amount of yes votes power needed for the proposal advance.
+    /// @param targetConfig Configuration for the execution target, specifying the target address and operation type
+    /// (either `Call` or `DelegateCall`). Defined by `TargetConfig` in the `IPlugin` interface,
+    /// part of the `osx-commons-contracts` package, added in build 3.
     struct Proposal {
         bool executed;
         ProposalParameters parameters;
@@ -190,7 +193,7 @@ abstract contract MajorityVotingBase is
     /// @param startDate The start date of the proposal vote.
     /// @param endDate The end date of the proposal vote.
     /// @param snapshotBlock The number of the block prior to the proposal creation.
-    /// @param minVotingPower The minimum voting power needed.
+    /// @param minVotingPower The minimum voting power needed for a proposal to reach minimum participation.
     struct ProposalParameters {
         VotingMode votingMode;
         uint32 supportThreshold;
@@ -504,12 +507,12 @@ abstract contract MajorityVotingBase is
     /// @return The total voting power.
     function totalVotingPower(uint256 _blockNumber) public view virtual returns (uint256);
 
-    /// @notice Returns all information for a proposal vote by its ID.
+    /// @notice Returns all information for a proposal by its ID.
     /// @param _proposalId The ID of the proposal.
     /// @return open Whether the proposal is open or not.
     /// @return executed Whether the proposal is executed or not.
-    /// @return parameters The parameters of the proposal vote.
-    /// @return tally The current tally of the proposal vote.
+    /// @return parameters The parameters of the proposal.
+    /// @return tally The current tally of the proposal.
     /// @return actions The actions to be executed in the associated DAO after the proposal has passed.
     /// @return allowFailureMap The bit map representations of which actions are allowed to revert so tx still succeeds.
     function getProposal(
@@ -578,7 +581,7 @@ abstract contract MajorityVotingBase is
         bool _tryEarlyExecution
     ) external virtual returns (uint256 proposalId);
 
-    /// @notice Internal function to cast a vote. It assumes the queried vote exists.
+    /// @notice Internal function to cast a vote. It assumes the queried proposal exists.
     /// @param _proposalId The ID of the proposal.
     /// @param _voteOption The chosen vote option to be casted on the proposal vote.
     /// @param _tryEarlyExecution If `true`,  early execution is tried after the vote cast.
@@ -590,7 +593,7 @@ abstract contract MajorityVotingBase is
         bool _tryEarlyExecution
     ) internal virtual;
 
-    /// @notice Internal function to execute a vote. It assumes the queried proposal exists.
+    /// @notice Internal function to execute a proposal. It assumes the queried proposal exists.
     /// @param _proposalId The ID of the proposal.
     function _execute(uint256 _proposalId) internal virtual {
         Proposal storage proposal_ = proposals[_proposalId];
@@ -664,9 +667,9 @@ abstract contract MajorityVotingBase is
         return _hasSucceeded(_proposalId);
     }
 
-    /// @notice Internal function to check if a proposal vote is still open.
+    /// @notice Internal function to check if a proposal is still open.
     /// @param proposal_ The proposal struct.
-    /// @return True if the proposal vote is open, false otherwise.
+    /// @return True if the proposal is open, false otherwise.
     function _isProposalOpen(Proposal storage proposal_) internal view virtual returns (bool) {
         uint64 currentTime = block.timestamp.toUint64();
 
@@ -676,7 +679,7 @@ abstract contract MajorityVotingBase is
             !proposal_.executed;
     }
 
-    /// @notice Internal function to update the plugin-wide proposal vote settings.
+    /// @notice Internal function to update the plugin-wide proposal settings.
     /// @param _votingSettings The voting settings to be validated and updated.
     function _updateVotingSettings(VotingSettings calldata _votingSettings) internal virtual {
         // Require the support threshold value to be in the interval [0, 10^6-1],
@@ -733,12 +736,12 @@ abstract contract MajorityVotingBase is
         emit VotingMinApprovalUpdated(_minApprovals);
     }
 
-    /// @notice Validates and returns the proposal vote dates.
-    /// @param _start The start date of the proposal vote.
+    /// @notice Validates and returns the proposal dates.
+    /// @param _start The start date of the proposal.
     /// If 0, the current timestamp is used and the vote starts immediately.
-    /// @param _end The end date of the proposal vote. If 0, `_start + minDuration` is used.
-    /// @return startDate The validated start date of the proposal vote.
-    /// @return endDate The validated end date of the proposal vote.
+    /// @param _end The end date of the proposal. If 0, `_start + minDuration` is used.
+    /// @return startDate The validated start date of the proposal.
+    /// @return endDate The validated end date of the proposal.
     function _validateProposalDates(
         uint64 _start,
         uint64 _end
