@@ -43,7 +43,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @param _token The [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used for voting.
     /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
     /// @param _pluginMetadata The plugin specific information encoded in bytes.
-        function initialize(
+    function initialize(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
         IVotesUpgradeable _token,
