@@ -9,7 +9,7 @@ pragma solidity ^0.8.8;
 interface IMajorityVoting {
     /// @notice Vote options that a voter can chose from.
     /// @param None The default option state of a voter indicating the absence from the vote.
-    /// This option neither influences support nor participation.
+    ///     This option neither influences support nor participation.
     /// @param Abstain This option does not influence the support but counts towards participation.
     /// @param Yes This option increases the support and counts towards participation.
     /// @param No This option decreases the support and counts towards participation.
@@ -45,30 +45,30 @@ interface IMajorityVoting {
     function minParticipation() external view returns (uint32);
 
     /// @notice Checks if the support value defined as:
-    /// $$\texttt{support} = \frac{N_\text{yes}}{N_\text{yes}+N_\text{no}}$$
-    /// for a proposal is greater than the support threshold.
+    ///     $$\texttt{support} = \frac{N_\text{yes}}{N_\text{yes}+N_\text{no}}$$
+    ///     for a proposal is greater than the support threshold.
     /// @param _proposalId The ID of the proposal.
     /// @return Returns `true` if the  support is greater than the support threshold and `false` otherwise.
     function isSupportThresholdReached(uint256 _proposalId) external view returns (bool);
 
     /// @notice Checks if the worst-case support value defined as:
-    /// $$\texttt{worstCaseSupport} = \frac{N_\text{yes}}{ N_\text{total}-N_\text{abstain}}$$
-    /// for a proposal is greater than the support threshold.
+    ///     $$\texttt{worstCaseSupport} = \frac{N_\text{yes}}{ N_\text{total}-N_\text{abstain}}$$
+    ///     for a proposal is greater than the support threshold.
     /// @param _proposalId The ID of the proposal.
     /// @return Returns `true` if the worst-case support is greater than the support threshold and `false` otherwise.
     function isSupportThresholdReachedEarly(uint256 _proposalId) external view returns (bool);
 
     /// @notice Checks if the participation value defined as:
-    /// $$\texttt{participation} = \frac{N_\text{yes}+N_\text{no}+N_\text{abstain}}{N_\text{total}}$$
-    /// for a proposal is greater or equal than the minimum participation value.
+    ///     $$\texttt{participation} = \frac{N_\text{yes}+N_\text{no}+N_\text{abstain}}{N_\text{total}}$$
+    ///     for a proposal is greater or equal than the minimum participation value.
     /// @param _proposalId The ID of the proposal.
     /// @return Returns `true` if the participation is greater or equal than the minimum participation,
-    /// and `false` otherwise.
+    ///     and `false` otherwise.
     function isMinParticipationReached(uint256 _proposalId) external view returns (bool);
 
     /// @notice Checks if the min approval value defined as:
-    ///$$\texttt{minApproval} = \frac{N_\text{yes}}{N_\text{total}}$$
-    /// for a proposal is greater or equal than the minimum approval value.
+    ///     $$\texttt{minApproval} = \frac{N_\text{yes}}{N_\text{total}}$$
+    ///     for a proposal is greater or equal than the minimum approval value.
     /// @param _proposalId The ID of the proposal.
     /// @return Returns `true` if the approvals is greater or equal than the minimum approval and `false` otherwise.
     function isMinApprovalReached(uint256 _proposalId) external view returns (bool);
@@ -99,7 +99,7 @@ interface IMajorityVoting {
     /// @param _proposalId The ID of the proposal.
     /// @param _voteOption The chosen vote option.
     /// @param _tryEarlyExecution If `true`,  early execution is tried after the vote cast.
-    /// The call does not revert if early execution is not possible.
+    ///     The call does not revert if early execution is not possible.
     function vote(uint256 _proposalId, VoteOption _voteOption, bool _tryEarlyExecution) external;
 
     /// @notice Executes a proposal.
@@ -111,7 +111,7 @@ interface IMajorityVoting {
     /// @param _account The account address to be checked.
     /// @return The vote option cast by a voter for a certain proposal.
     /// @dev May return `none` if the `_proposalId` do not exist,
-    /// or the `_account` does not have voting power.
+    ///     or the `_account` does not have voting power.
     function getVoteOption(
         uint256 _proposalId,
         address _account

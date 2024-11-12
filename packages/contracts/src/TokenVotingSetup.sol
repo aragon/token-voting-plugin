@@ -70,8 +70,8 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
 
     /// @notice Configuration settings for a token used within the governance system.
     /// @param addr The token address. If set to `address(0)`, a new `GovernanceERC20` token is deployed.
-    /// If the address implements `IVotes`, it will be used directly; otherwise,
-    /// it is wrapped as `GovernanceWrappedERC20`.
+    ///     If the address implements `IVotes`, it will be used directly; otherwise,
+    ///     it is wrapped as `GovernanceWrappedERC20`.
     /// @param name The name of the token, relevant only if a new token is deployed (i.e., `addr` is `address(0)`).
     /// @param symbol The symbol of the token, relevant only if a new token is deployed (i.e., `addr` is `address(0)`).
     struct TokenSettings {
@@ -89,7 +89,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     error TokenNotERC20(address token);
 
     /// @notice The contract constructor deploying the plugin implementation contract
-    /// and receiving the governance token base contracts to clone from.
+    ///     and receiving the governance token base contracts to clone from.
     /// @param _governanceERC20Base The base `GovernanceERC20` contract to create clones from.
     /// @param _governanceWrappedERC20Base The base `GovernanceWrappedERC20` contract to create clones from.
     constructor(
