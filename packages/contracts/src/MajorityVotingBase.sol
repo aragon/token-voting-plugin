@@ -308,6 +308,12 @@ abstract contract MajorityVotingBase is
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
     /// @param _dao The IDAO interface of the associated DAO.
     /// @param _votingSettings The voting settings.
+    /// @param _targetConfig Configuration for the execution target, specifying the target address and operation type
+    ///     (either `Call` or `DelegateCall`). Defined by `TargetConfig` in the `IPlugin` interface,
+    ///     part of the `osx-commons-contracts` package, added in build 3.
+    /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
+    /// @param _pluginMetadata The plugin specific information encoded in bytes.
+    ///     This can also be an ipfs cid encoded in bytes.
     // solhint-disable-next-line func-name-mixedcase
     function __MajorityVotingBase_init(
         IDAO _dao,
@@ -406,6 +412,7 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IMajorityVoting
+    /// @dev Reverts if the proposal with the given `_proposalId` does not exist.
     function canExecute(
         uint256 _proposalId
     ) public view virtual override(IMajorityVoting, IProposal) returns (bool) {
@@ -417,6 +424,7 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IProposal
+    /// @dev Reverts if the proposal with the given `_proposalId` does not exist.
     function hasSucceeded(uint256 _proposalId) public view virtual returns (bool) {
         if (!_proposalExists(_proposalId)) {
             revert NonexistentProposal(_proposalId);
@@ -657,9 +665,9 @@ abstract contract MajorityVotingBase is
     }
 
     /// @notice Internal function to check if a proposal can be executed. It assumes the queried proposal exists.
+    /// @dev Threshold and minimal values are compared with `>` and `>=` comparators, respectively.
     /// @param _proposalId The ID of the proposal.
     /// @return True if the proposal can be executed, false otherwise.
-    /// @dev Threshold and minimal values are compared with `>` and `>=` comparators, respectively.
     function _canExecute(uint256 _proposalId) internal view virtual returns (bool) {
         Proposal storage proposal_ = proposals[_proposalId];
 

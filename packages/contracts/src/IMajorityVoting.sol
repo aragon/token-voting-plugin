@@ -106,11 +106,11 @@ interface IMajorityVoting {
     function execute(uint256 _proposalId) external;
 
     /// @notice Returns whether the account has voted for the proposal.
+    /// @dev May return `none` if the `_proposalId` does not exist,
+    ///      or the `_account` does not have voting power.
     /// @param _proposalId The ID of the proposal.
     /// @param _account The account address to be checked.
     /// @return The vote option cast by a voter for a certain proposal.
-    /// @dev May return `none` if the `_proposalId` do not exist,
-    ///     or the `_account` does not have voting power.
     function getVoteOption(
         uint256 _proposalId,
         address _account
