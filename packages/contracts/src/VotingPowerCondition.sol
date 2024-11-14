@@ -11,9 +11,9 @@ import {IPermissionCondition} from "@aragon/osx-commons-contracts/src/permission
 import {PermissionCondition} from "@aragon/osx-commons-contracts/src/permission/condition/PermissionCondition.sol";
 
 /// @title VotingPowerCondition
+/// @author Aragon X - 2024
 /// @notice Checks if an account's voting power or token balance meets the threshold set
 ///         in an associated TokenVoting plugin.
-/// @author Aragon X - 2024
 /// @custom:security-contact sirt@aragon.org
 contract VotingPowerCondition is PermissionCondition {
     /// @notice The address of the `TokenVoting` plugin used to fetch voting power settings.
