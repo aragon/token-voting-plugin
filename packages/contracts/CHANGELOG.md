@@ -10,6 +10,14 @@ and this project adheres to the [Aragon OSx Plugin Versioning Convention](https:
 ### Added
 
 - Copied files from [aragon/osx commit 1130df](https://github.com/aragon/osx/commit/1130dfce94fd294c4341e91a8f3faccc54cf43b7)
+- `createProposal` standardized function. 
+- `createProposal` function is auth protected.
+- `ListedCheckCondition` permission condition to grant the create proposal permission. This condition will allow the creation based on plugin's setup.
+- `execute` function is auth protected, when the plugin is installed this permission will be granted to `ANY_ADDRESS`. 
+- The plugin inherits now from `MetadataExtensionUpgradeable`, meaning that the plugin has metadata that can be get/set (`getMetadata`, `setMetadata`).
+- `initialize` function receives also `pluginMetadata` and `TargetConfig`.
+- `hasSucceeded` and `customProposalParamsABI` function implementing to `IProposal` interface.
+- `minApproval` configuration to the plugin, to restrict the minimal amount of approvals needed to the proposal succeed.
 
 ### Changed
 
