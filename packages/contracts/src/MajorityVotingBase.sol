@@ -523,8 +523,9 @@ abstract contract MajorityVotingBase is
     /// @return executed Whether the proposal is executed or not.
     /// @return parameters The parameters of the proposal.
     /// @return tally The current tally of the proposal.
-    /// @return actions The actions to be executed in the associated DAO after the proposal has passed.
+    /// @return actions The actions to be executed to the `target` contract address.
     /// @return allowFailureMap The bit map representations of which actions are allowed to revert so tx still succeeds.
+    /// @return targetConfig Execution configuration that was applied to the proposal when it was created. Added in build 3.
     function getProposal(
         uint256 _proposalId
     )
@@ -537,7 +538,8 @@ abstract contract MajorityVotingBase is
             ProposalParameters memory parameters,
             Tally memory tally,
             Action[] memory actions,
-            uint256 allowFailureMap
+            uint256 allowFailureMap,
+            TargetConfig memory targetConfig
         )
     {
         Proposal storage proposal_ = proposals[_proposalId];
@@ -548,6 +550,7 @@ abstract contract MajorityVotingBase is
         tally = proposal_.tally;
         actions = proposal_.actions;
         allowFailureMap = proposal_.allowFailureMap;
+        targetConfig = proposal_.targetConfig;
     }
 
     /// @notice Updates the voting settings.

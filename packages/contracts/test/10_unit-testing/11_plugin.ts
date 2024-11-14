@@ -1401,6 +1401,7 @@ describe('TokenVoting', function () {
         defaultVotingSettings,
         dummyActions,
         dummyMetadata,
+        defaultTargetConfig,
       } = await loadFixture(globalFixture);
 
       const allowFailureMap = 1;
@@ -1487,6 +1488,10 @@ describe('TokenVoting', function () {
       expect(proposal.actions[0].to).to.equal(dummyActions[0].to);
       expect(proposal.actions[0].value).to.equal(dummyActions[0].value);
       expect(proposal.actions[0].data).to.equal(dummyActions[0].data);
+      expect(proposal.targetConfig).to.deep.equal([
+        defaultTargetConfig.target,
+        defaultTargetConfig.operation,
+      ]);
     });
 
     it('should create a vote and cast a vote immediately', async () => {
@@ -1497,6 +1502,7 @@ describe('TokenVoting', function () {
         defaultVotingSettings,
         dummyActions,
         dummyMetadata,
+        defaultTargetConfig,
       } = await loadFixture(globalFixture);
 
       // Set Alice's balance to 10.
@@ -1563,6 +1569,10 @@ describe('TokenVoting', function () {
       expect(proposal.tally.yes).to.equal(10);
       expect(proposal.tally.no).to.equal(0);
       expect(proposal.tally.abstain).to.equal(0);
+      expect(proposal.targetConfig).to.deep.equal([
+        defaultTargetConfig.target,
+        defaultTargetConfig.operation,
+      ]);
     });
 
     it('reverts creation when voting before the start date', async () => {
