@@ -14,6 +14,8 @@ packages/subgraph/imported
 packages/subgraph/generated
 packages/subgraph/tests/.bin
 
+docs
+
 # files
 *.env
 *.log

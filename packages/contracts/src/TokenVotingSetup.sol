@@ -25,7 +25,7 @@ import {ProxyLib} from "@aragon/osx-commons-contracts/src/utils/deployment/Proxy
 import {VotingPowerCondition} from "./VotingPowerCondition.sol";
 
 /// @title TokenVotingSetup
-/// @author Aragon X - 2022-2023
+/// @author Aragon X - 2022-2024
 /// @notice The setup contract of the `TokenVoting` plugin.
 /// @dev v1.3 (Release 1, Build 3)
 /// @custom:security-contact sirt@aragon.org
@@ -36,7 +36,6 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     using ProxyLib for address;
 
     /// @notice The identifier of the `EXECUTE_PERMISSION` permission.
-    /// @dev TODO: Migrate this constant to a common library that can be shared across plugins.
     bytes32 public constant EXECUTE_PERMISSION_ID = keccak256("EXECUTE_PERMISSION");
 
     /// @notice The ID of the permission required to call the `setTargetConfig` function.
@@ -68,18 +67,19 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     // solhint-disable-next-line immutable-vars-naming
     address public immutable governanceWrappedERC20Base;
 
-    /// @notice The token settings struct.
-    /// @param addr The token address. If this is `address(0)`, a new `GovernanceERC20` token is deployed.
-    /// If not, the existing token is wrapped as an `GovernanceWrappedERC20`.
-    /// @param name The token name. This parameter is only relevant if the token address is `address(0)`.
-    /// @param symbol The token symbol. This parameter is only relevant if the token address is `address(0)`.
+    /// @notice Configuration settings for a token used within the governance system.
+    /// @param addr The token address. If set to `address(0)`, a new `GovernanceERC20` token is deployed.
+    ///     If the address implements `IVotes`, it will be used directly; otherwise,
+    ///     it is wrapped as `GovernanceWrappedERC20`.
+    /// @param name The name of the token, relevant only if a new token is deployed (i.e., `addr` is `address(0)`).
+    /// @param symbol The symbol of the token, relevant only if a new token is deployed (i.e., `addr` is `address(0)`).
     struct TokenSettings {
         address addr;
         string name;
         string symbol;
     }
 
-    /// @notice Thrown if token address is passed which is not a token.
+    /// @notice Thrown if the passed token address is not a token contract.
     /// @param token The token address
     error TokenNotContract(address token);
 
@@ -88,7 +88,7 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     error TokenNotERC20(address token);
 
     /// @notice The contract constructor deploying the plugin implementation contract
-    /// and receiving the governance token base contracts to clone from.
+    ///     and receiving the governance token base contracts to clone from.
     /// @param _governanceERC20Base The base `GovernanceERC20` contract to create clones from.
     /// @param _governanceWrappedERC20Base The base `GovernanceWrappedERC20` contract to create clones from.
     constructor(

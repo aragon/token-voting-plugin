@@ -1,5 +1,8 @@
 import {createDaoProxy} from '../20_integration-testing/test-helpers';
-import {TestGovernanceERC20} from '../../typechain';
+import {
+  TestGovernanceERC20,
+  TestGovernanceERC20__factory,
+} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src';
 import {
   INITIALIZE_SIGNATURE,
@@ -23,7 +26,7 @@ import {
   TIME,
   pctToRatio,
 } from '@aragon/osx-commons-sdk';
-import {DAO, TestGovernanceERC20__factory} from '@aragon/osx-ethers';
+import {DAO} from '@aragon/osx-ethers';
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
@@ -96,6 +99,9 @@ describe('Upgrades', () => {
       );
       throw new Error('');
     } catch (err: any) {
+      if (err.data === undefined) {
+        throw err;
+      }
       expect(err.data).to.equal(AlreadyInitializedSignature);
     }
 
@@ -192,6 +198,9 @@ describe('Upgrades', () => {
       );
       throw new Error('');
     } catch (err: any) {
+      if (err.data === undefined) {
+        throw err;
+      }
       expect(err.data).to.equal(AlreadyInitializedSignature);
     }
     data[8] = 'initializeFrom';

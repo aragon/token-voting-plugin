@@ -16,10 +16,10 @@ import {Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol"
 import {MajorityVotingBase} from "./MajorityVotingBase.sol";
 
 /// @title TokenVoting
-/// @author Aragon X - 2021-2023
+/// @author Aragon X - 2021-2024
 /// @notice The majority voting implementation using an
-/// [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
-/// compatible governance token.
+///         [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
+///         compatible governance token.
 /// @dev v1.3 (Release 1, Build 3). For each upgrade, if the reinitialization step is required,
 ///      increment the version numbers in the modifier for both the initialize and initializeFrom functions.
 /// @custom:security-contact sirt@aragon.org
@@ -30,7 +30,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     bytes4 internal constant TOKEN_VOTING_INTERFACE_ID = this.getVotingToken.selector;
 
     /// @notice An [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
-    /// compatible contract referencing the token being used for voting.
+    ///         compatible contract referencing the token being used for voting.
     IVotesUpgradeable private votingToken;
 
     /// @notice Thrown if the voting power is zero
@@ -41,7 +41,12 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @param _dao The IDAO interface of the associated DAO.
     /// @param _votingSettings The voting settings.
     /// @param _token The [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used for voting.
+    /// @param _targetConfig Configuration for the execution target, specifying the target address and operation type
+    ///     (either `Call` or `DelegateCall`). Defined by `TargetConfig` in the `IPlugin` interface,
+    ///     part of the `osx-commons-contracts` package, added in build 3.
     /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
+    /// @param _pluginMetadata The plugin specific information encoded in bytes.
+    ///     This can also be an ipfs cid encoded in bytes.
     function initialize(
         IDAO _dao,
         VotingSettings calldata _votingSettings,
@@ -63,14 +68,14 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         emit MembershipContractAnnounced({definingContract: address(_token)});
     }
 
-    /// @notice Reinitializes the TokenVoting after an upgrade from a previous protocol version. For each
+    /// @notice Reinitializes the TokenVoting after an upgrade from a previous build version. For each
     ///         reinitialization step, use the `_fromBuild` version to decide which internal functions to
     ///         call for reinitialization.
     /// @dev WARNING: The contract should only be upgradeable through PSP to ensure that _fromBuild is not
-    ///       incorrectly passed, and that the appropriate permissions for the upgrade are properly configured.
+    ///      incorrectly passed, and that the appropriate permissions for the upgrade are properly configured.
     /// @param _fromBuild Build version number of previous implementation contract this upgrade is transitioning from.
     /// @param _initData The initialization data to be passed to via `upgradeToAndCall`
-    ///        (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
+    ///     (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
     function initializeFrom(uint16 _fromBuild, bytes calldata _initData) external reinitializer(2) {
         if (_fromBuild < 3) {
             (
@@ -99,7 +104,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
     /// @notice getter function for the voting token.
     /// @dev public function also useful for registering interfaceId
-    /// and for distinguishing from majority voting interface.
+    ///      and for distinguishing from majority voting interface.
     /// @return The token used for voting.
     function getVotingToken() public view returns (IVotesUpgradeable) {
         return votingToken;
@@ -111,6 +116,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     }
 
     /// @inheritdoc MajorityVotingBase
+    /// @dev Requires the `CREATE_PROPOSAL_PERMISSION_ID` permission.
     function createProposal(
         bytes calldata _metadata,
         Action[] calldata _actions,

@@ -31,7 +31,7 @@ import {IGovernanceWrappedERC20} from "./IGovernanceWrappedERC20.sol";
 /// `withdrawFor`, which  burns the wrapped [ERC-20](https://eips.ethereum.org/EIPS/eip-20) tokens and
 /// safely transfers the underlying tokens back to the owner.
 /// @dev This contract intentionally has no public mint functionality because this is the
-/// responsibility of the underlying [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token contract.
+///      responsibility of the underlying [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token contract.
 /// @custom:security-contact sirt@aragon.org
 contract GovernanceWrappedERC20 is
     IGovernanceWrappedERC20,
