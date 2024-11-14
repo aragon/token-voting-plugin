@@ -392,6 +392,7 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IMajorityVoting
+    /// @dev Reverts if the proposal with the given `_proposalId` does not exist.
     function canVote(
         uint256 _proposalId,
         address _voter,
