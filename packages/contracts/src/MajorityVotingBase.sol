@@ -401,14 +401,14 @@ abstract contract MajorityVotingBase is
     /// @dev Reverts if the proposal with the given `_proposalId` does not exist.
     function canVote(
         uint256 _proposalId,
-        address _voter,
+        address _account,
         VoteOption _voteOption
     ) public view virtual returns (bool) {
         if (!_proposalExists(_proposalId)) {
             revert NonexistentProposal(_proposalId);
         }
 
-        return _canVote(_proposalId, _voter, _voteOption);
+        return _canVote(_proposalId, _account, _voteOption);
     }
 
     /// @inheritdoc IMajorityVoting
@@ -599,6 +599,7 @@ abstract contract MajorityVotingBase is
     /// @notice Internal function to cast a vote. It assumes the queried proposal exists.
     /// @param _proposalId The ID of the proposal.
     /// @param _voteOption The chosen vote option to be casted on the proposal vote.
+    /// @param _voter The address of the account that is voting on the `_proposalId`.
     /// @param _tryEarlyExecution If `true`,  early execution is tried after the vote cast.
     ///     The call does not revert if early execution is not possible.
     function _vote(
@@ -628,12 +629,12 @@ abstract contract MajorityVotingBase is
 
     /// @notice Internal function to check if a voter can vote. It assumes the queried proposal exists.
     /// @param _proposalId The ID of the proposal.
-    /// @param _voter The address of the voter to check.
-    /// @param  _voteOption Whether the voter abstains, supports or opposes the proposal.
+    /// @param _account The address of the voter to check.
+    /// @param _voteOption Whether the voter abstains, supports or opposes the proposal.
     /// @return Returns `true` if the given voter can vote on a certain proposal and `false` otherwise.
     function _canVote(
         uint256 _proposalId,
-        address _voter,
+        address _account,
         VoteOption _voteOption
     ) internal view virtual returns (bool);
 
