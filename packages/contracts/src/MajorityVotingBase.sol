@@ -525,7 +525,7 @@ abstract contract MajorityVotingBase is
     /// @return tally The current tally of the proposal.
     /// @return actions The actions to be executed to the `target` contract address.
     /// @return allowFailureMap The bit map representations of which actions are allowed to revert so tx still succeeds.
-    /// @return targetConfig Execution configuration that was applied to the proposal when it was created. Added in build 3.
+    /// @return targetConfig Execution configuration, applied to the proposal when it was created. Added in build 3.
     function getProposal(
         uint256 _proposalId
     )
