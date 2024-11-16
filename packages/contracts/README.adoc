@@ -1,0 +1,16 @@
+= The title here
+
+This is for testing purposes.
+
+== Core
+
+{{TokenVoting}}
+
+{{MajorityVotingBase}}
+
+{{TokenVotingSetup}}
+
+{{VotingPowerCondition}}
+
+
+
