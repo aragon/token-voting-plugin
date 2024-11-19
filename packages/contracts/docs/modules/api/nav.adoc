@@ -1,2 +1,2 @@
 .API
-* xref:multisig.adoc[Multisig]
+* xref:TokenVoting.adoc[Token Voting]

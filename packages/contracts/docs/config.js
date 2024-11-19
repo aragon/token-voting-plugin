@@ -17,6 +17,6 @@ module.exports = {
   pageExtension: '.adoc',
   collapseNewlines: true,
   pages: (_, file, config) => {
-    return 'multisig' + config.pageExtension;
+    return 'TokenVoting' + config.pageExtension;
   },
 };
