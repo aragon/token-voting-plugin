@@ -1,6 +1,14 @@
 const path = require('path');
 const fs = require('fs');
 
+const {version, repository} = require('../package.json');
+
+const helpers = require(path.resolve(__dirname, './templates/helpers'));
+
+// overwrite the functions.
+helpers.version = () => version;
+helpers.githubURI = () => repository.url;
+
 /** @type import('solidity-docgen/dist/config').UserConfig */
 module.exports = {
   outputDir: 'docs/modules/api/pages',
@@ -9,9 +17,6 @@ module.exports = {
   pageExtension: '.adoc',
   collapseNewlines: true,
   pages: (_, file, config) => {
-    const sourcesDir = path.resolve(config.root, config.sourcesDir);
-    let dir = path.resolve(config.root, file.absolutePath);
-
-    return 'TokenVoting' + config.pageExtension;
+    return 'multisig' + config.pageExtension;
   },
 };

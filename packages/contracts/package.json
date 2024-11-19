@@ -58,6 +58,10 @@
     "typescript": "^5.2.2",
     "lodash.startcase": "^4.4.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aragon/token-voting-plugin"
+  },
   "files": [
     "/src"
   ],
