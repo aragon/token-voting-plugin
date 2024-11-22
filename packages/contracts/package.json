@@ -1,5 +1,6 @@
 {
   "license": "AGPL-3.0-or-later",
+  "version": "1.4.0-alpha.1",
   "scripts": {
     "build": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"test/**/*.ts\" && yarn typechain",
@@ -8,8 +9,7 @@
     "lint:sol": "cd ../../ && yarn run lint:contracts:sol",
     "lint:ts": "cd ../../ && yarn run lint:contracts:ts",
     "test": "hardhat test",
-    "docgen": "hardhat docgen",
-    "docs": "scripts/prepare-docs.sh",
+    "docs": "DOCS=true scripts/prepare-docs.sh",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
     "clean": "rimraf ./artifacts ./cache ./coverage ./typechain ./types ./coverage.json && yarn typechain"
   },
