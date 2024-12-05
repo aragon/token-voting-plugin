@@ -102,58 +102,51 @@ For DAOs with existing non-governance tokens, these tokens can still be used wit
     3. **Token Wrapping**: For DAOs with a standard (non-governance) ERC20 token, the setup wraps it into a `GovernanceWrappedERC20` token. This wrapper adds governance capabilities, enabling voting and delegation, while allowing deposits and withdrawals of the original token.
 
 * **Permissions**: The following permissions are set up by default by the **TokenVotingSetup**:
-[cols="2,2,2,2,2,3", options="header"]
+[cols="2,2,2,2,2", options="header"]
 |===
-| Permission ID | Where (Granted By) | Who (Granted To) | Condition | Functions | Purpose
+| Permission ID | Where (Granted By) | Who (Granted To) | Condition | Functions
 
 | EXECUTE_PERMISSION_ID
 | DAO
 | Plugin
 | None
 | execute
-| Authorizes the plugin to execute actions tied to proposals.
 
 | UPDATE_VOTING_SETTINGS_PERMISSION_ID
 | Plugin
 | DAO
 | None
-| updateVotingSettings & updateMinApprovals
-| Authorizes the DAO to modify the voting configuration.
+| updateVotingSettings, updateMinApprovals
 
 | SET_TARGET_CONFIG_PERMISSION_ID
 | Plugin
 | DAO
 | None
 | setTargetConfig
-| Authorizes the DAO to modify the execution target configuration.
 
 | SET_METADATA_PERMISSION_ID
 | Plugin
 | DAO
 | None
 | setMetadata
-| Authorizes the DAO to update plugin metadata.
 
 | CREATE_PROPOSAL_PERMISSION_ID
 | Plugin
 | Any Address
 | VotingPowerCondition
 | createProposal
-| Authorizes users to create proposals if conditions are met.
 
 | EXECUTE_PROPOSAL_PERMISSION_ID
 | Plugin
 | Any Address
 | None
 | execute
-| Authorizes users to execute proposals that have succeeded.
 
 | MINT_PERMISSION_ID
 | Associated Governance Token
 | DAO
 | None
 | mint
-| Authorizes the DAO to mint governance tokens. (If a new token is deployed.)
 |===
 
 This setup ensures that the **TokenVoting** plugin is ready for operation immediately after installation, with all required contracts deployed and permissions configured.
