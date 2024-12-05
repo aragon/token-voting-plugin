@@ -156,3 +156,4 @@ For DAOs with existing non-governance tokens, these tokens can still be used wit
 | Authorizes the DAO to mint governance tokens. (If a new token is deployed.)
 |===
 
+This setup ensures that the **TokenVoting** plugin is ready for operation immediately after installation, with all required contracts deployed and permissions configured.
