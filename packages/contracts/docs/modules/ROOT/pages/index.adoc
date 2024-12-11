@@ -2,6 +2,9 @@
 
 = Token Voting
 
+WARNING: The contracts are currently being audited, *DO NOT USE IN PRODUCTION*.
+
+
 == Description
 
 **TokenVoting** is a governance plugin developed and maintained by the Aragon core team. It enables decision-making in DAOs through proposals and token-based voting, where members’ influence is proportional to their token holdings or delegated voting power. Proposals succeed if they meet a configurable majority voting rule and other customizable parameters.
