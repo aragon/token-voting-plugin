@@ -114,6 +114,8 @@
 :xref-VotingPowerCondition-isGranted-address-address-bytes32-bytes-: xref:TokenVoting.adoc#VotingPowerCondition-isGranted-address-address-bytes32-bytes-
 = TokenVoting API
 
+IMPORTANT: The contracts of build 3(use build 2) are currently being audited, DO NOT USE IN PRODUCTION.
+
 == Core
 
 :TOKEN_VOTING_INTERFACE_ID: pass:normal[xref:#TokenVoting-TOKEN_VOTING_INTERFACE_ID-bytes4[`++TOKEN_VOTING_INTERFACE_ID++`]]

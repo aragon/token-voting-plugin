@@ -1,5 +1,7 @@
 = TokenVoting API
 
+IMPORTANT: The contracts of build 3(use build 2) are currently being audited, DO NOT USE IN PRODUCTION.
+
 == Core
 
 {{TokenVoting}}
