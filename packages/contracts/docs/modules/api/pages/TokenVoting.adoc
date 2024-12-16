@@ -43,6 +43,17 @@
 :xref-MajorityVotingBase-VotingSettingsUpdated-enum-MajorityVotingBase-VotingMode-uint32-uint32-uint64-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-VotingSettingsUpdated-enum-MajorityVotingBase-VotingMode-uint32-uint32-uint64-uint256-
 :xref-MajorityVotingBase-VotingMinApprovalUpdated-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-VotingMinApprovalUpdated-uint256-
 :xref-IMajorityVoting-VoteCast-uint256-address-enum-IMajorityVoting-VoteOption-uint256-: xref:TokenVoting.adoc#IMajorityVoting-VoteCast-uint256-address-enum-IMajorityVoting-VoteOption-uint256-
+:xref-TokenVoting-NoVotingPower--: xref:TokenVoting.adoc#TokenVoting-NoVotingPower--
+:xref-MajorityVotingBase-DateOutOfBounds-uint64-uint64-: xref:TokenVoting.adoc#MajorityVotingBase-DateOutOfBounds-uint64-uint64-
+:xref-MajorityVotingBase-MinDurationOutOfBounds-uint64-uint64-: xref:TokenVoting.adoc#MajorityVotingBase-MinDurationOutOfBounds-uint64-uint64-
+:xref-MajorityVotingBase-ProposalCreationForbidden-address-: xref:TokenVoting.adoc#MajorityVotingBase-ProposalCreationForbidden-address-
+:xref-MajorityVotingBase-NonexistentProposal-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-NonexistentProposal-uint256-
+:xref-MajorityVotingBase-VoteCastForbidden-uint256-address-enum-IMajorityVoting-VoteOption-: xref:TokenVoting.adoc#MajorityVotingBase-VoteCastForbidden-uint256-address-enum-IMajorityVoting-VoteOption-
+:xref-MajorityVotingBase-ProposalExecutionForbidden-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-ProposalExecutionForbidden-uint256-
+:xref-MajorityVotingBase-ProposalAlreadyExists-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-ProposalAlreadyExists-uint256-
+:xref-TokenVoting-TOKEN_VOTING_INTERFACE_ID-bytes4: xref:TokenVoting.adoc#TokenVoting-TOKEN_VOTING_INTERFACE_ID-bytes4
+:xref-MajorityVotingBase-MAJORITY_VOTING_BASE_INTERFACE_ID-bytes4: xref:TokenVoting.adoc#MajorityVotingBase-MAJORITY_VOTING_BASE_INTERFACE_ID-bytes4
+:xref-MajorityVotingBase-proposals-mapping-uint256----struct-MajorityVotingBase-Proposal-: xref:TokenVoting.adoc#MajorityVotingBase-proposals-mapping-uint256----struct-MajorityVotingBase-Proposal-
 :xref-MajorityVotingBase-__MajorityVotingBase_init-contract-IDAO-struct-MajorityVotingBase-VotingSettings-struct-IPlugin-TargetConfig-uint256-bytes-: xref:TokenVoting.adoc#MajorityVotingBase-__MajorityVotingBase_init-contract-IDAO-struct-MajorityVotingBase-VotingSettings-struct-IPlugin-TargetConfig-uint256-bytes-
 :xref-MajorityVotingBase-supportsInterface-bytes4-: xref:TokenVoting.adoc#MajorityVotingBase-supportsInterface-bytes4-
 :xref-MajorityVotingBase-vote-uint256-enum-IMajorityVoting-VoteOption-bool-: xref:TokenVoting.adoc#MajorityVotingBase-vote-uint256-enum-IMajorityVoting-VoteOption-bool-
@@ -81,6 +92,15 @@
 :xref-MajorityVotingBase-VotingSettingsUpdated-enum-MajorityVotingBase-VotingMode-uint32-uint32-uint64-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-VotingSettingsUpdated-enum-MajorityVotingBase-VotingMode-uint32-uint32-uint64-uint256-
 :xref-MajorityVotingBase-VotingMinApprovalUpdated-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-VotingMinApprovalUpdated-uint256-
 :xref-IMajorityVoting-VoteCast-uint256-address-enum-IMajorityVoting-VoteOption-uint256-: xref:TokenVoting.adoc#IMajorityVoting-VoteCast-uint256-address-enum-IMajorityVoting-VoteOption-uint256-
+:xref-MajorityVotingBase-DateOutOfBounds-uint64-uint64-: xref:TokenVoting.adoc#MajorityVotingBase-DateOutOfBounds-uint64-uint64-
+:xref-MajorityVotingBase-MinDurationOutOfBounds-uint64-uint64-: xref:TokenVoting.adoc#MajorityVotingBase-MinDurationOutOfBounds-uint64-uint64-
+:xref-MajorityVotingBase-ProposalCreationForbidden-address-: xref:TokenVoting.adoc#MajorityVotingBase-ProposalCreationForbidden-address-
+:xref-MajorityVotingBase-NonexistentProposal-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-NonexistentProposal-uint256-
+:xref-MajorityVotingBase-VoteCastForbidden-uint256-address-enum-IMajorityVoting-VoteOption-: xref:TokenVoting.adoc#MajorityVotingBase-VoteCastForbidden-uint256-address-enum-IMajorityVoting-VoteOption-
+:xref-MajorityVotingBase-ProposalExecutionForbidden-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-ProposalExecutionForbidden-uint256-
+:xref-MajorityVotingBase-ProposalAlreadyExists-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-ProposalAlreadyExists-uint256-
+:xref-MajorityVotingBase-MAJORITY_VOTING_BASE_INTERFACE_ID-bytes4: xref:TokenVoting.adoc#MajorityVotingBase-MAJORITY_VOTING_BASE_INTERFACE_ID-bytes4
+:xref-MajorityVotingBase-proposals-mapping-uint256----struct-MajorityVotingBase-Proposal-: xref:TokenVoting.adoc#MajorityVotingBase-proposals-mapping-uint256----struct-MajorityVotingBase-Proposal-
 :xref-TokenVotingSetup-constructor-contract-GovernanceERC20-contract-GovernanceWrappedERC20-: xref:TokenVoting.adoc#TokenVotingSetup-constructor-contract-GovernanceERC20-contract-GovernanceWrappedERC20-
 :xref-TokenVotingSetup-prepareInstallation-address-bytes-: xref:TokenVoting.adoc#TokenVotingSetup-prepareInstallation-address-bytes-
 :xref-TokenVotingSetup-prepareUpdate-address-uint16-struct-IPluginSetup-SetupPayload-: xref:TokenVoting.adoc#TokenVotingSetup-prepareUpdate-address-uint16-struct-IPluginSetup-SetupPayload-
@@ -88,11 +108,11 @@
 :xref-TokenVotingSetup-supportsIVotesInterface-address-: xref:TokenVoting.adoc#TokenVotingSetup-supportsIVotesInterface-address-
 :xref-TokenVotingSetup-governanceERC20Base-address: xref:TokenVoting.adoc#TokenVotingSetup-governanceERC20Base-address
 :xref-TokenVotingSetup-governanceWrappedERC20Base-address: xref:TokenVoting.adoc#TokenVotingSetup-governanceWrappedERC20Base-address
+:xref-TokenVotingSetup-TokenNotContract-address-: xref:TokenVoting.adoc#TokenVotingSetup-TokenNotContract-address-
+:xref-TokenVotingSetup-TokenNotERC20-address-: xref:TokenVoting.adoc#TokenVotingSetup-TokenNotERC20-address-
 :xref-VotingPowerCondition-constructor-address-: xref:TokenVoting.adoc#VotingPowerCondition-constructor-address-
 :xref-VotingPowerCondition-isGranted-address-address-bytes32-bytes-: xref:TokenVoting.adoc#VotingPowerCondition-isGranted-address-address-bytes32-bytes-
-= The title here
-
-This is for testing purposes.
+= TokenVoting API
 
 == Core
 
@@ -112,7 +132,7 @@ This is for testing purposes.
 
 [.contract]
 [[TokenVoting]]
-=== `++TokenVoting++` link:https://github.com/aragon/token-voting-plugin/blob/1.4.0-alpha.1/packages/contracts/src/TokenVoting.sol[{github-icon},role=heading-link]
+=== `++TokenVoting++` link:https://github.com/aragon/token-voting-plugin/blob/v1.4.0-alpha.1/packages/contracts/src/TokenVoting.sol[{github-icon},role=heading-link]
 
 v1.3 (Release 1, Build 3). For each upgrade, if the reinitialization step is required,
      increment the version numbers in the modifier for both the initialize and initializeFrom functions.
@@ -318,9 +338,17 @@ v1.3 (Release 1, Build 3). For each upgrade, if the reinitialization step is req
 [.contract-index]
 .Errors
 --
+* {xref-TokenVoting-NoVotingPower--}[`++NoVotingPower()++`]
 
 [.contract-subindex-inherited]
 .MajorityVotingBase
+* {xref-MajorityVotingBase-DateOutOfBounds-uint64-uint64-}[`++DateOutOfBounds(limit, actual)++`]
+* {xref-MajorityVotingBase-MinDurationOutOfBounds-uint64-uint64-}[`++MinDurationOutOfBounds(limit, actual)++`]
+* {xref-MajorityVotingBase-ProposalCreationForbidden-address-}[`++ProposalCreationForbidden(sender)++`]
+* {xref-MajorityVotingBase-NonexistentProposal-uint256-}[`++NonexistentProposal(proposalId)++`]
+* {xref-MajorityVotingBase-VoteCastForbidden-uint256-address-enum-IMajorityVoting-VoteOption-}[`++VoteCastForbidden(proposalId, account, voteOption)++`]
+* {xref-MajorityVotingBase-ProposalExecutionForbidden-uint256-}[`++ProposalExecutionForbidden(proposalId)++`]
+* {xref-MajorityVotingBase-ProposalAlreadyExists-uint256-}[`++ProposalAlreadyExists(proposalId)++`]
 
 [.contract-subindex-inherited]
 .ProposalUpgradeable
@@ -385,19 +413,18 @@ v1.3 (Release 1, Build 3). For each upgrade, if the reinitialization step is req
 [.contract-index]
 .Internal Variables
 --
+* {xref-TokenVoting-TOKEN_VOTING_INTERFACE_ID-bytes4}[`++bytes4 constant TOKEN_VOTING_INTERFACE_ID++`]
 
 [.contract-subindex-inherited]
 .MajorityVotingBase
+* {xref-MajorityVotingBase-MAJORITY_VOTING_BASE_INTERFACE_ID-bytes4}[`++bytes4 constant MAJORITY_VOTING_BASE_INTERFACE_ID++`]
+* {xref-MajorityVotingBase-proposals-mapping-uint256----struct-MajorityVotingBase-Proposal-}[`++mapping(uint256 => struct MajorityVotingBase.Proposal)  proposals++`]
 
 [.contract-subindex-inherited]
 .ProposalUpgradeable
-* link:https://github.com/aragon/osx-commons/tree/main/contracts/src/plugin/extensions/proposal/ProposalUpgradeable.sol[FunctionDeprecated]
 
 [.contract-subindex-inherited]
 .PluginUUPSUpgradeable
-* link:https://github.com/aragon/osx-commons/tree/main/contracts/src/plugin/PluginUUPSUpgradeable.sol[InvalidTargetConfig]
-* link:https://github.com/aragon/osx-commons/tree/main/contracts/src/plugin/PluginUUPSUpgradeable.sol[DelegateCallFailed]
-* link:https://github.com/aragon/osx-commons/tree/main/contracts/src/plugin/PluginUUPSUpgradeable.sol[AlreadyInitialized]
 
 [.contract-subindex-inherited]
 .ProtocolVersion
@@ -462,7 +489,7 @@ This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip
 ==== `[.contract-item-name]#++initializeFrom++#++(uint16 _fromBuild, bytes _initData)++` [.item-kind]#external#
 
 Reinitializes the TokenVoting after an upgrade from a previous build version. For each
-        reinitialization step, use the &#x60;_fromBuild&#x60; version to decide which internal functions to
+        reinitialization step, use the `_fromBuild` version to decide which internal functions to
         call for reinitialization.
 
 WARNING: The contract should only be upgradeable through PSP to ensure that _fromBuild is not
@@ -495,7 +522,7 @@ Returns the total voting power checkpointed for a specific block number.
 
 Creates a new majority voting proposal.
 
-Requires the &#x60;CREATE_PROPOSAL_PERMISSION_ID&#x60; permission.
+Requires the `CREATE_PROPOSAL_PERMISSION_ID` permission.
 
 [.contract-item]
 [[TokenVoting-createProposal-bytes-struct-Action---uint64-uint64-bytes-]]
@@ -507,7 +534,7 @@ Creates a new proposal.
 [[TokenVoting-customProposalParamsABI--]]
 ==== `[.contract-item-name]#++customProposalParamsABI++#++() → string++` [.item-kind]#external#
 
-The human-readable abi format for extra params included in &#x60;data&#x60; of &#x60;createProposal&#x60;.
+The human-readable abi format for extra params included in `data` of `createProposal`.
 
 Used for UI to easily detect what extra params the contract expects.
 
@@ -597,7 +624,7 @@ The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contra
 
 [.contract]
 [[MajorityVotingBase]]
-=== `++MajorityVotingBase++` link:https://github.com/aragon/token-voting-plugin/blob/1.4.0-alpha.1/packages/contracts/src/MajorityVotingBase.sol[{github-icon},role=heading-link]
+=== `++MajorityVotingBase++` link:https://github.com/aragon/token-voting-plugin/blob/v1.4.0-alpha.1/packages/contracts/src/MajorityVotingBase.sol[{github-icon},role=heading-link]
 
 This contract implements the `IMajorityVoting` interface.
 
@@ -783,6 +810,13 @@ This contract implements the `IMajorityVoting` interface.
 [.contract-index]
 .Errors
 --
+* {xref-MajorityVotingBase-DateOutOfBounds-uint64-uint64-}[`++DateOutOfBounds(limit, actual)++`]
+* {xref-MajorityVotingBase-MinDurationOutOfBounds-uint64-uint64-}[`++MinDurationOutOfBounds(limit, actual)++`]
+* {xref-MajorityVotingBase-ProposalCreationForbidden-address-}[`++ProposalCreationForbidden(sender)++`]
+* {xref-MajorityVotingBase-NonexistentProposal-uint256-}[`++NonexistentProposal(proposalId)++`]
+* {xref-MajorityVotingBase-VoteCastForbidden-uint256-address-enum-IMajorityVoting-VoteOption-}[`++VoteCastForbidden(proposalId, account, voteOption)++`]
+* {xref-MajorityVotingBase-ProposalExecutionForbidden-uint256-}[`++ProposalExecutionForbidden(proposalId)++`]
+* {xref-MajorityVotingBase-ProposalAlreadyExists-uint256-}[`++ProposalAlreadyExists(proposalId)++`]
 
 [.contract-subindex-inherited]
 .ProposalUpgradeable
@@ -844,16 +878,14 @@ This contract implements the `IMajorityVoting` interface.
 [.contract-index]
 .Internal Variables
 --
+* {xref-MajorityVotingBase-MAJORITY_VOTING_BASE_INTERFACE_ID-bytes4}[`++bytes4 constant MAJORITY_VOTING_BASE_INTERFACE_ID++`]
+* {xref-MajorityVotingBase-proposals-mapping-uint256----struct-MajorityVotingBase-Proposal-}[`++mapping(uint256 => struct MajorityVotingBase.Proposal)  proposals++`]
 
 [.contract-subindex-inherited]
 .ProposalUpgradeable
-* link:https://github.com/aragon/osx-commons/tree/main/contracts/src/plugin/extensions/proposal/ProposalUpgradeable.sol[FunctionDeprecated]
 
 [.contract-subindex-inherited]
 .PluginUUPSUpgradeable
-* link:https://github.com/aragon/osx-commons/tree/main/contracts/src/plugin/PluginUUPSUpgradeable.sol[InvalidTargetConfig]
-* link:https://github.com/aragon/osx-commons/tree/main/contracts/src/plugin/PluginUUPSUpgradeable.sol[DelegateCallFailed]
-* link:https://github.com/aragon/osx-commons/tree/main/contracts/src/plugin/PluginUUPSUpgradeable.sol[AlreadyInitialized]
 
 [.contract-subindex-inherited]
 .ProtocolVersion
@@ -922,7 +954,7 @@ Checks if this or the parent contract supports an interface by its ID.
 
 Votes on a proposal and, optionally, executes the proposal.
 
-&#x60;_voteOption&#x60;, 1 -&gt; abstain, 2 -&gt; yes, 3 -&gt; no
+`_voteOption`, 1 -> abstain, 2 -> yes, 3 -> no
 
 [.contract-item]
 [[MajorityVotingBase-execute-uint256-]]
@@ -930,7 +962,7 @@ Votes on a proposal and, optionally, executes the proposal.
 
 Executes a proposal.
 
-Requires the &#x60;EXECUTE_PROPOSAL_PERMISSION_ID&#x60; permission.
+Requires the `EXECUTE_PROPOSAL_PERMISSION_ID` permission.
 
 [.contract-item]
 [[MajorityVotingBase-getVoteOption-uint256-address-]]
@@ -938,8 +970,8 @@ Requires the &#x60;EXECUTE_PROPOSAL_PERMISSION_ID&#x60; permission.
 
 Returns whether the account has voted for the proposal.
 
-May return &#x60;none&#x60; if the &#x60;_proposalId&#x60; does not exist,
-     or the &#x60;_account&#x60; does not have voting power.
+May return `none` if the `_proposalId` does not exist,
+     or the `_account` does not have voting power.
 
 [.contract-item]
 [[MajorityVotingBase-canVote-uint256-address-enum-IMajorityVoting-VoteOption-]]
@@ -949,9 +981,9 @@ Checks if an account can participate on a proposal. This can be because the vote
 - has not started,
 - has ended,
 - was executed, or
-- the voter doesn&#x27;t have voting powers.
+- the voter doesn't have voting powers.
 
-Reverts if the proposal with the given &#x60;_proposalId&#x60; does not exist.
+Reverts if the proposal with the given `_proposalId` does not exist.
 
 [.contract-item]
 [[MajorityVotingBase-canExecute-uint256-]]
@@ -959,7 +991,7 @@ Reverts if the proposal with the given &#x60;_proposalId&#x60; does not exist.
 
 Checks if a proposal can be executed.
 
-Reverts if the proposal with the given &#x60;_proposalId&#x60; does not exist.
+Reverts if the proposal with the given `_proposalId` does not exist.
 
 [.contract-item]
 [[MajorityVotingBase-hasSucceeded-uint256-]]
@@ -967,14 +999,14 @@ Reverts if the proposal with the given &#x60;_proposalId&#x60; does not exist.
 
 Whether proposal succeeded or not.
 
-Reverts if the proposal with the given &#x60;_proposalId&#x60; does not exist.
+Reverts if the proposal with the given `_proposalId` does not exist.
 
 [.contract-item]
 [[MajorityVotingBase-isSupportThresholdReached-uint256-]]
 ==== `[.contract-item-name]#++isSupportThresholdReached++#++(uint256 _proposalId) → bool++` [.item-kind]#public#
 
 Checks if the support value defined as:
-    $$\texttt{support} &#x3D; \frac{N_\text{yes}}{N_\text{yes}+N_\text{no}}$$
+    $$\texttt{support} = \frac{N_\text{yes}}{N_\text{yes}+N_\text{no}}$$
     for a proposal is greater than the support threshold.
 
 [.contract-item]
@@ -982,7 +1014,7 @@ Checks if the support value defined as:
 ==== `[.contract-item-name]#++isSupportThresholdReachedEarly++#++(uint256 _proposalId) → bool++` [.item-kind]#public#
 
 Checks if the worst-case support value defined as:
-    $$\texttt{worstCaseSupport} &#x3D; \frac{N_\text{yes}}{ N_\text{total}-N_\text{abstain}}$$
+    $$\texttt{worstCaseSupport} = \frac{N_\text{yes}}{ N_\text{total}-N_\text{abstain}}$$
     for a proposal is greater than the support threshold.
 
 [.contract-item]
@@ -990,7 +1022,7 @@ Checks if the worst-case support value defined as:
 ==== `[.contract-item-name]#++isMinParticipationReached++#++(uint256 _proposalId) → bool++` [.item-kind]#public#
 
 Checks if the participation value defined as:
-    $$\texttt{participation} &#x3D; \frac{N_\text{yes}+N_\text{no}+N_\text{abstain}}{N_\text{total}}$$
+    $$\texttt{participation} = \frac{N_\text{yes}+N_\text{no}+N_\text{abstain}}{N_\text{total}}$$
     for a proposal is greater or equal than the minimum participation value.
 
 [.contract-item]
@@ -998,7 +1030,7 @@ Checks if the participation value defined as:
 ==== `[.contract-item-name]#++isMinApprovalReached++#++(uint256 _proposalId) → bool++` [.item-kind]#public#
 
 Checks if the min approval value defined as:
-    $$\texttt{minApproval} &#x3D; \frac{N_\text{yes}}{N_\text{total}}$$
+    $$\texttt{minApproval} = \frac{N_\text{yes}}{N_\text{total}}$$
     for a proposal is greater or equal than the minimum approval value.
 
 [.contract-item]
@@ -1055,7 +1087,7 @@ Returns all information for a proposal by its ID.
 
 Updates the voting settings.
 
-Requires the &#x60;UPDATE_VOTING_SETTINGS_PERMISSION_ID&#x60; permission.
+Requires the `UPDATE_VOTING_SETTINGS_PERMISSION_ID` permission.
 
 [.contract-item]
 [[MajorityVotingBase-updateMinApprovals-uint256-]]
@@ -1063,7 +1095,7 @@ Requires the &#x60;UPDATE_VOTING_SETTINGS_PERMISSION_ID&#x60; permission.
 
 Updates the minimal approval value.
 
-Requires the &#x60;UPDATE_VOTING_SETTINGS_PERMISSION_ID&#x60; permission.
+Requires the `UPDATE_VOTING_SETTINGS_PERMISSION_ID` permission.
 
 [.contract-item]
 [[MajorityVotingBase-createProposal-bytes-struct-Action---uint256-uint64-uint64-enum-IMajorityVoting-VoteOption-bool-]]
@@ -1101,7 +1133,7 @@ An internal function that checks if the proposal succeeded or not.
 
 Internal function to check if a proposal can be executed. It assumes the queried proposal exists.
 
-Threshold and minimal values are compared with &#x60;&gt;&#x60; and &#x60;&gt;&#x3D;&#x60; comparators, respectively.
+Threshold and minimal values are compared with `>` and `>=` comparators, respectively.
 
 [.contract-item]
 [[MajorityVotingBase-_isProposalOpen-struct-MajorityVotingBase-Proposal-]]
@@ -1131,19 +1163,19 @@ Validates and returns the proposal dates.
 [[MajorityVotingBase-UPDATE_VOTING_SETTINGS_PERMISSION_ID-bytes32]]
 ==== `[.contract-item-name]#++UPDATE_VOTING_SETTINGS_PERMISSION_ID++#++() → bytes32++` [.item-kind]#public#
 
-The ID of the permission required to call the &#x60;updateVotingSettings&#x60; function.
+The ID of the permission required to call the `updateVotingSettings` function.
 
 [.contract-item]
 [[MajorityVotingBase-CREATE_PROPOSAL_PERMISSION_ID-bytes32]]
 ==== `[.contract-item-name]#++CREATE_PROPOSAL_PERMISSION_ID++#++() → bytes32++` [.item-kind]#public#
 
-The ID of the permission required to call the &#x60;createProposal&#x60; functions.
+The ID of the permission required to call the `createProposal` functions.
 
 [.contract-item]
 [[MajorityVotingBase-EXECUTE_PROPOSAL_PERMISSION_ID-bytes32]]
 ==== `[.contract-item-name]#++EXECUTE_PROPOSAL_PERMISSION_ID++#++() → bytes32++` [.item-kind]#public#
 
-The ID of the permission required to call the &#x60;execute&#x60; function.
+The ID of the permission required to call the `execute` function.
 
 [.contract-item]
 [[MajorityVotingBase-VotingSettingsUpdated-enum-MajorityVotingBase-VotingMode-uint32-uint32-uint64-uint256-]]
@@ -1179,7 +1211,7 @@ Thrown when a sender is not allowed to create a proposal.
 [[MajorityVotingBase-NonexistentProposal-uint256-]]
 ==== `[.contract-item-name]#++NonexistentProposal++#++(uint256 proposalId)++` [.item-kind]#error#
 
-Thrown when a proposal doesn&#x27;t exist.
+Thrown when a proposal doesn't exist.
 
 [.contract-item]
 [[MajorityVotingBase-VoteCastForbidden-uint256-address-enum-IMajorityVoting-VoteOption-]]
@@ -1189,7 +1221,7 @@ Thrown if an account is not allowed to cast a vote. This can be because the vote
 - has not started,
 - has ended,
 - was executed, or
-- the account doesn&#x27;t have voting powers.
+- the account doesn't have voting powers.
 
 [.contract-item]
 [[MajorityVotingBase-ProposalExecutionForbidden-uint256-]]
@@ -1228,7 +1260,7 @@ A mapping between proposal IDs and proposal information.
 
 [.contract]
 [[TokenVotingSetup]]
-=== `++TokenVotingSetup++` link:https://github.com/aragon/token-voting-plugin/blob/1.4.0-alpha.1/packages/contracts/src/TokenVotingSetup.sol[{github-icon},role=heading-link]
+=== `++TokenVotingSetup++` link:https://github.com/aragon/token-voting-plugin/blob/v1.4.0-alpha.1/packages/contracts/src/TokenVotingSetup.sol[{github-icon},role=heading-link]
 
 v1.3 (Release 1, Build 3)
 
@@ -1269,6 +1301,8 @@ v1.3 (Release 1, Build 3)
 [.contract-index]
 .Errors
 --
+* {xref-TokenVotingSetup-TokenNotContract-address-}[`++TokenNotContract(token)++`]
+* {xref-TokenVotingSetup-TokenNotERC20-address-}[`++TokenNotERC20(token)++`]
 
 [.contract-subindex-inherited]
 .PluginUpgradeableSetup
@@ -1324,19 +1358,19 @@ Prepares the uninstallation of a plugin.
 
 Unsatisfiably determines if the token is an IVotes interface.
 
-Many tokens don&#x27;t use ERC165 even though they still support IVotes.
+Many tokens don't use ERC165 even though they still support IVotes.
 
 [.contract-item]
 [[TokenVotingSetup-governanceERC20Base-address]]
 ==== `[.contract-item-name]#++governanceERC20Base++#++() → address++` [.item-kind]#public#
 
-The address of the &#x60;GovernanceERC20&#x60; base contract.
+The address of the `GovernanceERC20` base contract.
 
 [.contract-item]
 [[TokenVotingSetup-governanceWrappedERC20Base-address]]
 ==== `[.contract-item-name]#++governanceWrappedERC20Base++#++() → address++` [.item-kind]#public#
 
-The address of the &#x60;GovernanceWrappedERC20&#x60; base contract.
+The address of the `GovernanceWrappedERC20` base contract.
 
 [.contract-item]
 [[TokenVotingSetup-TokenNotContract-address-]]
@@ -1355,7 +1389,7 @@ Thrown if token address is not ERC20.
 
 [.contract]
 [[VotingPowerCondition]]
-=== `++VotingPowerCondition++` link:https://github.com/aragon/token-voting-plugin/blob/1.4.0-alpha.1/packages/contracts/src/VotingPowerCondition.sol[{github-icon},role=heading-link]
+=== `++VotingPowerCondition++` link:https://github.com/aragon/token-voting-plugin/blob/v1.4.0-alpha.1/packages/contracts/src/VotingPowerCondition.sol[{github-icon},role=heading-link]
 
 [.contract-index]
 .Functions
@@ -1389,7 +1423,7 @@ Thrown if token address is not ERC20.
 [[VotingPowerCondition-constructor-address-]]
 ==== `[.contract-item-name]#++constructor++#++(address _tokenVoting)++` [.item-kind]#public#
 
-Initializes the contract with the &#x60;TokenVoting&#x60; plugin address and fetches the associated token.
+Initializes the contract with the `TokenVoting` plugin address and fetches the associated token.
 
 [.contract-item]
 [[VotingPowerCondition-isGranted-address-address-bytes32-bytes-]]
@@ -1397,6 +1431,6 @@ Initializes the contract with the &#x60;TokenVoting&#x60; plugin address and fet
 
 Checks if a call is permitted.
 
-The function checks both the voting power and token balance to ensure &#x60;_who&#x60; meets the minimum voting
-     threshold defined in the &#x60;TokenVoting&#x60; plugin. Returns &#x60;false&#x60; if the minimum requirement is unmet.
+The function checks both the voting power and token balance to ensure `_who` meets the minimum voting
+     threshold defined in the `TokenVoting` plugin. Returns `false` if the minimum requirement is unmet.
 

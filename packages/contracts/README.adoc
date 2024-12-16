@@ -1,6 +1,4 @@
-= The title here
-
-This is for testing purposes.
+= TokenVoting API
 
 == Core
 
