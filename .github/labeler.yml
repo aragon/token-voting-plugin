@@ -4,7 +4,4 @@
 contracts:
   - ./packages/contracts/**/*
   - ./packages/contracts/*
-
-subgraph:
-  - ./packages/subgraph/**/*
-  - ./packages/subgraph/*
+  
