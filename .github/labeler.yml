@@ -4,4 +4,3 @@
 contracts:
   - ./packages/contracts/**/*
   - ./packages/contracts/*
-  
