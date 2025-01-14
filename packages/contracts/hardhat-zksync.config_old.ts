@@ -1,10 +1,6 @@
 import {TestingFork} from './types/hardhat';
 import RichAccounts from './utils/zksync-rich-accounts';
-import {
-  addRpcUrlToNetwork,
-  networks as osxCommonsConfigNetworks,
-  SupportedNetworks,
-} from '@aragon/osx-commons-configs';
+import {addRpcUrlToNetwork} from '@aragon/osx-commons-configs';
 import '@matterlabs/hardhat-zksync-deploy';
 import '@matterlabs/hardhat-zksync-ethers';
 import '@matterlabs/hardhat-zksync-node';
@@ -13,26 +9,18 @@ import '@matterlabs/hardhat-zksync-upgradable';
 import '@matterlabs/hardhat-zksync-verify';
 import '@nomicfoundation/hardhat-chai-matchers';
 import '@nomicfoundation/hardhat-network-helpers';
-import '@typechain/hardhat';
 import {config as dotenvConfig} from 'dotenv';
-import {BigNumber, ethers} from 'ethers';
 import fs from 'fs';
 import 'hardhat-deploy';
-import 'hardhat-deploy';
-import 'hardhat-gas-reporter';
 import {extendEnvironment, HardhatUserConfig, task} from 'hardhat/config';
-import {
-  HardhatNetworkAccountsUserConfig,
-  HardhatRuntimeEnvironment,
-} from 'hardhat/types';
-import type {NetworkUserConfig} from 'hardhat/types';
 import {resolve} from 'path';
 import 'solidity-coverage';
-import 'solidity-coverage';
-import 'solidity-docgen';
 
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || '../../.env';
 dotenvConfig({path: resolve(__dirname, dotenvConfigPath), override: true});
+
+const ETH_KEY = process.env.PRIVATE_KEY;
+const accounts = ETH_KEY ? ETH_KEY.split(',') : [];
 
 // check alchemy Api key existence
 if (process.env.ALCHEMY_API_KEY) {
@@ -41,10 +29,18 @@ if (process.env.ALCHEMY_API_KEY) {
   throw new Error('ALCHEMY_API_KEY in .env not set');
 }
 
-// Fetch the accounts specified in the .env file
-function specifiedAccounts(): string[] {
-  return process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.split(',') : [];
-}
+// Extend HardhatRuntimeEnvironment
+extendEnvironment(hre => {
+  const testingFork: TestingFork = {
+    network: '',
+    osxVersion: '',
+    activeContracts: {},
+  };
+  hre.aragonToVerifyContracts = [];
+  hre.managementDAOMultisigPluginAddress = ''; // TODO This must be removed after the deploy script got refactored (see https://github.com/aragon/osx/pull/582)
+  hre.managementDAOActions = [];
+  hre.testingFork = testingFork;
+});
 
 task('build-contracts').setAction(async (args, hre) => {
   await hre.run('compile');
@@ -88,28 +84,31 @@ task('test-contracts').setAction(async (args, hre) => {
   await hre.run('test');
 });
 
-// Extend HardhatRuntimeEnvironment
-extendEnvironment((hre: HardhatRuntimeEnvironment) => {
-  hre.aragonToVerifyContracts = [];
-});
-
-const namedAccounts = {
-  deployer: 0,
-  alice: 1,
-  bob: 2,
-  carol: 3,
-  dave: 4,
-  eve: 5,
-  frank: 6,
-  grace: 7,
-  harold: 8,
-  ivan: 9,
-  judy: 10,
-  mallory: 11,
-};
-
+// You need to export an object to set up your config
+// Go to https://hardhat.org/config/ to learn more
 const config: HardhatUserConfig = {
-  namedAccounts,
+  zksolc: {
+    compilerSource: 'binary',
+    version: '1.5.0',
+  },
+  solidity: {
+    version: '0.8.17',
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 2000,
+      },
+      outputSelection: {
+        '*': {
+          '*': ['storageLayout'],
+        },
+      },
+    },
+  },
+  typechain: {
+    outDir: 'typechain',
+    target: 'ethers-v5',
+  },
   defaultNetwork: 'zkLocalTestnet',
   networks: {
     zkLocalTestnet: {
@@ -127,8 +126,8 @@ const config: HardhatUserConfig = {
       zksync: true,
       verifyURL:
         'https://explorer.sepolia.era.zksync.dev/contract_verification',
-      deploy: ['./deploy'],
-      accounts: specifiedAccounts(),
+      deploy: ['./deploy/new', './deploy/verification'],
+      accounts: accounts,
       forceDeploy: true,
     },
     zkMainnet: {
@@ -137,45 +136,24 @@ const config: HardhatUserConfig = {
       zksync: true,
       verifyURL:
         'https://zksync2-mainnet-explorer.zksync.io/contract_verification',
-      deploy: ['./deploy'],
-      accounts: specifiedAccounts(),
+      deploy: ['./deploy/new', './deploy/verification'],
+      accounts: accounts,
       forceDeploy: true,
     },
   },
+  namedAccounts: {
+    deployer: 0,
+  },
   paths: {
-    artifacts: './build/artifacts',
-    cache: './build/cache',
     sources: './src',
     tests: './test',
+    cache: './build/cache',
+    artifacts: './build/artifacts',
     deploy: './deploy',
   },
   mocha: {
-    timeout: 6000000,
+    timeout: 90_000, // 90 seconds // increase the timeout for subdomain validation tests
   },
-  zksolc: {
-    compilerSource: 'binary',
-    version: '1.5.0',
-  },
-  solidity: {
-    version: '0.8.17',
-    settings: {
-      metadata: {
-        // Not including the metadata hash
-        // https://github.com/paulrberg/hardhat-template/issues/31
-        bytecodeHash: 'none',
-      },
-      // Disable the optimizer when debugging
-      // https://hardhat.org/hardhat-network/#solidity-optimizer-support
-      optimizer: {
-        enabled: true,
-        runs: 800,
-      },
-    },
-  },
-  /* typechain: {
-    outDir: 'typechain',
-    target: 'ethers-v5',
-  }, */
 };
 
 export default config;
