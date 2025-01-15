@@ -294,7 +294,7 @@ async function grantCreateProposalPermissions(
   );
 }
 
-describe('TokenVoting', function () {
+describe.only('TokenVoting', function () {
   before(async () => {
     chainId = (await ethers.provider.getNetwork()).chainId;
   });

@@ -23,6 +23,7 @@ import {
 } from '../../test-utils/token-voting-constants';
 import {IMajorityVoting_V1_3_0__factory} from '../../test-utils/typechain-versions';
 import {VotingMode} from '../../test-utils/voting-helpers';
+import {ARTIFACT_SOURCES} from '../../test-utils/wrapper';
 import {TIME, findEvent} from '@aragon/osx-commons-sdk';
 import {getInterfaceId} from '@aragon/osx-commons-sdk';
 import {pctToRatio} from '@aragon/osx-commons-sdk';
@@ -30,7 +31,7 @@ import {DAO} from '@aragon/osx-ethers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
-import {ethers} from 'hardhat';
+import hre, {ethers} from 'hardhat';
 
 describe('MajorityVotingMock', function () {
   let signers: SignerWithAddress[];
@@ -67,21 +68,9 @@ describe('MajorityVotingMock', function () {
 
     metadata = '0x11';
 
-    const pluginImplementation = await new MajorityVotingMock__factory(
-      signers[0]
-    ).deploy();
-    const proxyFactory = await new ProxyFactory__factory(deployer).deploy(
-      pluginImplementation.address
-    );
-    const deploymentTx1 = await proxyFactory.deployUUPSProxy([]);
-    const proxyCreatedEvent1 = findEvent<ProxyCreatedEvent>(
-      await deploymentTx1.wait(),
-      proxyFactory.interface.getEvent('ProxyCreated').name
-    );
-    votingBase = MajorityVotingMock__factory.connect(
-      proxyCreatedEvent1.args.proxy,
-      deployer
-    );
+    votingBase = await hre.wrapper.deploy(ARTIFACT_SOURCES.MajorityVotingMock, {
+      withProxy: true,
+    });
 
     await dao.grant(
       votingBase.address,

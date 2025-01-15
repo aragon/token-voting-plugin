@@ -8,49 +8,10 @@ import hre, {ethers} from 'hardhat';
 
 // TODO: generate paths programatically.
 export const ARTIFACT_SOURCES = {
-  DAO: 'src/core/dao/DAO.sol:DAO',
+  DAO: '@aragon/osx/core/dao/DAO.sol:DAO',
   DAO_V1_0_0: '@aragon/osx-v1.0.1/core/dao/DAO.sol:DAO',
   DAO_V1_3_0: '@aragon/osx-v1.3.0/core/dao/DAO.sol:DAO',
-  PLUGIN_REPO: 'src/framework/plugin/repo/PluginRepo.sol:PluginRepo',
-  PLUGIN_REPO_V1_0_0:
-    '@aragon/osx-v1.0.1/framework/plugin/repo/PluginRepo.sol:PluginRepo',
-  PLUGIN_REPO_V1_3_0:
-    '@aragon/osx-v1.3.0/framework/plugin/repo/PluginRepo.sol:PluginRepo',
-  DAO_REGISTRY: 'src/framework/dao/DAORegistry.sol:DAORegistry',
-  DAO_REGISTRY_V1_0_0:
-    '@aragon/osx-v1.0.1/framework/dao/DAORegistry.sol:DAORegistry',
-  DAO_REGISTRY_V1_3_0:
-    '@aragon/osx-v1.3.0/framework/dao/DAORegistry.sol:DAORegistry',
-  PLUGIN_REPO_REGISTRY:
-    'src/framework/plugin/repo/PluginRepoRegistry.sol:PluginRepoRegistry',
-  PLUGIN_REPO_REGISTRY_V1_0_0:
-    '@aragon/osx-v1.0.1/framework/plugin/repo/PluginRepoRegistry.sol:PluginRepoRegistry',
-  PLUGIN_REPO_REGISTRY_V1_3_0:
-    '@aragon/osx-v1.3.0/framework/plugin/repo/PluginRepoRegistry.sol:PluginRepoRegistry',
-  ENS_SUBDOMAIN_REGISTRAR:
-    'src/framework/utils/ens/ENSSubdomainRegistrar.sol:ENSSubdomainRegistrar',
-  ENS_SUBDOMAIN_REGISTRAR_V1_0_0:
-    '@aragon/osx-v1.0.1/framework/utils/ens/ENSSubdomainRegistrar.sol:ENSSubdomainRegistrar',
-  ENS_SUBDOMAIN_REGISTRAR_V1_3_0:
-    '@aragon/osx-v1.3.0/framework/utils/ens/ENSSubdomainRegistrar.sol:ENSSubdomainRegistrar',
-  MERKLE_DISTRIBUTOR:
-    'src/plugins/token/MerkleDistributor.sol:MerkleDistributor',
-  MERKLE_DISTRIBUTOR_V1_0_0:
-    '@aragon/osx-v1.0.1/plugins/token/MerkleDistributor.sol:MerkleDistributor',
-  MERKLE_MINTER: 'src/plugins/token/MerkleMinter.sol:MerkleMinter',
-  MERKLE_MINTER_V1_0_0:
-    '@aragon/osx-v1.0.1/plugins/token/MerkleMinter.sol:MerkleMinter',
-  ADDRESSLIST_VOTING:
-    'src/plugins/governance/majority-voting/addresslist/AddresslistVoting.sol:AddresslistVoting',
-  ADDRESSLIST_VOTING_V1_0_0:
-    '@aragon/osx-v1.0.1/plugins/governance/majority-voting/addresslist/AddresslistVoting.sol:AddresslistVoting',
-  TOKEN_VOTING:
-    'src/plugins/governance/majority-voting/token/TokenVoting.sol:TokenVoting',
-  TOKEN_VOTING_V1_0_0:
-    '@aragon/osx-v1.0.1/plugins/governance/majority-voting/token/TokenVoting.sol:TokenVoting',
-  MULTISIG: 'src/plugins/governance/multisig/Multisig.sol:Multisig',
-  MULTISIG_V1_0_0:
-    '@aragon/osx-v1.0.1/plugins/governance/multisig/Multisig.sol:Multisig',
+  MajorityVotingMock: 'src/mocks/MajorityVotingMock.sol:MajorityVotingMock',
 };
 
 export type DeployOptions = {
