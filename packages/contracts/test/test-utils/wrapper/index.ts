@@ -12,6 +12,9 @@ export const ARTIFACT_SOURCES = {
   DAO_V1_0_0: '@aragon/osx-v1.0.1/core/dao/DAO.sol:DAO',
   DAO_V1_3_0: '@aragon/osx-v1.3.0/core/dao/DAO.sol:DAO',
   MajorityVotingMock: 'src/mocks/MajorityVotingMock.sol:MajorityVotingMock',
+  VotingPowerCondition: 'src/VotingPowerCondition.sol:VotingPowerCondition',
+  TokenVoting: 'src/TokenVoting.sol:TokenVoting',
+  TestGovernanceERC20: 'src/mocks/TestGovernanceERC20.sol:TestGovernanceERC20',
 };
 
 export type DeployOptions = {
