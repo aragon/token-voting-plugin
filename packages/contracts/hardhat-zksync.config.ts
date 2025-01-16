@@ -150,6 +150,7 @@ const config: HardhatUserConfig = {
     deploy: './deploy',
   },
   mocha: {
+    require: ['test/test-utils/override-time.ts'],
     timeout: 6000000,
   },
   zksolc: {

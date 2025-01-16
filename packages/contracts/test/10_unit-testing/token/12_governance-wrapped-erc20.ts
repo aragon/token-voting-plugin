@@ -11,10 +11,11 @@ import {
   GovernanceWrappedERC20,
   GovernanceWrappedERC20__factory,
 } from '../../test-utils/typechain-versions';
+import {ARTIFACT_SOURCES} from '../../test-utils/wrapper';
 import {getInterfaceId} from '@aragon/osx-commons-sdk';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
-import {ethers} from 'hardhat';
+import hre, {ethers} from 'hardhat';
 
 export type AccountBalance = {account: string; amount: number};
 
@@ -65,12 +66,17 @@ describe('GovernanceWrappedERC20', function () {
 
   beforeEach(async function () {
     defaultExistingERC20InitData = [existingErc20Name, existingErc20Symbol];
-    erc20 = await ERC20Mock.deploy(...defaultExistingERC20InitData);
 
-    const promises = defaultBalances.map(balance =>
-      erc20.setBalance(balance.account, balance.amount)
-    );
-    await Promise.all(promises);
+    erc20 = await hre.wrapper.deploy(ARTIFACT_SOURCES.ERC20Mock, {
+      args: defaultExistingERC20InitData,
+    });
+
+    for (let i = 0; i < defaultBalances.length; i++) {
+      await erc20.setBalance(
+        defaultBalances[i].account,
+        defaultBalances[i].amount
+      );
+    }
 
     defaultGovernanceWrappedERC20InitData = [
       erc20.address,
@@ -78,8 +84,11 @@ describe('GovernanceWrappedERC20', function () {
       governanceWrappedERC20Symbol,
     ];
 
-    governanceToken = await GovernanceWrappedERC20.deploy(
-      ...defaultGovernanceWrappedERC20InitData
+    governanceToken = await hre.wrapper.deploy(
+      ARTIFACT_SOURCES.GovernanceWrappedERC20,
+      {
+        args: defaultGovernanceWrappedERC20InitData,
+      }
     );
   });
 
@@ -91,10 +100,6 @@ describe('GovernanceWrappedERC20', function () {
     });
 
     it('sets the wrapped token name and symbol', async () => {
-      governanceToken = await GovernanceWrappedERC20.deploy(
-        ...defaultGovernanceWrappedERC20InitData
-      );
-
       expect(await governanceToken.name()).to.eq(governanceWrappedERC20Name);
       expect(await governanceToken.symbol()).to.eq(
         governanceWrappedERC20Symbol
@@ -258,11 +263,9 @@ describe('GovernanceWrappedERC20', function () {
   describe('delegate', async () => {
     beforeEach(async function () {
       // approve and deposit for all token holders
-      const promises = defaultBalances.map(balance =>
-        erc20.approve(balance.account, balance.amount)
-      );
-
-      await Promise.all(promises);
+      for (let i = 0; i < defaultBalances.length; i++) {
+        erc20.approve(defaultBalances[i].account, defaultBalances[i].amount);
+      }
     });
 
     it('delegates voting power to another account', async () => {
@@ -355,10 +358,11 @@ describe('GovernanceWrappedERC20', function () {
     let token: GovernanceWrappedERC20;
 
     beforeEach(async () => {
-      token = await GovernanceWrappedERC20.deploy(
-        erc20.address,
-        'name',
-        'symbol'
+      token = await hre.wrapper.deploy(
+        ARTIFACT_SOURCES.GovernanceWrappedERC20,
+        {
+          args: [erc20.address, 'name', 'symbol'],
+        }
       );
 
       await erc20.setBalance(signers[0].address, 200);

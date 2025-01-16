@@ -12,6 +12,7 @@ import {
 } from '../../typechain';
 import {IGovernanceWrappedERC20__factory} from '../../typechain/factories/src/ERC20/governance';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
+import {loadFixtureCustom} from '../test-utils/fixture';
 import {
   ANY_ADDR,
   CREATE_PROPOSAL_PERMISSION_ID,
@@ -29,6 +30,7 @@ import {
   TokenVotingSetup__factory,
 } from '../test-utils/typechain-versions';
 import {VotingMode} from '../test-utils/voting-helpers';
+import {ARTIFACT_SOURCES} from '../test-utils/wrapper';
 import {
   DAO_PERMISSIONS,
   getInterfaceId,
@@ -40,10 +42,9 @@ import {TIME} from '@aragon/osx-commons-sdk';
 import {pctToRatio} from '@aragon/osx-commons-sdk';
 import {DAO} from '@aragon/osx-ethers';
 import {BigNumber} from '@ethersproject/bignumber';
-import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
-import {ethers} from 'hardhat';
+import hre, {ethers} from 'hardhat';
 
 const abiCoder = ethers.utils.defaultAbiCoder;
 const AddressZero = ethers.constants.AddressZero;
@@ -90,23 +91,40 @@ async function fixture(): Promise<FixtureResult> {
   };
   const defaultMintSettings = {receivers: [], amounts: []};
 
-  const erc20 = await new ERC20__factory(deployer).deploy('erc20', 'ERC20');
+  const erc20 = await hre.wrapper.deploy(ARTIFACT_SOURCES.ERC20, {
+    args: ['erc20', 'ERC20'],
+  });
 
   // Deploy the GovernanceERC20 token base class
-  const governanceERC20Base = await new GovernanceERC20__factory(
-    deployer
-  ).deploy(AddressZero, 'gov', 'GOV', defaultMintSettings);
+  const governanceERC20Base = await hre.wrapper.deploy(
+    ARTIFACT_SOURCES.GovernanceERC20,
+    {
+      args: [AddressZero, 'gov', 'GOV', defaultMintSettings],
+    }
+  );
 
   // Deploy the GovernanceWrappedERC20 token base class
-  const governanceWrappedERC20Base = await new GovernanceWrappedERC20__factory(
-    deployer
-  ).deploy(AddressZero, 'wrappedGov', 'wGOV');
+  const governanceWrappedERC20Base = await hre.wrapper.deploy(
+    ARTIFACT_SOURCES.GovernanceWrappedERC20,
+    {
+      args: [AddressZero, 'wrappedGov', 'wGOV'],
+    }
+  );
 
   // Deploy a plugin setup contract
-  const pluginSetup = await new TokenVotingSetup__factory(deployer).deploy(
-    governanceERC20Base.address,
-    governanceWrappedERC20Base.address
+  const isZkSync = ['zkLocalTestnet', 'zkTestnet', 'zkMainnet'].includes(
+    hre.network.name
   );
+
+  const artifactSource = isZkSync
+    ? ARTIFACT_SOURCES.TokenVotingSetupZkSync
+    : ARTIFACT_SOURCES.TokenVotingSetup;
+
+  const deployArgs = isZkSync
+    ? {} // No arguments for zkSync
+    : {args: [governanceERC20Base.address, governanceWrappedERC20Base.address]};
+
+  const pluginSetup = await hre.wrapper.deploy(artifactSource, deployArgs);
 
   const defaultTargetConfig: TargetConfig = {
     target: dao.address,
@@ -190,13 +208,13 @@ async function fixture(): Promise<FixtureResult> {
 
 describe('TokenVotingSetup', function () {
   it('does not support the empty interface', async () => {
-    const {pluginSetup} = await loadFixture(fixture);
+    const {pluginSetup} = await loadFixtureCustom(fixture);
     expect(await pluginSetup.supportsInterface('0xffffffff')).to.be.false;
   });
 
   it('stores the bases provided through the constructor', async () => {
     const {pluginSetup, governanceERC20Base, governanceWrappedERC20Base} =
-      await loadFixture(fixture);
+      await loadFixtureCustom(fixture);
 
     expect(await pluginSetup.governanceERC20Base()).to.be.eq(
       governanceERC20Base.address
@@ -208,9 +226,8 @@ describe('TokenVotingSetup', function () {
 
   describe('prepareInstallation', async () => {
     it('fails if data is empty, or not of minimum length', async () => {
-      const {pluginSetup, dao, prepareInstallationInputs} = await loadFixture(
-        fixture
-      );
+      const {pluginSetup, dao, prepareInstallationInputs} =
+        await loadFixtureCustom(fixture);
 
       // Try calling `prepareInstallation` without input data.
       await expect(pluginSetup.prepareInstallation(dao.address, [])).to.be
@@ -240,7 +257,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const receivers: string[] = [AddressZero];
       const amounts: number[] = [];
@@ -288,7 +305,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const data = abiCoder.encode(
         getNamedTypesFromMetadata(
@@ -318,7 +335,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const data = abiCoder.encode(
         getNamedTypesFromMetadata(
@@ -350,7 +367,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
         pluginSetup.address
@@ -459,7 +476,7 @@ describe('TokenVotingSetup', function () {
         defaultTargetConfig,
         defaultMinApproval,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
         pluginSetup.address
@@ -540,7 +557,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const governanceERC20 = await new GovernanceERC20__factory(
         deployer
@@ -641,7 +658,7 @@ describe('TokenVotingSetup', function () {
         dao,
         defaultTokenSettings,
         prepareInstallationInputs,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
         pluginSetup.address
@@ -744,7 +761,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const daoAddress = dao.address;
 
@@ -833,7 +850,7 @@ describe('TokenVotingSetup', function () {
         dao,
         prepareInstallationInputs,
         prepareUpdateBuild3Inputs,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
         pluginSetup.address
@@ -926,7 +943,7 @@ describe('TokenVotingSetup', function () {
         dao,
         prepareInstallationInputs,
         prepareUpdateBuild3Inputs,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const nonce = await ethers.provider.getTransactionCount(
         pluginSetup.address
@@ -1013,9 +1030,8 @@ describe('TokenVotingSetup', function () {
     });
 
     it('returns the permissions expected for the update from build 3 (empty list)', async () => {
-      const {pluginSetup, dao, prepareUpdateBuild3Inputs} = await loadFixture(
-        fixture
-      );
+      const {pluginSetup, dao, prepareUpdateBuild3Inputs} =
+        await loadFixtureCustom(fixture);
       const plugin = ethers.Wallet.createRandom().address;
 
       // Make a static call to check that the plugin update data being returned is correct.
@@ -1046,7 +1062,7 @@ describe('TokenVotingSetup', function () {
         dao,
         defaultTokenSettings,
         prepareUninstallationInputs,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const plugin = ethers.Wallet.createRandom().address;
       const governanceERC20 = await new GovernanceERC20__factory(

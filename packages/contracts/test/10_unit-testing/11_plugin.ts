@@ -62,7 +62,7 @@ import {
   DAO_PERMISSIONS,
 } from '@aragon/osx-commons-sdk';
 import {DAO, DAOStructs, DAO__factory} from '@aragon/osx-ethers';
-import {loadFixtureCustom, time} from '@nomicfoundation/hardhat-network-helpers';
+import {time} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
@@ -287,7 +287,7 @@ async function grantCreateProposalPermissions(
   );
 }
 
-describe.only('TokenVoting', function () {
+describe('TokenVoting', function () {
   before(async () => {
     chainId = (await ethers.provider.getNetwork()).chainId;
   });
@@ -407,55 +407,73 @@ describe.only('TokenVoting', function () {
 
   describe('ERC-165', async () => {
     it('does not support the empty interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       expect(await plugin.supportsInterface('0xffffffff')).to.be.false;
     });
 
     it('supports the `IERC165Upgradeable` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IERC165Upgradeable__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IPlugin` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IPlugin__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IProtocolVersion` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IProtocolVersion__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IProposal` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IProposal__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IMembership` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IMembership__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IMajorityVoting` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IMajorityVoting__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IMajorityVoting` OLD interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const oldIface = IMajorityVoting_V1_3_0__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(oldIface))).to.be
         .true;
     });
 
     it('supports the `MajorityVotingBase` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       expect(
         await plugin.supportsInterface(
           getInterfaceId(MAJORITY_VOTING_BASE_INTERFACE)
@@ -464,7 +482,9 @@ describe.only('TokenVoting', function () {
     });
 
     it('supports the `MajorityVotingBase` OLD interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       expect(
         await plugin.supportsInterface(
           getInterfaceId(MAJORITY_VOTING_BASE_OLD_INTERFACE)
@@ -473,7 +493,9 @@ describe.only('TokenVoting', function () {
     });
 
     it('supports the `TokenVoting` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixtureCustom(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const interfaceId = getInterfaceId(TOKEN_VOTING_INTERFACE);
       expect(await plugin.supportsInterface(interfaceId)).to.be.true;
     });
@@ -1139,7 +1161,7 @@ describe.only('TokenVoting', function () {
       // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
 
-      // Create a start date that is in the past.
+      // // Create a start date that is in the past.
       const currentDate = await time.latest();
       const startDateInThePast = currentDate - 1;
       const endDate = 0; // startDate + minDuration
@@ -1253,6 +1275,11 @@ describe.only('TokenVoting', function () {
       const endDate = 0; // startDate + minDuration
       const id = await createProposalId(plugin.address, [], dummyMetadata);
 
+      const expectedStartDate = BigNumber.from(await time.latest());
+      const expectedEndDate = expectedStartDate.add(
+        await defaultVotingSettings.minDuration
+      );
+
       const creationTx = await plugin
         .connect(alice)
         [CREATE_PROPOSAL_SIGNATURE](
@@ -1264,11 +1291,6 @@ describe.only('TokenVoting', function () {
           VoteOption.None,
           false
         );
-
-      const expectedStartDate = BigNumber.from(await time.latest());
-      const expectedEndDate = expectedStartDate.add(
-        await defaultVotingSettings.minDuration
-      );
 
       // Check the state
       const proposal = await plugin.getProposal(id);
@@ -1649,7 +1671,9 @@ describe.only('TokenVoting', function () {
       }>
     ) {
       it('reverts if proposal does not exist', async () => {
-        const {initializedPlugin: plugin} = await loadFixtureCustom(localFixture);
+        const {initializedPlugin: plugin} = await loadFixtureCustom(
+          localFixture
+        );
 
         const id = 10;
 
@@ -2563,8 +2587,9 @@ describe.only('TokenVoting', function () {
           initializedPlugin: plugin,
         } = await loadFixtureCustom(localFixture);
 
-        const executorFactory = new CustomExecutorMock__factory(deployer);
-        const executor = await executorFactory.deploy();
+        const executor = await hre.wrapper.deploy(
+          ARTIFACT_SOURCES.CustomExecutorMock
+        );
 
         const abiA = CustomExecutorMock__factory.abi;
         const abiB = TokenVoting__factory.abi;
