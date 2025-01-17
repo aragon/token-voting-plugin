@@ -1,3 +1,7 @@
+import {
+  PLUGIN_SETUP_CONTRACT_NAME,
+  PLUGIN_SETUP_CONTRACT_NAME_ZKSYNC,
+} from '../plugin-settings';
 import {VersionTag} from '../test/test-utils/psp/types';
 import {
   ENSRegistry__factory,
@@ -8,6 +12,7 @@ import {
 import {VersionCreatedEvent} from '../typechain/PluginRepo';
 import {PluginRepoRegisteredEvent} from '../typechain/PluginRepoRegistry';
 import {isLocal, pluginDomainEnv} from '../utils/environment';
+import {ZK_SYNC_NETWORKS} from '../utils/zkSync';
 import {
   getNetworkNameByAlias,
   getLatestNetworkDeployment,
@@ -434,6 +439,12 @@ export async function managePermissions(
       })`
     );
   });
+}
+
+export function pluginSetupContractName(hre: HardhatRuntimeEnvironment) {
+  return ZK_SYNC_NETWORKS.includes(hre.network.name)
+    ? PLUGIN_SETUP_CONTRACT_NAME_ZKSYNC
+    : PLUGIN_SETUP_CONTRACT_NAME;
 }
 
 export async function isENSDomainRegistered(

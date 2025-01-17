@@ -11,6 +11,8 @@ export const PLUGIN_REPO_ENS_SUBDOMAIN_NAME = 'token-voting'; // This will resul
 export const GOVERNANCE_ERC20_CONTRACT_NAME = 'GovernanceERC20';
 export const GOVERNANCE_WRAPPED_ERC20_CONTRACT_NAME = 'GovernanceWrappedERC20';
 
+export const PLUGIN_SETUP_CONTRACT_NAME_ZKSYNC = 'TokenVotingSetupZkSync';
+
 export const VERSION: VersionTag = {
   release: 1, // Increment this number ONLY if breaking/incompatible changes were made. Updates between releases are NOT possible.
   build: 3, // Increment this number if non-breaking/compatible changes were made. Updates to newer builds are possible.

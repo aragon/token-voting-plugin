@@ -1,0 +1,33 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "src/gio.sol": {
+      "content": "// SPDX-License-Identifier: AGPL-3.0-or-later\n\npragma solidity ^0.8.8;\n\ncontract Gio {\n    function oe() public {}\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "mode": "3"
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "detectMissingLibraries": false,
+    "forceEVMLA": false,
+    "enableEraVMExtensions": false,
+    "libraries": {}
+  }
+}
