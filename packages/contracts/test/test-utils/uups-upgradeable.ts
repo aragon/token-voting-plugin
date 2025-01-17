@@ -3,7 +3,7 @@ import {defaultAbiCoder} from '@ethersproject/abi';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {Contract, ContractFactory, errors} from 'ethers';
-import {ethers, upgrades} from 'hardhat';
+import hre, {ethers, upgrades} from 'hardhat';
 
 // The protocol version number of contracts not having a `getProtocolVersion()` function because they don't inherit from `ProtocolVersion.sol` yet.
 export const IMPLICIT_INITIAL_PROTOCOL_VERSION: [number, number, number] = [
@@ -16,67 +16,72 @@ export const ERC1967_IMPLEMENTATION_SLOT =
 
 export const OZ_INITIALIZED_SLOT_POSITION = 0;
 
+type options = {
+  args?: Record<string, any>;
+  initArgs?: Record<string, any>;
+  initializerName?: string | undefined;
+  reinitializerName?: string | undefined;
+  reinitArgs?: Record<string, any>;
+};
+
 // Deploys a proxy and a new implementation from the same factory and checks that the upgrade works.
 export async function deployAndUpgradeSelfCheck(
-  deployer: SignerWithAddress,
-  upgrader: SignerWithAddress,
-  initArgs: any,
-  initializerName: string,
-  factory: ContractFactory,
+  deployer: number,
+  upgrader: number,
+  {args = {}, initArgs = {}, initializerName = undefined}: options,
+  from: string,
+  to: string,
   upgradePermissionId: string,
   managingContract?: DAO | PluginRepo | undefined
 ) {
+  const deployerSigner = (await hre.ethers.getSigners())[deployer];
+  const upgraderSigner = (await hre.ethers.getSigners())[upgrader];
+
   // Deploy proxy and implementation
-  const proxy = await upgrades.deployProxy(
-    factory.connect(deployer),
-    Object.values(initArgs),
-    {
-      kind: 'uups',
+  const proxy = await hre.wrapper.deployProxy(deployer, from, {
+    args: Object.values(args),
+    initArgs: Object.values(initArgs),
+    proxySettings: {
       initializer: initializerName,
-      unsafeAllow: ['constructor', 'delegatecall'],
-      constructorArgs: [],
-    }
-  );
+    },
+  });
 
   // Grant the upgrade permission
   const grantArgs: [string, string, string] = [
     proxy.address,
-    upgrader.address,
+    upgraderSigner.address,
     upgradePermissionId,
   ];
 
   // Check if the contract is a permission manager itself
   if (managingContract === undefined) {
     await expect(
-      upgrades.upgradeProxy(proxy.address, factory.connect(upgrader), {
-        unsafeAllow: ['constructor', 'delegatecall'],
-        constructorArgs: [],
+      hre.wrapper.upgradeProxy(upgrader, proxy.address, to, {
+        args: Object.values(args),
       })
     )
       .to.be.revertedWithCustomError(proxy, 'Unauthorized')
       .withArgs(...grantArgs);
 
-    await proxy.connect(deployer).grant(...grantArgs);
+    await proxy.connect(deployerSigner).grant(...grantArgs);
   }
   // Or if the permission manager is located in a different contract
   else {
     await expect(
-      upgrades.upgradeProxy(proxy.address, factory.connect(upgrader), {
-        unsafeAllow: ['constructor', 'delegatecall'],
-        constructorArgs: [],
+      hre.wrapper.upgradeProxy(upgrader, proxy.address, to, {
+        args: Object.values(args),
       })
     )
       .to.be.revertedWithCustomError(proxy, 'DaoUnauthorized')
       .withArgs(managingContract.address, ...grantArgs);
 
-    await managingContract.connect(deployer).grant(...grantArgs);
+    await managingContract.connect(deployerSigner).grant(...grantArgs);
   }
 
   // Deploy a new implementation (the same contract at a different address)
-  const toImplementation = (await factory.deploy()).address;
+  const toImplementation = (await hre.wrapper.deploy(to)).address;
 
   // Confirm that the two implementations are different
-
   const fromImplementation = await ethers.provider
     .getStorageAt(proxy.address, ERC1967_IMPLEMENTATION_SLOT)
     .then(encoded => defaultAbiCoder.decode(['address'], encoded)[0]);
@@ -84,7 +89,7 @@ export async function deployAndUpgradeSelfCheck(
   expect(toImplementation).to.not.equal(fromImplementation);
 
   // Upgrade from the old to the new implementation
-  await proxy.connect(upgrader).upgradeTo(toImplementation);
+  await proxy.connect(upgraderSigner).upgradeTo(toImplementation);
 
   // Confirm that the proxy points to the new implementation
   const implementationAfterUpgrade = await ethers.provider
@@ -95,32 +100,35 @@ export async function deployAndUpgradeSelfCheck(
 
 // Deploys a proxy and a new implementation via two different factories and checks that the upgrade works.
 export async function deployAndUpgradeFromToCheck(
-  deployer: SignerWithAddress,
-  upgrader: SignerWithAddress,
-  initArgs: any,
-  initializerName: string,
-  from: ContractFactory,
-  to: ContractFactory,
+  deployer: number,
+  upgrader: number,
+  {
+    args = {},
+    initArgs = {},
+    initializerName = undefined,
+    reinitializerName = undefined,
+    reinitArgs = undefined,
+  }: options,
+  from: string,
+  to: string,
   upgradePermissionId: string,
-  managingDao?: DAO | PluginRepo,
-  reinitializerName?: string,
-  reinitArgs?: any
+  managingDao?: DAO | PluginRepo
 ): Promise<{
   proxy: Contract;
   fromImplementation: string;
   toImplementation: string;
 }> {
+  const deployerSigner = (await hre.ethers.getSigners())[deployer];
+  const upgraderSigner = (await hre.ethers.getSigners())[upgrader];
+
   // Deploy proxy and implementation
-  let proxy = await upgrades.deployProxy(
-    from.connect(deployer),
-    Object.values(initArgs),
-    {
-      kind: 'uups',
+  let proxy = await hre.wrapper.deployProxy(deployer, from, {
+    args: Object.values(args),
+    initArgs: Object.values(initArgs),
+    proxySettings: {
       initializer: initializerName,
-      unsafeAllow: ['constructor', 'delegatecall'],
-      constructorArgs: [],
-    }
-  );
+    },
+  });
 
   const fromImplementation = await ethers.provider
     .getStorageAt(proxy.address, ERC1967_IMPLEMENTATION_SLOT)
@@ -129,32 +137,33 @@ export async function deployAndUpgradeFromToCheck(
   // Grant the upgrade permission
   const grantArgs: [string, string, string] = [
     proxy.address,
-    upgrader.address,
+    upgraderSigner.address,
     upgradePermissionId,
   ];
 
+  // Check if the contract is a permission manager itself
   if (managingDao === undefined) {
     await expect(
-      upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
-        unsafeAllow: ['constructor', 'delegatecall'],
-        constructorArgs: [],
+      hre.wrapper.upgradeProxy(upgrader, proxy.address, to, {
+        args: Object.values(args),
       })
     )
       .to.be.revertedWithCustomError(proxy, 'Unauthorized')
       .withArgs(...grantArgs);
 
-    await proxy.connect(deployer).grant(...grantArgs);
-  } else {
+    await proxy.connect(deployerSigner).grant(...grantArgs);
+  }
+  // Or if the permission manager is located in a different contract
+  else {
     await expect(
-      upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
-        unsafeAllow: ['constructor', 'delegatecall'],
-        constructorArgs: [],
+      hre.wrapper.upgradeProxy(upgrader, proxy.address, to, {
+        args: Object.values(args),
       })
     )
       .to.be.revertedWithCustomError(proxy, 'DaoUnauthorized')
       .withArgs(managingDao.address, ...grantArgs);
 
-    await managingDao.connect(deployer).grant(...grantArgs);
+    await managingDao.connect(deployerSigner).grant(...grantArgs);
   }
 
   let call;
@@ -166,10 +175,9 @@ export async function deployAndUpgradeFromToCheck(
   }
 
   // Upgrade the proxy to a new implementation from a different factory
-  proxy = await upgrades.upgradeProxy(proxy.address, to.connect(upgrader), {
-    unsafeAllow: ['constructor', 'delegatecall'],
-    constructorArgs: [],
-    call,
+  proxy = await hre.wrapper.upgradeProxy(upgrader, proxy.address, to, {
+    args: Object.values(args),
+    call: call,
   });
 
   const toImplementation = await ethers.provider

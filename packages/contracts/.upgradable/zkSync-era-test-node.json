@@ -1,0 +1,1558 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x6C0BF4Feb4041e45550568945B13B505d0A46cE0",
+      "txHash": "0x78fd9270745b892ff65e05ddc9e89933723ebacc25b21bb6bf6663d70e9f49a8",
+      "kind": "uups"
+    },
+    {
+      "address": "0x2c6e2972077886ce57d1c845d2273FeE690DdcD7",
+      "txHash": "0x877320e881a9deb01b35e301fca7e8af64929e930cb943f7711712bcd078de6d",
+      "kind": "uups"
+    },
+    {
+      "address": "0x01fA16b32De9b1356d00A5260eFce9a902C4Ab17",
+      "txHash": "0xb7a5339fb5cbc42de24b0e0b4211adfa644810c576ef6d63c6b441384e6e6fe2",
+      "kind": "uups"
+    },
+    {
+      "address": "0x1485FF7026AB4875c707ABB83F12122D3E923Eac",
+      "txHash": "0x2de2edb9377239c692c5fc1276788c87fedc145224b2d086c8adf5cc72096915",
+      "kind": "uups"
+    },
+    {
+      "address": "0xaDD906E046a166A43d63139d81FD2C64e2Ed42d9",
+      "txHash": "0xa2fc1b97d63d15d592ab27aec0c1ce2c008eef0e41e4b867c81fd2d6e99fb998",
+      "kind": "uups"
+    },
+    {
+      "address": "0x346422cD13F3A750756dAD59870A7f273f7D080F",
+      "txHash": "0x35ffdfcafa27e02262fd03be2f7eb58d777f1aab909e72667b8c4f4edac4e3b4",
+      "kind": "uups"
+    },
+    {
+      "address": "0x8366cE103DF9743dcBB5730B39735E40a6Bb70A7",
+      "txHash": "0x9154548245a813489db7a1ddf82f5da942ad7b291a3ce5c2492472cc1ab5616a",
+      "kind": "uups"
+    },
+    {
+      "address": "0x17f86D8F252804Ed530B7AaCFAaCC7bd8e355b86",
+      "txHash": "0x7bf09c32e72a670c3680b93042bc23bc7718a7f588e97e179b0245a950cc987b",
+      "kind": "uups"
+    },
+    {
+      "address": "0x8396A33Ab1386E4cEd5eBc3E079736D067678cb0",
+      "txHash": "0xc347979b0e0f3d3564cac85ea3b611ec883bcc2f1048047817dab025ac6222ca",
+      "kind": "uups"
+    },
+    {
+      "address": "0xaAfDE4D54Aba8093bdf129EdB07f3EDf033903c6",
+      "txHash": "0x0081bb30e4963cf8aebca7538175d57c4f706a98003a82aa65f94ac68aab2eeb",
+      "kind": "uups"
+    },
+    {
+      "address": "0xdAF9D67dB6CDDdAe8FbF199f6A7F86f618aFD21a",
+      "txHash": "0x1af9236a9d71563e34ce908b69eed60b3c86d535353727437dba6d21f0d3108a",
+      "kind": "uups"
+    },
+    {
+      "address": "0x7645fd0F9f007867051243565CBba1ED8Cf014E7",
+      "txHash": "0x21d80132ab66ba8b4a42fa49d4d2c62b387db93cc9321bd5fdb8a3503ada7f7e",
+      "kind": "uups"
+    },
+    {
+      "address": "0x8dE4675D8F36e852a318B5f8157E9c3f7B13faa2",
+      "txHash": "0x95727bb7e01c4c2cb9132df2e098f08643e517c602e243b43cb4db762c5e27fd",
+      "kind": "uups"
+    },
+    {
+      "address": "0xa794E06f9161EE74C9C0a1E31E8803cE19C487dA",
+      "txHash": "0xe0740ac8bbbadeb445a462da2b080c359e4b831a02d19c57e5e6acc0d9c5c467",
+      "kind": "uups"
+    },
+    {
+      "address": "0x3Ae719e0E3fb1A7541703375857f51323d7F5105",
+      "txHash": "0xb0f784c2a05d52494ee407507534f2b01336d1ef7700b7aeabf57a4395296eb1",
+      "kind": "uups"
+    },
+    {
+      "address": "0x8D72Fbddd90E151BE12Dc7E396e0EeAB98C0783D",
+      "txHash": "0x4211aef55d973bbbc67f68965ea9c5619542133b9ae0fa14e20c136f82ecc4ca",
+      "kind": "uups"
+    },
+    {
+      "address": "0xaf65f2979ED10A6B422cFe9612B539fa8C5a079E",
+      "txHash": "0x37f331274d57a4bbb1662f68ce45e26c330a3047d56256493c8eca978e6b84f5",
+      "kind": "uups"
+    },
+    {
+      "address": "0xCB2d7923706a78F4453Ca6d5631d52B1d47B3bb8",
+      "txHash": "0x58060d9641f7a254140126ca6d5c83405b27ddfcb7bc2b44bb68b4e56df698b7",
+      "kind": "uups"
+    },
+    {
+      "address": "0x37C1c48410c3776899D4c6b6Cda4D3698F0faa76",
+      "txHash": "0x2f11b5f95bb56b5f10222e8f0d5086ba26c136c63b6029ead982cefb1095adeb",
+      "kind": "uups"
+    },
+    {
+      "address": "0x50e3bA92f0280783eD52262A2d5e57E2Ac629C79",
+      "txHash": "0x7053975aae94eea11240dabbdeaf1b303da83fe94df3a23b61aeeb04d17e84fc",
+      "kind": "uups"
+    },
+    {
+      "address": "0x4C763eDAe8dd195Ff2211A6ef04D4ab7734648c6",
+      "txHash": "0x6c4aa85124e04d2d51a68d0fcb1ffa8f90900e3d217bdf9083ece056d9f52a9a",
+      "kind": "uups"
+    },
+    {
+      "address": "0x36Fd6e32944B0aCd4b64DEEBcdd2Ab79D6c539EE",
+      "txHash": "0xe13c203805b7f459828a06bd876d9596cbd411483f02ec27a6c7f2a607e99f95",
+      "kind": "uups"
+    },
+    {
+      "address": "0xCe21d48aCc34591D2eCbEEB23A3208e85359837a",
+      "txHash": "0x4e10eb5e4f74cfa4cc8690ac410d01f24168b646ba3b4f66e3840d9e5691d925",
+      "kind": "uups"
+    },
+    {
+      "address": "0x64B78f12E134127e62E5cCBCe43D2dCc05E84E07",
+      "txHash": "0x52a65d2365eec67cf2458acfc8f9ee22df2acfccf9293109f7321fb45c1064c2",
+      "kind": "uups"
+    },
+    {
+      "address": "0xEcE72631bD5635a74c1A5cDFC2A769ef1A7c67A6",
+      "txHash": "0x1116aeac6a8cad67811e26b1dbbf90f0ff6a04d340704af453b192bdd7bfa15c",
+      "kind": "uups"
+    },
+    {
+      "address": "0x1BA6502b05003AE69A5f387BAdBD89e0F2D18153",
+      "txHash": "0x852fef0bbefc39abe8fe00e7e4b5d4e3541bedcb47d639da66582b62742ca45f",
+      "kind": "uups"
+    },
+    {
+      "address": "0xC7ad76a1898b047917Eb0699Fb5AD7B7C1e89cf7",
+      "txHash": "0xee09433a6cc928f77700cee3eb068df8c5c7fed9c8fd87634d0867c0c506c000",
+      "kind": "uups"
+    },
+    {
+      "address": "0x4a965eBCcC5ead57c0E9AC334ac68F68792A044c",
+      "txHash": "0x6641110fbef361a593ebca6468078783bf62f23d1016ad3fd038d02a2ad82a75",
+      "kind": "uups"
+    },
+    {
+      "address": "0x368f7CabF195b9Cb942E5048e4d64cbd4eb0781d",
+      "txHash": "0xd319604a0e3903d8ea68208c55b5dbf74a89334561e14d6d5568780288acf89e",
+      "kind": "uups"
+    },
+    {
+      "address": "0x5942D2386080D91A45217B9beac232D42CbBD1B8",
+      "txHash": "0x2a57c582d191c8125b7dd04e27397551145db5f1a06ae5b1d857b29342428d46",
+      "kind": "uups"
+    },
+    {
+      "address": "0x9d1894ABE03c2bbDA7a6068C39F5854C1b967168",
+      "txHash": "0xd3a346ad64d7e45a56a0bf4f9fdb4d7142eac4879d90b812af7f95b339e0b682",
+      "kind": "uups"
+    },
+    {
+      "address": "0x7Dff4148ffD02257324F42D0AAee50B1e54fF1Dd",
+      "txHash": "0x7322bc798f30a50a121570b3803286ad86cd6e299aa10daa42143454487a0e71",
+      "kind": "uups"
+    },
+    {
+      "address": "0xfFc046946c08A6791989D4dD64EeDAb073c45c2a",
+      "txHash": "0x6e22058d68f160c7cf3acb89bb362d9ce0c9d02941929a37184fac33e7e94c61",
+      "kind": "uups"
+    },
+    {
+      "address": "0x4566F392596128c35418bC257e3f9b5069E4547e",
+      "txHash": "0x125a842dd272f1073c23c5baad3d196d0b65e1f0a673dd86b5c0d2b64aec9358",
+      "kind": "uups"
+    },
+    {
+      "address": "0xfd9A4F5B44c1628f44B6DFE5EDeF538289CA5b4F",
+      "txHash": "0xd33526fdda7ba7d7beb1651ba7e04d8a193ec790f02ad6c8e19b622b2debad7b",
+      "kind": "uups"
+    },
+    {
+      "address": "0x76a7d652A35847960ab7a1c185D7AEC2f407525C",
+      "txHash": "0xbc387b5b454a604619b48ae14e88cf38281e5f66952465180c689675296931f1",
+      "kind": "uups"
+    },
+    {
+      "address": "0x7c9f97f7c1A6F308FA61F0609C1155F54d112120",
+      "txHash": "0x4e25fa405848c4129bb8fdee30f2e4fd281fcdac148b30cfc105754321486f96",
+      "kind": "uups"
+    },
+    {
+      "address": "0x155c464659408eEC9Eb31390359AfD686F27C013",
+      "txHash": "0x318adeb069001ead2a89243daa33135967a8b0b05e49cb3573ead0ff36c22e83",
+      "kind": "uups"
+    },
+    {
+      "address": "0x4E7c5c274617693b26E0fe6c3142D7e10778748f",
+      "txHash": "0x0d5d6b4ba7d063ee83f33b860c0699a013ffccb2262d9e587ce588c361a3710c",
+      "kind": "uups"
+    },
+    {
+      "address": "0x3985D58E189CcE06b73E49B44F621DdcdbdD9867",
+      "txHash": "0xfd6762b5c0b9e73ebd497de065f68cd086b8e74a1c2c035381b7adeb5fbb616c",
+      "kind": "uups"
+    },
+    {
+      "address": "0x2592EB24c5dDc64D292792a7106c63794CbA5544",
+      "txHash": "0x3a23a28308508d870625ee8b6ae119457b367a37b42e632ad5bedc9cc14f36fc",
+      "kind": "uups"
+    },
+    {
+      "address": "0x0cFA33c60a27fA1c4620D567F3AeefD02891a5e5",
+      "txHash": "0x390c18e2248142787dbcf01f395eb8e609a917900a677afc1afef46de8b98163",
+      "kind": "uups"
+    },
+    {
+      "address": "0x375dD0feea2a12Cc6D3268DCb998dEA9eAC505ec",
+      "txHash": "0x7c2118aba4906320d861fc85b5af0af029b6e4c61536668745868493288b8ba4",
+      "kind": "uups"
+    },
+    {
+      "address": "0xebE6007f5ceEd0f2772276fa4C2fB7e1CF3fb8fA",
+      "txHash": "0x03401dbe8387e6f512cfa7d9caaca9ba40fdba620c41bd23da48ff87bbd0e675",
+      "kind": "uups"
+    },
+    {
+      "address": "0x2714620A765225C91dF914f0c5551c54360752ce",
+      "txHash": "0x1e32495d654438f2e17dd3934be893266977426eba9ca57d57babee770c05386",
+      "kind": "uups"
+    },
+    {
+      "address": "0x9E194Ad4BC62C8488461B251b59532F9cc1a9ac7",
+      "txHash": "0xda52d0fef60bb8938d8b62fcc1d10f1a8e09721d50e5a1001b942ff4d67a642f",
+      "kind": "uups"
+    },
+    {
+      "address": "0x5971a2f6173f9F6DABf646F47623eED9dF786320",
+      "txHash": "0x1ffb95ada46c7a975c617428c01dc876fdec40bfabe1635def320f057604b2e8",
+      "kind": "uups"
+    },
+    {
+      "address": "0x6F82a56a00CBb7E15be95E7850a1C9382dbEb319",
+      "txHash": "0x90fd2a0bbe9e1b804d6c1960de21ec1b24c29f827fb5324e37dbb70e54c7d862",
+      "kind": "uups"
+    },
+    {
+      "address": "0x3c45784D5c0185dd24029035CF488d1Dd4eEeA75",
+      "txHash": "0x6b607eda0bbae70788fde08557fedf34a20c1a02cb7b3c766bd2a5b69b810be2",
+      "kind": "uups"
+    },
+    {
+      "address": "0xB2611C1eF842b5634075c2035cd98F7f1F4B4B79",
+      "txHash": "0x543f69064cadadf429c9be92fcc9c7ccd60a36e3c1567dd7aeffafd9b801f58b",
+      "kind": "uups"
+    },
+    {
+      "address": "0x39491Ad05aE3b95D1576C2CAa0EE4a1D248c57a7",
+      "txHash": "0x78401ea99932c78348e05e625137ce25c6004dabb16354a3df2c3d2e2f8c94ee",
+      "kind": "uups"
+    },
+    {
+      "address": "0xc6F17e8482BBB7e1C3b7A64493039635d8fE0fCE",
+      "txHash": "0xac01bed74d4180177a6e768deebf538c4394654e6a89f0c14a9693c1cb5e1f45",
+      "kind": "uups"
+    },
+    {
+      "address": "0x4079A3DE0075aE215d0eA7973a1FC53EEddC3F8B",
+      "txHash": "0x59781b8190abfe7c2e8b301656b0e93d3927140fcb2c2f847857da6cb5c530df",
+      "kind": "uups"
+    },
+    {
+      "address": "0x88E6dd3ddAA5502B1f4fDe3A02e2Bc0F53D1e4fF",
+      "txHash": "0x6cf2a72a88518975de16781efec72a530ab569bbf40d830879c7fcfadaf5137d",
+      "kind": "uups"
+    },
+    {
+      "address": "0x3EC711cc5c1fe304De270f995Db1eAB8FEC4F2f6",
+      "txHash": "0x92b8afceacb361e1b0071433463a36d466e5d3598f995f86bf49d8d84ef05745",
+      "kind": "uups"
+    },
+    {
+      "address": "0x370273c92D9033e440790d56A39e0260091a54bF",
+      "txHash": "0x58602bb94f9ae367d2772ed5a56d8dafde3c146ae03567afd1a4ab7bd4c06783",
+      "kind": "uups"
+    },
+    {
+      "address": "0x6aEB41719AdA64942146dBF0b121089A6c47ee90",
+      "txHash": "0x413d3ac26f1f9c7112643dd29fc0bfd58275da86c3378d67001c3e23e1263b2e",
+      "kind": "uups"
+    },
+    {
+      "address": "0x400037Ce93f94e9b626808333E7aA05072d16a45",
+      "txHash": "0x3244ff2ca5e664a7dc7920dfdf2ba0874f6190b22c059e42d929ca523cfbcd97",
+      "kind": "uups"
+    },
+    {
+      "address": "0xB069ADb5E7573BF9C640934AC1AF2Af826CA52C1",
+      "txHash": "0x94c7d3d705a5200501a6671c8bb9a8f260709654d5b565e3f3d49a79295cfea7",
+      "kind": "uups"
+    },
+    {
+      "address": "0x865d9E5aBc62CC38c4275124aEc7fb70a0F8029A",
+      "txHash": "0x88425335e085702a306b39a8c37bb13e3f14e93422e37821d428f498f18121a3",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "ec9cb1798d108f7dfecef6d2d5c6a8d35438e4ebbac0bc1743c570a24ad0d4e4": {
+      "address": "0x3De3E1Ae3B882D3e323CbA3DC2AF7475fcC6B208",
+      "txHash": "0xbb236a965c9dbc4b819c0fc960898fda73fc5157850e950d8862475d3282f177",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC165Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:41"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:40"
+          },
+          {
+            "label": "dao_",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_contract(IDAO)108",
+            "contract": "DaoAuthorizableUpgradeable",
+            "src": "@aragon/osx-commons-contracts/src/permission/auth/DaoAuthorizableUpgradeable.sol:17"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "DaoAuthorizableUpgradeable",
+            "src": "@aragon/osx-commons-contracts/src/permission/auth/DaoAuthorizableUpgradeable.sol:40"
+          },
+          {
+            "label": "currentTargetConfig",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_struct(TargetConfig)385_storage",
+            "contract": "PluginUUPSUpgradeable",
+            "src": "@aragon/osx-commons-contracts/src/plugin/PluginUUPSUpgradeable.sol:33"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "252",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "PluginUUPSUpgradeable",
+            "src": "@aragon/osx-commons-contracts/src/plugin/PluginUUPSUpgradeable.sol:233"
+          },
+          {
+            "label": "proposalCounter",
+            "offset": 0,
+            "slot": "301",
+            "type": "t_struct(Counter)4925_storage",
+            "contract": "ProposalUpgradeable",
+            "src": "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/ProposalUpgradeable.sol:21"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "302",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ProposalUpgradeable",
+            "src": "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/ProposalUpgradeable.sol:58"
+          },
+          {
+            "label": "proposals",
+            "offset": 0,
+            "slot": "351",
+            "type": "t_mapping(t_uint256,t_struct(Proposal)10704_storage)",
+            "contract": "MajorityVotingBase",
+            "src": "src/MajorityVotingBase.sol:244"
+          },
+          {
+            "label": "votingSettings",
+            "offset": 0,
+            "slot": "352",
+            "type": "t_struct(VotingSettings)10679_storage",
+            "contract": "MajorityVotingBase",
+            "src": "src/MajorityVotingBase.sol:247"
+          },
+          {
+            "label": "minApprovals",
+            "offset": 0,
+            "slot": "354",
+            "type": "t_uint256",
+            "contract": "MajorityVotingBase",
+            "src": "src/MajorityVotingBase.sol:251"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "355",
+            "type": "t_array(t_uint256)46_storage",
+            "contract": "MajorityVotingBase",
+            "src": "src/MajorityVotingBase.sol:796"
+          },
+          {
+            "label": "votingToken",
+            "offset": 0,
+            "slot": "401",
+            "type": "t_contract(IVotesUpgradeable)1548",
+            "contract": "TokenVoting",
+            "src": "src/TokenVoting.sol:34"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "402",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "TokenVoting",
+            "src": "src/TokenVoting.sol:346"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_struct(Action)117_storage)dyn_storage": {
+            "label": "struct Action[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)46_storage": {
+            "label": "uint256[46]",
+            "numberOfBytes": "1472"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes_storage": {
+            "label": "bytes",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IDAO)108": {
+            "label": "contract IDAO",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IVotesUpgradeable)1548": {
+            "label": "contract IVotesUpgradeable",
+            "numberOfBytes": "20"
+          },
+          "t_enum(Operation)379": {
+            "label": "enum IPlugin.Operation",
+            "members": [
+              "Call",
+              "DelegateCall"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(VoteOption)10510": {
+            "label": "enum IMajorityVoting.VoteOption",
+            "members": [
+              "None",
+              "Abstain",
+              "Yes",
+              "No"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(VotingMode)10667": {
+            "label": "enum MajorityVotingBase.VotingMode",
+            "members": [
+              "Standard",
+              "EarlyExecution",
+              "VoteReplacement"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_enum(VoteOption)10510)": {
+            "label": "mapping(address => enum IMajorityVoting.VoteOption)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Proposal)10704_storage)": {
+            "label": "mapping(uint256 => struct MajorityVotingBase.Proposal)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Action)117_storage": {
+            "label": "struct Action",
+            "members": [
+              {
+                "label": "to",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "value",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "data",
+                "type": "t_bytes_storage",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(Counter)4925_storage": {
+            "label": "struct CountersUpgradeable.Counter",
+            "members": [
+              {
+                "label": "_value",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(Proposal)10704_storage": {
+            "label": "struct MajorityVotingBase.Proposal",
+            "members": [
+              {
+                "label": "executed",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "parameters",
+                "type": "t_struct(ProposalParameters)10718_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "tally",
+                "type": "t_struct(Tally)10725_storage",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "voters",
+                "type": "t_mapping(t_address,t_enum(VoteOption)10510)",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "actions",
+                "type": "t_array(t_struct(Action)117_storage)dyn_storage",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "allowFailureMap",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "minApprovalPower",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "targetConfig",
+                "type": "t_struct(TargetConfig)385_storage",
+                "offset": 0,
+                "slot": "10"
+              }
+            ],
+            "numberOfBytes": "352"
+          },
+          "t_struct(ProposalParameters)10718_storage": {
+            "label": "struct MajorityVotingBase.ProposalParameters",
+            "members": [
+              {
+                "label": "votingMode",
+                "type": "t_enum(VotingMode)10667",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "supportThreshold",
+                "type": "t_uint32",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "startDate",
+                "type": "t_uint64",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "endDate",
+                "type": "t_uint64",
+                "offset": 13,
+                "slot": "0"
+              },
+              {
+                "label": "snapshotBlock",
+                "type": "t_uint64",
+                "offset": 21,
+                "slot": "0"
+              },
+              {
+                "label": "minVotingPower",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Tally)10725_storage": {
+            "label": "struct MajorityVotingBase.Tally",
+            "members": [
+              {
+                "label": "abstain",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "yes",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "no",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(TargetConfig)385_storage": {
+            "label": "struct IPlugin.TargetConfig",
+            "members": [
+              {
+                "label": "target",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "operation",
+                "type": "t_enum(Operation)379",
+                "offset": 20,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(VotingSettings)10679_storage": {
+            "label": "struct MajorityVotingBase.VotingSettings",
+            "members": [
+              {
+                "label": "votingMode",
+                "type": "t_enum(VotingMode)10667",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "supportThreshold",
+                "type": "t_uint32",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "minParticipation",
+                "type": "t_uint32",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "minDuration",
+                "type": "t_uint64",
+                "offset": 9,
+                "slot": "0"
+              },
+              {
+                "label": "minProposerVotingPower",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "86ebafe767b307f5aaac5347c7d1e18cda4c64d52eba2961234bde9ce1e9f195": {
+      "address": "0x79273528A2aAf57e11607313AA86E87CbA712F34",
+      "txHash": "0x6a11b9e68e2d39aa8725af811e081c7e0206e871afb093f07ec1c8af29250df1",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC165Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:41"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:40"
+          },
+          {
+            "label": "dao_",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_contract(IDAO)1254",
+            "contract": "DaoAuthorizableUpgradeable",
+            "src": "@aragon/osx-v1.0.0/core/plugin/dao-authorizable/DaoAuthorizableUpgradeable.sol:16"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "DaoAuthorizableUpgradeable",
+            "src": "@aragon/osx-v1.0.0/core/plugin/dao-authorizable/DaoAuthorizableUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "PluginUUPSUpgradeable",
+            "src": "@aragon/osx-v1.0.0/core/plugin/PluginUUPSUpgradeable.sol:66"
+          },
+          {
+            "label": "proposalCounter",
+            "offset": 0,
+            "slot": "301",
+            "type": "t_struct(Counter)12442_storage",
+            "contract": "ProposalUpgradeable",
+            "src": "@aragon/osx-v1.0.0/core/plugin/proposal/ProposalUpgradeable.sol:17"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "302",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ProposalUpgradeable",
+            "src": "@aragon/osx-v1.0.0/core/plugin/proposal/ProposalUpgradeable.sol:83"
+          },
+          {
+            "label": "proposals",
+            "offset": 0,
+            "slot": "351",
+            "type": "t_mapping(t_uint256,t_struct(Proposal)1901_storage)",
+            "contract": "MajorityVotingBase",
+            "src": "@aragon/osx-v1.0.0/plugins/governance/majority-voting/MajorityVotingBase.sol:187"
+          },
+          {
+            "label": "votingSettings",
+            "offset": 0,
+            "slot": "352",
+            "type": "t_struct(VotingSettings)1881_storage",
+            "contract": "MajorityVotingBase",
+            "src": "@aragon/osx-v1.0.0/plugins/governance/majority-voting/MajorityVotingBase.sol:190"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "354",
+            "type": "t_array(t_uint256)47_storage",
+            "contract": "MajorityVotingBase",
+            "src": "@aragon/osx-v1.0.0/plugins/governance/majority-voting/MajorityVotingBase.sol:594"
+          },
+          {
+            "label": "votingToken",
+            "offset": 0,
+            "slot": "401",
+            "type": "t_contract(IVotesUpgradeable)8881",
+            "contract": "TokenVoting",
+            "src": "@aragon/osx-v1.0.0/plugins/governance/majority-voting/token/TokenVoting.sol:26"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "402",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "TokenVoting",
+            "src": "@aragon/osx-v1.0.0/plugins/governance/majority-voting/token/TokenVoting.sol:224"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_struct(Action)1110_storage)dyn_storage": {
+            "label": "struct IDAO.Action[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)47_storage": {
+            "label": "uint256[47]",
+            "numberOfBytes": "1504"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes_storage": {
+            "label": "bytes",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IDAO)1254": {
+            "label": "contract IDAO",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IVotesUpgradeable)8881": {
+            "label": "contract IVotesUpgradeable",
+            "numberOfBytes": "20"
+          },
+          "t_enum(VoteOption)1732": {
+            "label": "enum IMajorityVoting.VoteOption",
+            "members": [
+              "None",
+              "Abstain",
+              "Yes",
+              "No"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(VotingMode)1869": {
+            "label": "enum MajorityVotingBase.VotingMode",
+            "members": [
+              "Standard",
+              "EarlyExecution",
+              "VoteReplacement"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_enum(VoteOption)1732)": {
+            "label": "mapping(address => enum IMajorityVoting.VoteOption)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Proposal)1901_storage)": {
+            "label": "mapping(uint256 => struct MajorityVotingBase.Proposal)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Action)1110_storage": {
+            "label": "struct IDAO.Action",
+            "members": [
+              {
+                "label": "to",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "value",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "data",
+                "type": "t_bytes_storage",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(Counter)12442_storage": {
+            "label": "struct CountersUpgradeable.Counter",
+            "members": [
+              {
+                "label": "_value",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(Proposal)1901_storage": {
+            "label": "struct MajorityVotingBase.Proposal",
+            "members": [
+              {
+                "label": "executed",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "parameters",
+                "type": "t_struct(ProposalParameters)1915_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "tally",
+                "type": "t_struct(Tally)1922_storage",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "voters",
+                "type": "t_mapping(t_address,t_enum(VoteOption)1732)",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "actions",
+                "type": "t_array(t_struct(Action)1110_storage)dyn_storage",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "allowFailureMap",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "8"
+              }
+            ],
+            "numberOfBytes": "288"
+          },
+          "t_struct(ProposalParameters)1915_storage": {
+            "label": "struct MajorityVotingBase.ProposalParameters",
+            "members": [
+              {
+                "label": "votingMode",
+                "type": "t_enum(VotingMode)1869",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "supportThreshold",
+                "type": "t_uint32",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "startDate",
+                "type": "t_uint64",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "endDate",
+                "type": "t_uint64",
+                "offset": 13,
+                "slot": "0"
+              },
+              {
+                "label": "snapshotBlock",
+                "type": "t_uint64",
+                "offset": 21,
+                "slot": "0"
+              },
+              {
+                "label": "minVotingPower",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Tally)1922_storage": {
+            "label": "struct MajorityVotingBase.Tally",
+            "members": [
+              {
+                "label": "abstain",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "yes",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "no",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(VotingSettings)1881_storage": {
+            "label": "struct MajorityVotingBase.VotingSettings",
+            "members": [
+              {
+                "label": "votingMode",
+                "type": "t_enum(VotingMode)1869",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "supportThreshold",
+                "type": "t_uint32",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "minParticipation",
+                "type": "t_uint32",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "minDuration",
+                "type": "t_uint64",
+                "offset": 9,
+                "slot": "0"
+              },
+              {
+                "label": "minProposerVotingPower",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "0aeef81324323bf0a86afe0096f7626ef9deffe8a4c803c7bf1e6e79c347c721": {
+      "address": "0x2831a1769660d73949ab90C77615c7Ad6ebD5BfB",
+      "txHash": "0x58e6660a5be0c8e9cbd9c0f1c2e2990d46191e94f0facd9b2d9728c649eaa2ca",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC165Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:41"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:40"
+          },
+          {
+            "label": "dao_",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_contract(IDAO)4136",
+            "contract": "DaoAuthorizableUpgradeable",
+            "src": "@aragon/osx-v1.3.0/core/plugin/dao-authorizable/DaoAuthorizableUpgradeable.sol:16"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "DaoAuthorizableUpgradeable",
+            "src": "@aragon/osx-v1.3.0/core/plugin/dao-authorizable/DaoAuthorizableUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "PluginUUPSUpgradeable",
+            "src": "@aragon/osx-v1.3.0/core/plugin/PluginUUPSUpgradeable.sol:66"
+          },
+          {
+            "label": "proposalCounter",
+            "offset": 0,
+            "slot": "301",
+            "type": "t_struct(Counter)12442_storage",
+            "contract": "ProposalUpgradeable",
+            "src": "@aragon/osx-v1.3.0/core/plugin/proposal/ProposalUpgradeable.sol:17"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "302",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ProposalUpgradeable",
+            "src": "@aragon/osx-v1.3.0/core/plugin/proposal/ProposalUpgradeable.sol:83"
+          },
+          {
+            "label": "proposals",
+            "offset": 0,
+            "slot": "351",
+            "type": "t_mapping(t_uint256,t_struct(Proposal)4781_storage)",
+            "contract": "MajorityVotingBase",
+            "src": "@aragon/osx-v1.3.0/plugins/governance/majority-voting/MajorityVotingBase.sol:186"
+          },
+          {
+            "label": "votingSettings",
+            "offset": 0,
+            "slot": "352",
+            "type": "t_struct(VotingSettings)4761_storage",
+            "contract": "MajorityVotingBase",
+            "src": "@aragon/osx-v1.3.0/plugins/governance/majority-voting/MajorityVotingBase.sol:189"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "354",
+            "type": "t_array(t_uint256)47_storage",
+            "contract": "MajorityVotingBase",
+            "src": "@aragon/osx-v1.3.0/plugins/governance/majority-voting/MajorityVotingBase.sol:593"
+          },
+          {
+            "label": "votingToken",
+            "offset": 0,
+            "slot": "401",
+            "type": "t_contract(IVotesUpgradeable)8881",
+            "contract": "TokenVoting",
+            "src": "@aragon/osx-v1.3.0/plugins/governance/majority-voting/token/TokenVoting.sol:27"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "402",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "TokenVoting",
+            "src": "@aragon/osx-v1.3.0/plugins/governance/majority-voting/token/TokenVoting.sol:239"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_struct(Action)3990_storage)dyn_storage": {
+            "label": "struct IDAO.Action[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)47_storage": {
+            "label": "uint256[47]",
+            "numberOfBytes": "1504"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes_storage": {
+            "label": "bytes",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IDAO)4136": {
+            "label": "contract IDAO",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IVotesUpgradeable)8881": {
+            "label": "contract IVotesUpgradeable",
+            "numberOfBytes": "20"
+          },
+          "t_enum(VoteOption)4612": {
+            "label": "enum IMajorityVoting.VoteOption",
+            "members": [
+              "None",
+              "Abstain",
+              "Yes",
+              "No"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(VotingMode)4749": {
+            "label": "enum MajorityVotingBase.VotingMode",
+            "members": [
+              "Standard",
+              "EarlyExecution",
+              "VoteReplacement"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_enum(VoteOption)4612)": {
+            "label": "mapping(address => enum IMajorityVoting.VoteOption)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Proposal)4781_storage)": {
+            "label": "mapping(uint256 => struct MajorityVotingBase.Proposal)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Action)3990_storage": {
+            "label": "struct IDAO.Action",
+            "members": [
+              {
+                "label": "to",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "value",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "data",
+                "type": "t_bytes_storage",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(Counter)12442_storage": {
+            "label": "struct CountersUpgradeable.Counter",
+            "members": [
+              {
+                "label": "_value",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(Proposal)4781_storage": {
+            "label": "struct MajorityVotingBase.Proposal",
+            "members": [
+              {
+                "label": "executed",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "parameters",
+                "type": "t_struct(ProposalParameters)4795_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "tally",
+                "type": "t_struct(Tally)4802_storage",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "voters",
+                "type": "t_mapping(t_address,t_enum(VoteOption)4612)",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "actions",
+                "type": "t_array(t_struct(Action)3990_storage)dyn_storage",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "allowFailureMap",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "8"
+              }
+            ],
+            "numberOfBytes": "288"
+          },
+          "t_struct(ProposalParameters)4795_storage": {
+            "label": "struct MajorityVotingBase.ProposalParameters",
+            "members": [
+              {
+                "label": "votingMode",
+                "type": "t_enum(VotingMode)4749",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "supportThreshold",
+                "type": "t_uint32",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "startDate",
+                "type": "t_uint64",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "endDate",
+                "type": "t_uint64",
+                "offset": 13,
+                "slot": "0"
+              },
+              {
+                "label": "snapshotBlock",
+                "type": "t_uint64",
+                "offset": 21,
+                "slot": "0"
+              },
+              {
+                "label": "minVotingPower",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Tally)4802_storage": {
+            "label": "struct MajorityVotingBase.Tally",
+            "members": [
+              {
+                "label": "abstain",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "yes",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "no",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(VotingSettings)4761_storage": {
+            "label": "struct MajorityVotingBase.VotingSettings",
+            "members": [
+              {
+                "label": "votingMode",
+                "type": "t_enum(VotingMode)4749",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "supportThreshold",
+                "type": "t_uint32",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "minParticipation",
+                "type": "t_uint32",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "minDuration",
+                "type": "t_uint64",
+                "offset": 9,
+                "slot": "0"
+              },
+              {
+                "label": "minProposerVotingPower",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}

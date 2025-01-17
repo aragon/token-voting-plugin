@@ -14,6 +14,10 @@ export const ARTIFACT_SOURCES = {
   MajorityVotingMock: 'src/mocks/MajorityVotingMock.sol:MajorityVotingMock',
   VotingPowerCondition: 'src/VotingPowerCondition.sol:VotingPowerCondition',
   TokenVoting: 'src/TokenVoting.sol:TokenVoting',
+  TokenVoting_V1_0_0:
+    '@aragon/osx-v1.0.0/plugins/governance/majority-voting/token/TokenVoting.sol:TokenVoting',
+  TokenVoting_V1_3_0:
+    '@aragon/osx-v1.3.0/plugins/governance/majority-voting/token/TokenVoting.sol:TokenVoting',
   TestGovernanceERC20: 'src/mocks/TestGovernanceERC20.sol:TestGovernanceERC20',
   GovernanceERC20: 'src/ERC20/governance/GovernanceERC20.sol:GovernanceERC20',
   ERC20Mock: 'src/mocks/ERC20Mock.sol:ERC20Mock',
@@ -23,7 +27,7 @@ export const ARTIFACT_SOURCES = {
   ERC20: '@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20',
   TokenVotingSetup: 'src/TokenVotingSetup.sol:TokenVotingSetup',
   TokenVotingSetupZkSync:
-    'src/zksync/TokenVotingSetupZkSync.sol:TokenVotingSetupZkSync',
+    'src/TokenVotingSetupZkSync.sol:TokenVotingSetupZkSync',
 };
 
 export type DeployOptions = {
@@ -34,6 +38,7 @@ export type DeployOptions = {
     type?: 'uups' | 'transparent' | 'beacon' | undefined;
     initializer?: string;
   };
+  call?: any; // call function arguments in case `withProxy` is set to true. TODO:GIORGI123
 };
 
 export interface NetworkDeployment {
@@ -174,7 +179,9 @@ export class Wrapper {
       proxySettings: {
         initializer: options?.proxySettings?.initializer ?? undefined,
       },
+      call: options?.call ?? undefined,
     };
+
     return this.network.upgradeProxy(
       upgrader,
       proxyAddress,

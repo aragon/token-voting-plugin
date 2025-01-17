@@ -25,6 +25,7 @@ import {
   MAJORITY_VOTING_BASE_OLD_INTERFACE,
   VOTING_EVENTS,
 } from '../test-utils/majority-voting-constants';
+import {skipTestIfNetworkIsZkSync} from '../test-utils/skip-functions';
 import {
   TOKEN_VOTING_INTERFACE,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
@@ -50,6 +51,7 @@ import {
   voteWithSigners,
   setBalances,
   setTotalSupply,
+  advanceAfterVoteEnd,
 } from '../test-utils/voting-helpers';
 import {ARTIFACT_SOURCES} from '../test-utils/wrapper';
 import {
@@ -763,49 +765,77 @@ describe('TokenVoting', function () {
         ).not.to.be.reverted;
       });
 
-      it('reverts if `_msgSender` owns no tokens and has no tokens delegated to her/him in the current block although having them in the last block', async () => {
-        const {
-          deployer,
-          dao,
-          alice,
-          bob,
-          initializedPlugin: plugin,
-          token,
-          dummyActions,
-          dummyMetadata,
-        } = await loadFixtureCustom(globalFixture);
+      skipTestIfNetworkIsZkSync(
+        'reverts if `_msgSender` owns no tokens and has no tokens delegated to her/him in the current block although having them in the last block',
+        async () => {
+          const {
+            deployer,
+            dao,
+            alice,
+            bob,
+            initializedPlugin: plugin,
+            token,
+            dummyActions,
+            dummyMetadata,
+          } = await loadFixtureCustom(globalFixture);
 
-        // Set `minProposerVotingPower` to be greater than 0.
-        await plugin
-          .connect(deployer)
-          .updateVotingSettings(voteSettingsWithMinProposerVotingPower);
+          // Set `minProposerVotingPower` to be greater than 0.
+          await plugin
+            .connect(deployer)
+            .updateVotingSettings(voteSettingsWithMinProposerVotingPower);
 
-        // Set Alice's balance to the `minProposerVotingPower` value.
-        await token.setBalance(
-          alice.address,
-          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
-        );
-
-        const endDate = (await time.latest()) + TIME.DAY;
-
-        // Disable auto-mining to put the following three transactions into the same block.
-        await ethers.provider.send('evm_setAutomine', [false]);
-        const expectedSnapshotBlockNumber = (
-          await ethers.provider.getBlock('latest')
-        ).number;
-
-        // Transaction 1: Transfer the tokens from Alice to Bob.
-        const tx1 = await token
-          .connect(alice)
-          .transfer(
-            bob.address,
+          // Set Alice's balance to the `minProposerVotingPower` value.
+          await token.setBalance(
+            alice.address,
             voteSettingsWithMinProposerVotingPower.minProposerVotingPower
           );
 
-        // Transaction 2: Expect the proposal creation to fail for Alice because she transferred the tokens in transaction 1.
-        await expect(
-          plugin
+          const endDate = (await time.latest()) + TIME.DAY;
+
+          // Disable auto-mining to put the following three transactions into the same block.
+          await ethers.provider.send('evm_setAutomine', [false]);
+          const expectedSnapshotBlockNumber = (
+            await ethers.provider.getBlock('latest')
+          ).number;
+
+          // Transaction 1: Transfer the tokens from Alice to Bob.
+          const tx1 = await token
             .connect(alice)
+            .transfer(
+              bob.address,
+              voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+            );
+
+          // Transaction 2: Expect the proposal creation to fail for Alice because she transferred the tokens in transaction 1.
+          await expect(
+            plugin
+              .connect(alice)
+              [CREATE_PROPOSAL_SIGNATURE](
+                dummyMetadata,
+                dummyActions,
+                0,
+                0,
+                endDate,
+                VoteOption.None,
+                false
+              )
+          )
+            .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+            .withArgs(
+              dao.address,
+              plugin.address,
+              alice.address,
+              CREATE_PROPOSAL_PERMISSION_ID
+            );
+
+          // Transaction 3: Create the proposal as Bob.
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
+          const tx3 = await plugin
+            .connect(bob)
             [CREATE_PROPOSAL_SIGNATURE](
               dummyMetadata,
               dummyActions,
@@ -814,75 +844,50 @@ describe('TokenVoting', function () {
               endDate,
               VoteOption.None,
               false
-            )
-        )
-          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
-          .withArgs(
-            dao.address,
-            plugin.address,
-            alice.address,
-            CREATE_PROPOSAL_PERMISSION_ID
+            );
+
+          // Check the balances before the block is mined. Note that `balanceOf` is a view function,
+          // whose result will be immediately available and does not rely on the block to be mined.
+          expect(await token.balanceOf(alice.address)).to.equal(
+            voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+          );
+          expect(await token.balanceOf(bob.address)).to.equal(0);
+
+          // Mine the block. This will result in the transactions 1 to 3 to be executed.
+          // Transaction 1 and 3 will produce a receipt whereas transaction 2 will revert with an error as expected.
+          await ethers.provider.send('evm_mine', []);
+          const minedBlockNumber = (await ethers.provider.getBlock('latest'))
+            .number;
+
+          // Expect the transaction receipts to be in the same block after the snapshot block.
+          expect((await tx1.wait()).blockNumber).to.equal(minedBlockNumber);
+          expect((await tx3.wait()).blockNumber).to.equal(minedBlockNumber);
+          expect(minedBlockNumber).to.equal(expectedSnapshotBlockNumber + 1);
+
+          // Expect the balances to have changed
+          expect(await token.balanceOf(alice.address)).to.equal(0);
+          expect(await token.balanceOf(bob.address)).to.equal(
+            voteSettingsWithMinProposerVotingPower.minProposerVotingPower
           );
 
-        // Transaction 3: Create the proposal as Bob.
-        const id = await createProposalId(
-          plugin.address,
-          dummyActions,
-          dummyMetadata
-        );
-        const tx3 = await plugin
-          .connect(bob)
-          [CREATE_PROPOSAL_SIGNATURE](
-            dummyMetadata,
-            dummyActions,
-            0,
-            0,
-            endDate,
-            VoteOption.None,
-            false
+          // Check the `ProposalCreatedEvent` for the creator and proposalId
+          const event = findEvent<ProposalCreatedEvent>(
+            await tx3.wait(),
+            'ProposalCreated'
+          );
+          expect(event.args.proposalId).to.equal(id);
+          expect(event.args.creator).to.equal(bob.address);
+
+          // Check that the snapshot block stored in the proposal struct is as expected.
+          const proposal = await plugin.getProposal(id);
+          expect(proposal.parameters.snapshotBlock).to.equal(
+            expectedSnapshotBlockNumber
           );
 
-        // Check the balances before the block is mined. Note that `balanceOf` is a view function,
-        // whose result will be immediately available and does not rely on the block to be mined.
-        expect(await token.balanceOf(alice.address)).to.equal(
-          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
-        );
-        expect(await token.balanceOf(bob.address)).to.equal(0);
-
-        // Mine the block. This will result in the transactions 1 to 3 to be executed.
-        // Transaction 1 and 3 will produce a receipt whereas transaction 2 will revert with an error as expected.
-        await ethers.provider.send('evm_mine', []);
-        const minedBlockNumber = (await ethers.provider.getBlock('latest'))
-          .number;
-
-        // Expect the transaction receipts to be in the same block after the snapshot block.
-        expect((await tx1.wait()).blockNumber).to.equal(minedBlockNumber);
-        expect((await tx3.wait()).blockNumber).to.equal(minedBlockNumber);
-        expect(minedBlockNumber).to.equal(expectedSnapshotBlockNumber + 1);
-
-        // Expect the balances to have changed
-        expect(await token.balanceOf(alice.address)).to.equal(0);
-        expect(await token.balanceOf(bob.address)).to.equal(
-          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
-        );
-
-        // Check the `ProposalCreatedEvent` for the creator and proposalId
-        const event = findEvent<ProposalCreatedEvent>(
-          await tx3.wait(),
-          'ProposalCreated'
-        );
-        expect(event.args.proposalId).to.equal(id);
-        expect(event.args.creator).to.equal(bob.address);
-
-        // Check that the snapshot block stored in the proposal struct is as expected.
-        const proposal = await plugin.getProposal(id);
-        expect(proposal.parameters.snapshotBlock).to.equal(
-          expectedSnapshotBlockNumber
-        );
-
-        // Re-enable auto-mining for the subsequent tests.
-        await ethers.provider.send('evm_setAutomine', [true]);
-      });
+          // Re-enable auto-mining for the subsequent tests.
+          await ethers.provider.send('evm_setAutomine', [true]);
+        }
+      );
 
       it('creates a proposal if `_msgSender` owns enough tokens in the current block', async () => {
         const {
@@ -1424,6 +1429,10 @@ describe('TokenVoting', function () {
       // Set Alice's balance to 10
       await token.setBalance(alice.address, 10);
 
+      const expectedSnapshotBlockNumber = (
+        await ethers.provider.getBlock('latest')
+      ).number;
+
       // Create a proposal as Alice.
       const id = await createProposalId(
         plugin.address,
@@ -1479,7 +1488,10 @@ describe('TokenVoting', function () {
           .mul(await defaultVotingSettings.minParticipation)
           .div(pctToRatio(100))
       );
-      expect(proposal.parameters.snapshotBlock).to.equal(block.number - 1);
+
+      expect(proposal.parameters.snapshotBlock).to.equal(
+        expectedSnapshotBlockNumber
+      );
       expect(
         proposal.parameters.startDate.add(
           await defaultVotingSettings.minDuration
@@ -1522,6 +1534,10 @@ describe('TokenVoting', function () {
 
       // Set Alice's balance to 10.
       await token.setBalance(alice.address, 10);
+
+      const expectedSnapshotBlockNumber = (
+        await ethers.provider.getBlock('latest')
+      ).number;
 
       // Create a proposal as Alice.
       const id = await createProposalId(
@@ -1576,7 +1592,9 @@ describe('TokenVoting', function () {
           .mul(await defaultVotingSettings.minParticipation)
           .div(pctToRatio(100))
       );
-      expect(proposal.parameters.snapshotBlock).to.equal(block.number - 1);
+      expect(proposal.parameters.snapshotBlock).to.equal(
+        expectedSnapshotBlockNumber
+      );
 
       expect(
         await plugin.totalVotingPower(proposal.parameters.snapshotBlock)
@@ -1907,7 +1925,7 @@ describe('TokenVoting', function () {
 
         // Set voter balances
         const amount = 10;
-        const promises = [
+        const accounts = [
           alice,
           bob,
           carol,
@@ -1918,8 +1936,10 @@ describe('TokenVoting', function () {
           harold,
           ivan,
           judy,
-        ].map(signer => token.setBalance(signer.address, amount));
-        await Promise.all(promises);
+        ];
+        for (var i = 0; i < accounts.length; i++) {
+          await token.setBalance(accounts[i].address, amount);
+        }
 
         // Update Voting settings
         const newVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
@@ -2098,7 +2118,7 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
 
         // Wait until the vote is over.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the proposal can be executed.
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -2240,7 +2260,7 @@ describe('TokenVoting', function () {
         });
 
         // Wait until the vote is over.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the proposal can be executed.
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -2310,7 +2330,7 @@ describe('TokenVoting', function () {
 
         // Set voter balances
         const amount = 10;
-        const promises = [
+        const accounts = [
           alice,
           bob,
           carol,
@@ -2321,8 +2341,11 @@ describe('TokenVoting', function () {
           harold,
           ivan,
           judy,
-        ].map(signer => token.setBalance(signer.address, amount));
-        await Promise.all(promises);
+        ];
+
+        for (var i = 0; i < accounts.length; i++) {
+          await token.setBalance(accounts[i].address, amount);
+        }
 
         // // Update Voting settings
         const newVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
@@ -2459,7 +2482,7 @@ describe('TokenVoting', function () {
         expect(await plugin.hasSucceeded(id)).to.be.true;
 
         // Advance time after the end date.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the proposal can still be executed.
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
@@ -2512,7 +2535,7 @@ describe('TokenVoting', function () {
         expect(await plugin.hasSucceeded(id)).to.be.true;
 
         // Advance after the end date.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the vote is executable because support > 50%, participation > 20%, and the voting period is over.
         expect(await plugin.canExecute(id)).to.equal(true);
@@ -2562,7 +2585,7 @@ describe('TokenVoting', function () {
         });
 
         // Advance time after the end date.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the vote is not executable because the participation with 19% is still too low, despite a support of 67% and the voting period being over.
         expect(await plugin.canExecute(id)).to.equal(false);
@@ -2638,7 +2661,7 @@ describe('TokenVoting', function () {
         });
 
         // Advance after the end date.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the vote is executable because support > 50%, participation > 20%, and the voting period is over.
         expect(await plugin.canExecute(id)).to.equal(true);
@@ -2875,7 +2898,7 @@ describe('TokenVoting', function () {
 
         // Set voter balances
         const amount = 10;
-        const promises = [
+        const accounts = [
           alice,
           bob,
           carol,
@@ -2886,8 +2909,11 @@ describe('TokenVoting', function () {
           harold,
           ivan,
           judy,
-        ].map(signer => token.setBalance(signer.address, amount));
-        await Promise.all(promises);
+        ];
+
+        for (var i = 0; i < accounts.length; i++) {
+          await token.setBalance(accounts[i].address, amount);
+        }
 
         // Update Voting settings
         const newVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
@@ -3075,7 +3101,7 @@ describe('TokenVoting', function () {
         expect(await plugin.hasSucceeded(id)).to.be.false;
 
         // Advance time to the end date.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the proposal can be executed regularly.
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3223,7 +3249,7 @@ describe('TokenVoting', function () {
 
         // Set voter balances
         const amount = 10;
-        const promises = [
+        const accounts = [
           alice,
           bob,
           carol,
@@ -3234,8 +3260,10 @@ describe('TokenVoting', function () {
           harold,
           ivan,
           judy,
-        ].map(signer => token.setBalance(signer.address, amount));
-        await Promise.all(promises);
+        ];
+        for (var i = 0; i < accounts.length; i++) {
+          await token.setBalance(accounts[i].address, amount);
+        }
 
         // Update Voting settings
         const newVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
@@ -3310,7 +3338,7 @@ describe('TokenVoting', function () {
 
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.false;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3356,7 +3384,7 @@ describe('TokenVoting', function () {
 
         expect(await plugin.canExecute(id)).to.be.false;
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3401,7 +3429,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.false;
@@ -3449,7 +3477,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isMinApprovalReached(id)).to.be.true;
@@ -3495,7 +3523,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3547,7 +3575,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3641,7 +3669,7 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
 
         // does not execute normally
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.false;
@@ -3680,7 +3708,7 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(true);
 
         // Check if the proposal can execute normally
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;

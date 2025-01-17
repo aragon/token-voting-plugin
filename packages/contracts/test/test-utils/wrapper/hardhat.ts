@@ -70,7 +70,7 @@ export class HardhatClass implements NetworkDeployment {
     return hre.upgrades.deployProxy(contract, options.initArgs, {
       kind: options.proxySettings?.type,
       initializer: options.proxySettings?.initializer ?? false,
-      unsafeAllow: ['constructor'],
+      unsafeAllow: ['constructor', 'delegatecall'],
       constructorArgs: options.args,
     });
   }
@@ -93,8 +93,9 @@ export class HardhatClass implements NetworkDeployment {
     );
 
     return hre.upgrades.upgradeProxy(proxyAddress, contract, {
-      unsafeAllow: ['constructor'],
+      unsafeAllow: ['constructor', 'delegatecall'],
       constructorArgs: options.args,
+      call: options.call,
     });
   }
 }

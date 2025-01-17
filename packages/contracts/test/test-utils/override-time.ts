@@ -1,3 +1,4 @@
+import {ZK_SYNC_NETWORKS} from '../../utils/zkSync';
 import {time} from '@nomicfoundation/hardhat-network-helpers';
 import hre from 'hardhat';
 
@@ -9,7 +10,7 @@ async function zkSyncLatest(): Promise<number> {
 }
 
 // Check if the current network is zkSync
-if (['zkLocalTestnet', 'zkTestnet', 'zkMainnet'].includes(hre.network.name)) {
+if (ZK_SYNC_NETWORKS.includes(hre.network.name)) {
   // Override the `time.latest` getter
   Object.defineProperty(time, 'latest', {
     value: zkSyncLatest,
