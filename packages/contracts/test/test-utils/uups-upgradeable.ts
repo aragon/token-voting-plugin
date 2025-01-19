@@ -1,9 +1,8 @@
 import {DAO, PluginRepo} from '@aragon/osx-ethers';
 import {defaultAbiCoder} from '@ethersproject/abi';
-import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
-import {Contract, ContractFactory, errors} from 'ethers';
-import hre, {ethers, upgrades} from 'hardhat';
+import {Contract, errors} from 'ethers';
+import hre, {ethers} from 'hardhat';
 
 // The protocol version number of contracts not having a `getProtocolVersion()` function because they don't inherit from `ProtocolVersion.sol` yet.
 export const IMPLICIT_INITIAL_PROTOCOL_VERSION: [number, number, number] = [

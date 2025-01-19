@@ -547,7 +547,6 @@ describe('TokenVotingSetup', function () {
 
     it('correctly returns plugin, helpers and permissions, when a governance token address is supplied', async () => {
       const {
-        deployer,
         pluginSetup,
         dao,
         defaultVotingSettings,
@@ -1043,7 +1042,6 @@ describe('TokenVotingSetup', function () {
   describe('prepareUninstallation', async () => {
     it('correctly returns permissions, when the required number of helpers is supplied', async () => {
       const {
-        deployer,
         pluginSetup,
         dao,
         defaultTokenSettings,

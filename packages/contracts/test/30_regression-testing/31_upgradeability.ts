@@ -31,7 +31,6 @@ import {
   pctToRatio,
 } from '@aragon/osx-commons-sdk';
 import {DAO} from '@aragon/osx-ethers';
-import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
@@ -68,7 +67,7 @@ describe('Upgrades', () => {
   });
 
   it('upgrades from v1.0.0 with `initializeFrom`', async () => {
-    const {deployer, alice, dao, defaultInitData, encodeDataForUpgrade} =
+    const {deployer, dao, defaultInitData, encodeDataForUpgrade} =
       await loadFixtureCustom(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
     const legacyContractFactory = new TokenVoting_V1_0_0__factory(deployer);
@@ -115,7 +114,7 @@ describe('Upgrades', () => {
       }
     }
 
-    // @ts-ignore
+    // @ts-expect-error `data` doesn't have type.
     data[2].reinitializerName = 'initializeFrom';
     // @ts-expect-error types castings will work
     data[2].reinitArgs = [latestInitializerVersion, encodeDataForUpgrade];
@@ -171,7 +170,7 @@ describe('Upgrades', () => {
   });
 
   it('upgrades from v1.3.0 with `initializeFrom`', async () => {
-    const {deployer, alice, dao, defaultInitData, encodeDataForUpgrade} =
+    const {deployer, dao, defaultInitData, encodeDataForUpgrade} =
       await loadFixtureCustom(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
     const legacyContractFactory = new TokenVoting_V1_3_0__factory(deployer);
@@ -218,7 +217,7 @@ describe('Upgrades', () => {
       }
     }
 
-    // @ts-ignore
+    // @ts-expect-error `data` doesn't have type.
     data[2].reinitializerName = 'initializeFrom';
     // @ts-expect-error types castings will work
     data[2].reinitArgs = [latestInitializerVersion, encodeDataForUpgrade];

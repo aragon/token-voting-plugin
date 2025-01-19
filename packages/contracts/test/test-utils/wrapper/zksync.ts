@@ -1,5 +1,4 @@
 import {DeployOptions, NetworkDeployment} from '.';
-import {getTime} from '../voting';
 import {BigNumber, BigNumberish, Contract} from 'ethers';
 import hre from 'hardhat';
 import {Provider} from 'zksync-ethers';
@@ -15,8 +14,6 @@ export class ZkSync implements NetworkDeployment {
     const {deployer} = hre;
     const artifact = await deployer.loadArtifact(artifactName);
     const contract = await deployer.deploy(artifact, args);
-    // TODO:Claudia this seems to be printed twice..
-    // console.log('movida good');
 
     return {artifact, contract};
   }
@@ -52,8 +49,12 @@ export class ZkSync implements NetworkDeployment {
       const abi = [
         'function getDeploymentNonce(address) public view returns(uint256)',
       ];
-      let signers = await ethers.getSigners();
-      let contract = new ethers.Contract(NONCE_HOLDER_ADDRESS, abi, signers[0]);
+      const signers = await ethers.getSigners();
+      const contract = new ethers.Contract(
+        NONCE_HOLDER_ADDRESS,
+        abi,
+        signers[0]
+      );
       const nonce = await contract.getDeploymentNonce(sender);
       return BigNumber.from(nonce).toNumber();
     }

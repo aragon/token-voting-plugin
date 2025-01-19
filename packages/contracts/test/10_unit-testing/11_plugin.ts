@@ -12,7 +12,6 @@ import {
   VotingPowerCondition__factory,
   CustomExecutorMock__factory,
 } from '../../typechain';
-import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {
   ProposalCreatedEvent,
@@ -1471,8 +1470,6 @@ describe('TokenVoting', function () {
       expect(event.args.actions[0].data).to.equal(dummyActions[0].data);
       expect(event.args.allowFailureMap).to.equal(allowFailureMap);
 
-      const block = await ethers.provider.getBlock('latest');
-
       // Check that the proposal state is set to the expected data.
       const proposal = await plugin.getProposal(id);
 
@@ -1578,8 +1575,6 @@ describe('TokenVoting', function () {
       expect(event.args.allowFailureMap).to.equal(0);
 
       // Check that the proposal state is set to the expected data.
-      const block = await ethers.provider.getBlock('latest');
-
       const proposal = await plugin.getProposal(id);
       expect(proposal.open).to.equal(true);
       expect(proposal.executed).to.equal(false);
@@ -1937,7 +1932,7 @@ describe('TokenVoting', function () {
           ivan,
           judy,
         ];
-        for (var i = 0; i < accounts.length; i++) {
+        for (let i = 0; i < accounts.length; i++) {
           await token.setBalance(accounts[i].address, amount);
         }
 
@@ -2343,7 +2338,7 @@ describe('TokenVoting', function () {
           judy,
         ];
 
-        for (var i = 0; i < accounts.length; i++) {
+        for (let i = 0; i < accounts.length; i++) {
           await token.setBalance(accounts[i].address, amount);
         }
 
@@ -2911,7 +2906,7 @@ describe('TokenVoting', function () {
           judy,
         ];
 
-        for (var i = 0; i < accounts.length; i++) {
+        for (let i = 0; i < accounts.length; i++) {
           await token.setBalance(accounts[i].address, amount);
         }
 
@@ -3261,7 +3256,7 @@ describe('TokenVoting', function () {
           ivan,
           judy,
         ];
-        for (var i = 0; i < accounts.length; i++) {
+        for (let i = 0; i < accounts.length; i++) {
           await token.setBalance(accounts[i].address, amount);
         }
 

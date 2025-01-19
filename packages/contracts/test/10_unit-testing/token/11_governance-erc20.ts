@@ -32,7 +32,6 @@ describe('GovernanceERC20', function () {
   let signers: SignerWithAddress[];
   let dao: DAO;
   let token: GovernanceERC20;
-  let GovernanceERC20: GovernanceERC20__factory;
   let mintSettings: GovernanceERC20.MintSettingsStruct;
   let defaultInitData: [
     string,
@@ -44,7 +43,6 @@ describe('GovernanceERC20', function () {
   before(async () => {
     signers = await ethers.getSigners();
     dao = await createDaoProxy(signers[0], '0x');
-    GovernanceERC20 = new GovernanceERC20__factory(signers[0]);
 
     from = signers[0];
     to = signers[1];

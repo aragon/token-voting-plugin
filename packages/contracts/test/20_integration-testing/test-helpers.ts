@@ -4,7 +4,6 @@ import {
   PluginUpgradeableSetup__factory,
   ProxyFactory__factory,
 } from '../../typechain';
-import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {PluginUUPSUpgradeable__factory} from '../../typechain/factories/@aragon/osx-v1.0.0/core/plugin';
 import {latestPluginBuild} from '../test-utils/token-voting-constants';
 import {ARTIFACT_SOURCES} from '../test-utils/wrapper';

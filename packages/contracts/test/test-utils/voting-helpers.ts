@@ -48,7 +48,7 @@ export async function setBalances(
   token: TestGovernanceERC20,
   balances: {receiver: string; amount: number | BigNumber}[]
 ) {
-  for (var i = 0; i < balances.length; i++) {
+  for (let i = 0; i < balances.length; i++) {
     await token.setBalance(balances[i].receiver, balances[i].amount);
   }
 }

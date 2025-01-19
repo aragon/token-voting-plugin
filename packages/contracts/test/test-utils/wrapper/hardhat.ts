@@ -13,7 +13,7 @@ export class HardhatClass implements NetworkDeployment {
     const {ethers} = hre;
     const signers = await ethers.getSigners();
     const artifact = await hre.artifacts.readArtifact(artifactName);
-    let contract = await new ethers.ContractFactory(
+    const contract = await new ethers.ContractFactory(
       artifact.abi,
       artifact.bytecode,
       signers[0]
@@ -48,6 +48,7 @@ export class HardhatClass implements NetworkDeployment {
     sender: string,
     type?: 'Deployment' | 'Transaction'
   ): Promise<number> {
+    type;
     return this.provider.getTransactionCount(sender);
   }
 
@@ -86,7 +87,7 @@ export class HardhatClass implements NetworkDeployment {
 
     const artifact = await hre.artifacts.readArtifact(newArtifactName);
 
-    let contract = new ethers.ContractFactory(
+    const contract = new ethers.ContractFactory(
       artifact.abi,
       artifact.bytecode,
       signer

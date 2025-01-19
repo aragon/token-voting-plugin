@@ -1,11 +1,7 @@
-import {TestingFork} from './types/hardhat';
+import './types/hardhat';
 import {ZK_SYNC_NETWORKS} from './utils/zkSync';
 import RichAccounts from './utils/zksync-rich-accounts';
-import {
-  addRpcUrlToNetwork,
-  networks as osxCommonsConfigNetworks,
-  SupportedNetworks,
-} from '@aragon/osx-commons-configs';
+import {addRpcUrlToNetwork} from '@aragon/osx-commons-configs';
 import '@matterlabs/hardhat-zksync-deploy';
 import '@matterlabs/hardhat-zksync-ethers';
 import '@matterlabs/hardhat-zksync-node';
@@ -16,17 +12,12 @@ import '@nomicfoundation/hardhat-chai-matchers';
 import '@nomicfoundation/hardhat-network-helpers';
 import '@typechain/hardhat';
 import {config as dotenvConfig} from 'dotenv';
-import {BigNumber, ethers} from 'ethers';
 import fs from 'fs';
 import 'hardhat-deploy';
 import 'hardhat-deploy';
 import 'hardhat-gas-reporter';
 import {extendEnvironment, HardhatUserConfig, task} from 'hardhat/config';
-import {
-  HardhatNetworkAccountsUserConfig,
-  HardhatRuntimeEnvironment,
-} from 'hardhat/types';
-import type {NetworkUserConfig} from 'hardhat/types';
+import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {resolve} from 'path';
 import 'solidity-coverage';
 import 'solidity-coverage';
@@ -49,8 +40,6 @@ function specifiedAccounts(): string[] {
 
 task('build-contracts').setAction(async (args, hre) => {
   await hre.run('compile');
-  // TODO:Claudia (Is there a way without copying/pasting manually ? `paths` object below in the config
-  // creates `build` folder correctly, but it always appends `zk` in the end.
 
   if (ZK_SYNC_NETWORKS.includes(hre.network.name)) {
     // Copy zkSync specific build artifacts and cache to the default directories.

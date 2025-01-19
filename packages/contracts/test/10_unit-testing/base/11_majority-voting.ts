@@ -9,7 +9,6 @@ import {
   IProtocolVersion__factory,
   ProxyFactory__factory,
 } from '../../../typechain';
-import {ProxyCreatedEvent} from '../../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {MajorityVotingBase} from '../../../typechain/src/MajorityVotingBase';
 import {
   MAJORITY_VOTING_BASE_INTERFACE,
@@ -24,7 +23,7 @@ import {
 import {IMajorityVoting_V1_3_0__factory} from '../../test-utils/typechain-versions';
 import {VotingMode} from '../../test-utils/voting-helpers';
 import {ARTIFACT_SOURCES} from '../../test-utils/wrapper';
-import {TIME, findEvent} from '@aragon/osx-commons-sdk';
+import {TIME} from '@aragon/osx-commons-sdk';
 import {getInterfaceId} from '@aragon/osx-commons-sdk';
 import {pctToRatio} from '@aragon/osx-commons-sdk';
 import {DAO} from '@aragon/osx-ethers';

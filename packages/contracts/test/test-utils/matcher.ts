@@ -2,6 +2,7 @@ import {decodeReturnData} from '@nomicfoundation/hardhat-chai-matchers/internal/
 import {buildAssert} from '@nomicfoundation/hardhat-chai-matchers/utils.js';
 import {AssertionError} from 'chai';
 import chai from 'chai';
+import {ethers} from 'hardhat';
 
 /// The below code overwrites the behaviour of the `revertedWith` matcher to support how zkSync and ethers-v5
 /// encode and handle errors. The functions below are lifted from the `hardhat-chai-matchers` package and modified
@@ -344,8 +345,6 @@ function findCustomErrorByName(
   iface: any,
   name: string
 ): CustomError | undefined {
-  const ethers = require('ethers');
-
   const customErrorEntry = Object.entries(iface.errors).find(
     ([, fragment]: any) => fragment.name === name
   );
@@ -365,8 +364,6 @@ function findCustomErrorByName(
 }
 
 function findCustomErrorById(iface: any, id: string): CustomError | undefined {
-  const ethers = require('ethers');
-
   const customErrorEntry: any = Object.entries(iface.errors).find(
     ([signature]: any) => ethers.utils.id(signature).slice(0, 10) === id
   );

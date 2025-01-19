@@ -1,6 +1,5 @@
 import {
   ERC20Mock,
-  ERC20Mock__factory,
   IERC165Upgradeable__factory,
   IGovernanceWrappedERC20__factory,
   IERC20Upgradeable__factory,
@@ -41,8 +40,6 @@ describe('GovernanceWrappedERC20', function () {
   let signers: SignerWithAddress[];
   let governanceToken: GovernanceWrappedERC20;
   let erc20: ERC20Mock;
-  let ERC20Mock: ERC20Mock__factory;
-  let GovernanceWrappedERC20: GovernanceWrappedERC20__factory;
   let defaultBalances: AccountBalance[];
 
   let defaultExistingERC20InitData: [string, string];
@@ -51,8 +48,6 @@ describe('GovernanceWrappedERC20', function () {
   before(async () => {
     signers = await ethers.getSigners();
 
-    ERC20Mock = new ERC20Mock__factory(signers[0]);
-    GovernanceWrappedERC20 = new GovernanceWrappedERC20__factory(signers[0]);
     defaultBalances = [
       {account: signers[0].address, amount: 123},
       {account: signers[1].address, amount: 456},
@@ -264,7 +259,10 @@ describe('GovernanceWrappedERC20', function () {
     beforeEach(async function () {
       // approve and deposit for all token holders
       for (let i = 0; i < defaultBalances.length; i++) {
-        erc20.approve(defaultBalances[i].account, defaultBalances[i].amount);
+        await erc20.approve(
+          defaultBalances[i].account,
+          defaultBalances[i].amount
+        );
       }
     });
 
