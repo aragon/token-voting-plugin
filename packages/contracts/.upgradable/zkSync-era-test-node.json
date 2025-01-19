@@ -494,29 +494,17 @@
           },
           "t_enum(Operation)379": {
             "label": "enum IPlugin.Operation",
-            "members": [
-              "Call",
-              "DelegateCall"
-            ],
+            "members": ["Call", "DelegateCall"],
             "numberOfBytes": "1"
           },
           "t_enum(VoteOption)10510": {
             "label": "enum IMajorityVoting.VoteOption",
-            "members": [
-              "None",
-              "Abstain",
-              "Yes",
-              "No"
-            ],
+            "members": ["None", "Abstain", "Yes", "No"],
             "numberOfBytes": "1"
           },
           "t_enum(VotingMode)10667": {
             "label": "enum MajorityVotingBase.VotingMode",
-            "members": [
-              "Standard",
-              "EarlyExecution",
-              "VoteReplacement"
-            ],
+            "members": ["Standard", "EarlyExecution", "VoteReplacement"],
             "numberOfBytes": "1"
           },
           "t_mapping(t_address,t_enum(VoteOption)10510)": {
@@ -931,21 +919,12 @@
           },
           "t_enum(VoteOption)1732": {
             "label": "enum IMajorityVoting.VoteOption",
-            "members": [
-              "None",
-              "Abstain",
-              "Yes",
-              "No"
-            ],
+            "members": ["None", "Abstain", "Yes", "No"],
             "numberOfBytes": "1"
           },
           "t_enum(VotingMode)1869": {
             "label": "enum MajorityVotingBase.VotingMode",
-            "members": [
-              "Standard",
-              "EarlyExecution",
-              "VoteReplacement"
-            ],
+            "members": ["Standard", "EarlyExecution", "VoteReplacement"],
             "numberOfBytes": "1"
           },
           "t_mapping(t_address,t_enum(VoteOption)1732)": {
@@ -1330,21 +1309,12 @@
           },
           "t_enum(VoteOption)4612": {
             "label": "enum IMajorityVoting.VoteOption",
-            "members": [
-              "None",
-              "Abstain",
-              "Yes",
-              "No"
-            ],
+            "members": ["None", "Abstain", "Yes", "No"],
             "numberOfBytes": "1"
           },
           "t_enum(VotingMode)4749": {
             "label": "enum MajorityVotingBase.VotingMode",
-            "members": [
-              "Standard",
-              "EarlyExecution",
-              "VoteReplacement"
-            ],
+            "members": ["Standard", "EarlyExecution", "VoteReplacement"],
             "numberOfBytes": "1"
           },
           "t_mapping(t_address,t_enum(VoteOption)4612)": {
