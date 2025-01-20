@@ -85,7 +85,12 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   hre.aragonToVerifyContracts = [];
 });
 
+const namedAccounts = {
+  deployer: 0,
+};
+
 const config: HardhatUserConfig = {
+  namedAccounts,
   defaultNetwork: 'zkLocalTestnet',
   networks: {
     zkLocalTestnet: {
