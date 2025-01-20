@@ -1,4 +1,4 @@
-import {METADATA, VERSION} from '../../plugin-settings';
+import { VERSION, PLUGIN_SETUP_CONTRACT_NAME} from '../../plugin-settings';
 import {getProductionNetworkName, findPluginRepo} from '../../utils/helpers';
 import {
   getLatestNetworkDeployment,
@@ -9,7 +9,6 @@ import {
   PERMISSION_MANAGER_FLAGS,
   PLUGIN_REPO_PERMISSIONS,
   UnsupportedNetworkError,
-  uploadToIPFS,
 } from '@aragon/osx-commons-sdk';
 import {
   DAO,
@@ -65,20 +64,16 @@ describe(`Deployment on network '${productionNetworkName}'`, function () {
 
   context('PluginSetup Publication', async () => {
     it('registers the setup', async () => {
-      const {pluginRepo} = await loadFixture(fixture);
+      const {pluginRepo, pluginSetupAddr} = await loadFixture(fixture);
 
       const results = await pluginRepo['getVersion((uint8,uint16))']({
         release: VERSION.release,
         build: VERSION.build,
       });
 
-      const buildMetadataURI = `ipfs://${await uploadToIPFS(
-        JSON.stringify(METADATA.build, null, 2)
-      )}`;
-
-      expect(results.buildMetadata).to.equal(
-        ethers.utils.hexlify(ethers.utils.toUtf8Bytes(buildMetadataURI))
-      );
+      expect(results.pluginSetup).to.equal(pluginSetupAddr);
+      expect(results.tag.build).to.equal(VERSION.build);
+      expect(results.tag.release).to.equal(VERSION.release);
     });
   });
 });
@@ -88,6 +83,7 @@ type FixtureResult = {
   pluginRepo: PluginRepo;
   pluginRepoRegistry: PluginRepoRegistry;
   managementDaoProxy: DAO;
+  pluginSetupAddr: string;
 };
 
 async function fixture(): Promise<FixtureResult> {
@@ -124,5 +120,14 @@ async function fixture(): Promise<FixtureResult> {
     deployer
   );
 
-  return {deployer, pluginRepo, pluginRepoRegistry, managementDaoProxy};
+  const pluginSetupAddr = (await deployments.get(PLUGIN_SETUP_CONTRACT_NAME))
+    .address;
+
+  return {
+    deployer,
+    pluginRepo,
+    pluginRepoRegistry,
+    managementDaoProxy,
+    pluginSetupAddr,
+  };
 }
