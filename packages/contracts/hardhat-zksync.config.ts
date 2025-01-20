@@ -10,6 +10,7 @@ import '@matterlabs/hardhat-zksync-upgradable';
 import '@matterlabs/hardhat-zksync-verify';
 import '@nomicfoundation/hardhat-chai-matchers';
 import '@nomicfoundation/hardhat-network-helpers';
+import '@nomiclabs/hardhat-ethers';
 import '@typechain/hardhat';
 import {config as dotenvConfig} from 'dotenv';
 import fs from 'fs';
@@ -84,23 +85,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   hre.aragonToVerifyContracts = [];
 });
 
-const namedAccounts = {
-  deployer: 0,
-  alice: 1,
-  bob: 2,
-  carol: 3,
-  dave: 4,
-  eve: 5,
-  frank: 6,
-  grace: 7,
-  harold: 8,
-  ivan: 9,
-  judy: 10,
-  mallory: 11,
-};
-
 const config: HardhatUserConfig = {
-  namedAccounts,
   defaultNetwork: 'zkLocalTestnet',
   networks: {
     zkLocalTestnet: {

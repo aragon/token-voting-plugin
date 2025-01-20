@@ -1,3 +1,4 @@
+import './types/hardhat';
 import {
   addRpcUrlToNetwork,
   networks as osxCommonsConfigNetworks,

@@ -15,6 +15,7 @@ packages/subgraph/generated
 packages/subgraph/tests/.bin
 
 packages/contracts/deployments
+packages/contracts/.upgradable/
 
 docs
 
