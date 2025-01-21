@@ -1,5 +1,6 @@
-import { VERSION, PLUGIN_SETUP_CONTRACT_NAME} from '../../plugin-settings';
+import {VERSION, PLUGIN_SETUP_CONTRACT_NAME} from '../../plugin-settings';
 import {getProductionNetworkName, findPluginRepo} from '../../utils/helpers';
+import {skipTestSuiteIfNetworkIsZkSync} from '../test-utils/skip-functions';
 import {
   getLatestNetworkDeployment,
   getNetworkNameByAlias,
@@ -24,59 +25,62 @@ import env, {deployments, ethers} from 'hardhat';
 
 const productionNetworkName = getProductionNetworkName(env);
 
-describe(`Deployment on network '${productionNetworkName}'`, function () {
-  it('creates the repo', async () => {
-    const {pluginRepo, pluginRepoRegistry} = await loadFixture(fixture);
+skipTestSuiteIfNetworkIsZkSync(
+  `Deployment on network '${productionNetworkName}'`,
+  function () {
+    it('creates the repo', async () => {
+      const {pluginRepo, pluginRepoRegistry} = await loadFixture(fixture);
 
-    expect(await pluginRepoRegistry.entries(pluginRepo.address)).to.be.true;
-  });
-
-  it('gives the management DAO permissions over the repo', async () => {
-    const {pluginRepo, managementDaoProxy} = await loadFixture(fixture);
-
-    expect(
-      await pluginRepo.isGranted(
-        pluginRepo.address,
-        managementDaoProxy.address,
-        DAO_PERMISSIONS.ROOT_PERMISSION_ID,
-        PERMISSION_MANAGER_FLAGS.NO_CONDITION
-      )
-    ).to.be.true;
-
-    expect(
-      await pluginRepo.isGranted(
-        pluginRepo.address,
-        managementDaoProxy.address,
-        PLUGIN_REPO_PERMISSIONS.UPGRADE_REPO_PERMISSION_ID,
-        PERMISSION_MANAGER_FLAGS.NO_CONDITION
-      )
-    ).to.be.true;
-
-    expect(
-      await pluginRepo.isGranted(
-        pluginRepo.address,
-        managementDaoProxy.address,
-        PLUGIN_REPO_PERMISSIONS.MAINTAINER_PERMISSION_ID,
-        PERMISSION_MANAGER_FLAGS.NO_CONDITION
-      )
-    ).to.be.true;
-  });
-
-  context('PluginSetup Publication', async () => {
-    it('registers the setup', async () => {
-      const {pluginRepo, pluginSetupAddr} = await loadFixture(fixture);
-
-      const results = await pluginRepo['getVersion((uint8,uint16))']({
-        release: VERSION.release,
-        build: VERSION.build,
-      });
-
-      expect(results.pluginSetup).to.equal(pluginSetupAddr);
-      expect(results.tag.build).to.equal(VERSION.build);
-      expect(results.tag.release).to.equal(VERSION.release);
+      expect(await pluginRepoRegistry.entries(pluginRepo.address)).to.be.true;
     });
-  });
-});
+
+    it('gives the management DAO permissions over the repo', async () => {
+      const {pluginRepo, managementDaoProxy} = await loadFixture(fixture);
+
+      expect(
+        await pluginRepo.isGranted(
+          pluginRepo.address,
+          managementDaoProxy.address,
+          DAO_PERMISSIONS.ROOT_PERMISSION_ID,
+          PERMISSION_MANAGER_FLAGS.NO_CONDITION
+        )
+      ).to.be.true;
+
+      expect(
+        await pluginRepo.isGranted(
+          pluginRepo.address,
+          managementDaoProxy.address,
+          PLUGIN_REPO_PERMISSIONS.UPGRADE_REPO_PERMISSION_ID,
+          PERMISSION_MANAGER_FLAGS.NO_CONDITION
+        )
+      ).to.be.true;
+
+      expect(
+        await pluginRepo.isGranted(
+          pluginRepo.address,
+          managementDaoProxy.address,
+          PLUGIN_REPO_PERMISSIONS.MAINTAINER_PERMISSION_ID,
+          PERMISSION_MANAGER_FLAGS.NO_CONDITION
+        )
+      ).to.be.true;
+    });
+
+    context('PluginSetup Publication', async () => {
+      it('registers the setup', async () => {
+        const {pluginRepo, pluginSetupAddr} = await loadFixture(fixture);
+
+        const results = await pluginRepo['getVersion((uint8,uint16))']({
+          release: VERSION.release,
+          build: VERSION.build,
+        });
+
+        expect(results.pluginSetup).to.equal(pluginSetupAddr);
+        expect(results.tag.build).to.equal(VERSION.build);
+        expect(results.tag.release).to.equal(VERSION.release);
+      });
+    });
+  }
+);
 
 type FixtureResult = {
   deployer: SignerWithAddress;
