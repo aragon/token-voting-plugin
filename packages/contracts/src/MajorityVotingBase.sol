@@ -688,7 +688,7 @@ abstract contract MajorityVotingBase is
         // For Standard and VoteReplacement modes, enforce waiting until end date
         if (
             proposal_.parameters.votingMode != VotingMode.EarlyExecution &&
-            block.timestamp.toUint64() < proposal_.parameters.endDate
+            _isVotingOngoing(proposal_)
         ) {
             return false;
         }
@@ -696,16 +696,22 @@ abstract contract MajorityVotingBase is
         return _hasSucceeded(_proposalId);
     }
 
-    /// @notice Internal function to check if a proposal is still open.
+    /// @notice Internal function to check if the voting period for a proposal is ongoing.
     /// @param proposal_ The proposal struct.
-    /// @return True if the proposal is open, false otherwise.
-    function _isProposalOpen(Proposal storage proposal_) internal view virtual returns (bool) {
+    /// @return True if the current time is within the voting period, false otherwise.
+    function _isVotingOngoing(Proposal storage proposal_) internal view virtual returns (bool) {
         uint64 currentTime = block.timestamp.toUint64();
 
         return
             proposal_.parameters.startDate <= currentTime &&
-            currentTime < proposal_.parameters.endDate &&
-            !proposal_.executed;
+            currentTime < proposal_.parameters.endDate;
+    }
+
+    /// @notice Internal function to check if a proposal is still open.
+    /// @param proposal_ The proposal struct.
+    /// @return True if the proposal is open, false otherwise.
+    function _isProposalOpen(Proposal storage proposal_) internal view virtual returns (bool) {
+        return _isVotingOngoing(proposal_) && !proposal_.executed;
     }
 
     /// @notice Internal function to update the plugin-wide proposal settings.
