@@ -645,15 +645,20 @@ abstract contract MajorityVotingBase is
         Proposal storage proposal_ = proposals[_proposalId];
 
         if (_isProposalOpen(proposal_)) {
-            // Early execution
-            if (proposal_.parameters.votingMode != VotingMode.EarlyExecution) {
+            // If the proposal is still open and the voting mode is VoteReplacement,
+            // success cannot be determined until the voting period ends.
+            if (proposal_.parameters.votingMode == VotingMode.VoteReplacement) {
                 return false;
             }
+
+            // For Standard and EarlyExecution modes, check if the support threshold
+            // has been reached early to determine success while still open.
             if (!isSupportThresholdReachedEarly(_proposalId)) {
                 return false;
             }
         } else {
-            // Normal execution
+            // When the proposal is closed, check if the support threshold
+            // has been reached based on final voting results.
             if (!isSupportThresholdReached(_proposalId)) {
                 return false;
             }
@@ -677,6 +682,14 @@ abstract contract MajorityVotingBase is
 
         // Verify that the vote has not been executed already.
         if (proposal_.executed) {
+            return false;
+        }
+
+        // For Standard and VoteReplacement modes, enforce waiting until end date
+        if (
+            proposal_.parameters.votingMode != VotingMode.EarlyExecution &&
+            block.timestamp.toUint64() < proposal_.parameters.endDate
+        ) {
             return false;
         }
 
