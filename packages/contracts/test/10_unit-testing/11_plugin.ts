@@ -2065,7 +2065,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(false);
-        // It should return true as voting mode is Standard and proposal is still open, but we know that the proposal hasSucceeded.
+        // It should return true as voting mode is Standard and proposal is still open, but but thresholds are met.
         expect(await plugin.hasSucceeded(id)).to.be.true;
       });
 

@@ -652,7 +652,7 @@ abstract contract MajorityVotingBase is
             }
 
             // For Standard and EarlyExecution modes, check if the support threshold
-            // has been reached early to determine success while still open.
+            // has been reached early to determine success while proposal is still open.
             if (!isSupportThresholdReachedEarly(_proposalId)) {
                 return false;
             }
