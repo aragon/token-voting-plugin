@@ -15,10 +15,14 @@ import {
   PluginRepo,
   PluginRepoEvents,
   PluginRepo__factory,
+  PluginRepoFactory__factory,
+  PluginRepoRegistry__factory,
 } from '@aragon/osx-ethers';
 import {setBalance} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
-import {BigNumber, ContractTransaction, ethers} from 'ethers';
+import {BigNumber, ContractTransaction} from 'ethers';
+import {LogDescription} from 'ethers/lib/utils';
+import {ethers} from 'hardhat';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 
 export function isLocal(hre: HardhatRuntimeEnvironment): boolean {
@@ -68,18 +72,68 @@ export async function findPluginRepo(
   hre: HardhatRuntimeEnvironment
 ): Promise<{pluginRepo: PluginRepo | null; ensDomain: string}> {
   const [deployer] = await hre.ethers.getSigners();
-  const productionNetworkName: string = getProductionNetworkName(hre);
-  const network = getNetworkNameByAlias(productionNetworkName);
-  if (network === null) {
-    throw new UnsupportedNetworkError(productionNetworkName);
+
+  if (process.env.PLUGIN_REPO_ADDRESS) {
+    if (!isValidAddress(process.env.PLUGIN_REPO_ADDRESS)) {
+      throw new Error(
+        'Plugin Repo in .env is not a valid address (is not an address or is address zero)'
+      );
+    }
+
+    return {
+      pluginRepo: PluginRepo__factory.connect(
+        process.env.PLUGIN_REPO_ADDRESS,
+        deployer
+      ),
+      ensDomain: '',
+    };
   }
-  const networkDeployments = getLatestNetworkDeployment(network);
-  if (networkDeployments === null) {
-    throw `Deployments are not available on network ${network}.`;
+
+  let subdomainRegistrarAddress;
+  const pluginRepoFactoryAddress = process.env.PLUGIN_REPO_FACTORY_ADDRESS;
+
+  if (pluginRepoFactoryAddress) {
+    if (!isValidAddress(pluginRepoFactoryAddress)) {
+      throw new Error(
+        'Plugin Repo Factory in .env is not valid address (is not an address or is address zero)'
+      );
+    }
+    // get ENS registrar from the plugin factory provided
+    const pluginRepoFactory = PluginRepoFactory__factory.connect(
+      pluginRepoFactoryAddress,
+      deployer
+    );
+
+    const pluginRepoRegistry = PluginRepoRegistry__factory.connect(
+      await pluginRepoFactory.pluginRepoRegistry(),
+      deployer
+    );
+
+    subdomainRegistrarAddress = await pluginRepoRegistry.subdomainRegistrar();
+  } else {
+    // get ENS registrar from the commons configs deployments
+    const productionNetworkName: string = getProductionNetworkName(hre);
+
+    const network = getNetworkNameByAlias(productionNetworkName);
+    if (network === null) {
+      throw new UnsupportedNetworkError(productionNetworkName);
+    }
+    const networkDeployments = getLatestNetworkDeployment(network);
+    if (networkDeployments === null) {
+      throw `Deployments are not available on network ${network}.`;
+    }
+
+    subdomainRegistrarAddress =
+      networkDeployments.PluginENSSubdomainRegistrarProxy.address;
+  }
+
+  if (subdomainRegistrarAddress === ethers.constants.AddressZero) {
+    // the network does not support ENS
+    return {pluginRepo: null, ensDomain: ''};
   }
 
   const registrar = ENSSubdomainRegistrar__factory.connect(
-    networkDeployments.PluginENSSubdomainRegistrarProxy.address,
+    subdomainRegistrarAddress,
     deployer
   );
 
@@ -109,7 +163,7 @@ export async function findPluginRepo(
 }
 
 export type EventWithBlockNumber = {
-  event: ethers.utils.LogDescription;
+  event: LogDescription;
   blockNumber: number;
 };
 
@@ -185,6 +239,13 @@ export async function createVersion(
     throw new Error('Failed to get VersionCreatedEvent event log');
   }
   return tx;
+}
+
+export function isValidAddress(address: string): boolean {
+  // check if the address is valid and not zero address
+  return (
+    ethers.utils.isAddress(address) && address !== ethers.constants.AddressZero
+  );
 }
 
 export const AragonOSxAsciiArt =

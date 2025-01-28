@@ -110,10 +110,6 @@ export function getLatestContractAddress(
 ): string {
   let networkName = hre.network.name;
 
-  if (hre.testingFork.network) {
-    networkName = hre.testingFork.network;
-  }
-
   const osxNetworkName = getNetworkNameByAlias(networkName);
   if (!osxNetworkName) {
     if (isLocal(hre.network)) {
