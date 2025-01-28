@@ -127,6 +127,22 @@ export function getLatestContractAddress(
   return '';
 }
 
+export async function forkNetwork(
+  hre: HardhatRuntimeEnvironment,
+  fork_url: string
+) {
+  await hre.network.provider.request({
+    method: 'hardhat_reset',
+    params: [
+      {
+        forking: {
+          jsonRpcUrl: fork_url,
+        },
+      },
+    ],
+  });
+}
+
 export async function detemineDeployerNextAddress(
   index: number,
   deployer: SignerWithAddress

@@ -4,6 +4,7 @@ import {
   getProductionNetworkName,
   isLocal,
 } from '../../utils/helpers';
+import {forkNetwork} from '../helpers';
 import {getNetworkByNameOrAlias} from '@aragon/osx-commons-configs';
 import {UnsupportedNetworkError} from '@aragon/osx-commons-sdk';
 import {DeployFunction} from 'hardhat-deploy/types';
@@ -20,7 +21,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`\n✨ ${path.basename(__filename)}:`);
 
   const [deployer] = await hre.ethers.getSigners();
-  if (isLocal(hre)) {
+  if (process.env.FORKING_RPC_URL) {
+    await forkNetwork(hre, process.env.FORKING_RPC_URL);
+  } else if (isLocal(hre)) {
     const productionNetworkName: string = getProductionNetworkName(hre);
 
     console.log(
@@ -32,16 +35,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (networkConfig === null) {
       throw new UnsupportedNetworkError(productionNetworkName);
     }
-    await hre.network.provider.request({
-      method: 'hardhat_reset',
-      params: [
-        {
-          forking: {
-            jsonRpcUrl: networkConfig.url,
-          },
-        },
-      ],
-    });
+    if (!networkConfig.url) {
+      throw new Error('RPC Url on network not defined');
+    }
+
+    await forkNetwork(hre, networkConfig.url);
   } else {
     console.log(`Production deployment on network '${hre.network.name}'.`);
   }
