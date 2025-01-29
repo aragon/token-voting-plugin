@@ -643,15 +643,12 @@ abstract contract MajorityVotingBase is
 
     /// @notice An internal function that checks if the proposal succeeded or not.
     /// @param _proposalId The ID of the proposal.
-    /// @param _isProposalOpen Weather the proposal is open or not.
+    /// @param _isOpen Weather the proposal is open or not.
     /// @return Returns `true` if the proposal succeeded depending on the thresholds and voting modes.
-    function _hasSucceeded(
-        uint256 _proposalId,
-        bool _isProposalOpen
-    ) internal view virtual returns (bool) {
+    function _hasSucceeded(uint256 _proposalId, bool _isOpen) internal view virtual returns (bool) {
         Proposal storage proposal_ = proposals[_proposalId];
 
-        if (_isProposalOpen) {
+        if (_isOpen) {
             // If the proposal is still open and the voting mode is VoteReplacement,
             // success cannot be determined until the voting period ends.
             if (proposal_.parameters.votingMode == VotingMode.VoteReplacement) {
