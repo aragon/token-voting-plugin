@@ -10,6 +10,7 @@ import {
 } from '../../plugin-settings';
 import {ZK_SYNC_NETWORKS} from '../../utils/zkSync';
 import {pluginSetupContractName} from '../helpers';
+import {saveToDeployedJson} from '../helpers';
 import hre from 'hardhat';
 import {DeployFunction} from 'hardhat-deploy/types';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
@@ -69,6 +70,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: args,
     log: true,
   });
+
+  saveToDeployedJson([
+    {
+      name: GOVERNANCE_ERC20_CONTRACT_NAME,
+      address: governanceERC20DeployResult.address,
+      blockNumber: governanceERC20DeployResult.receipt?.blockNumber,
+      txHash: governanceERC20DeployResult.transactionHash,
+    },
+    {
+      name: GOVERNANCE_WRAPPED_ERC20_CONTRACT_NAME,
+      address: governanceWrappedERC20DeployResult.address,
+      blockNumber: governanceWrappedERC20DeployResult.receipt?.blockNumber,
+      txHash: governanceWrappedERC20DeployResult.transactionHash,
+    },
+  ]);
 
   console.log(
     `Deployed '${PLUGIN_SETUP_CONTRACT_NAME}' contract at '${res.address}'`
