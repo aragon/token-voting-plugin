@@ -125,13 +125,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   saveToDeployedJson(
     [
       {
-        name: PLUGIN_CONTRACT_NAME + 'PluginRepo',
+        name: PLUGIN_CONTRACT_NAME + 'RepoProxy',
         address: pluginRepo.address,
         blockNumber: tx.blockNumber,
         txHash: tx.hash,
       },
       {
-        name: PLUGIN_CONTRACT_NAME + 'PluginRepoImplementation',
+        name: PLUGIN_CONTRACT_NAME + 'RepoImplementation',
         address: await pluginRepoFactory.pluginRepoBase(),
         blockNumber: null,
         txHash: null,
