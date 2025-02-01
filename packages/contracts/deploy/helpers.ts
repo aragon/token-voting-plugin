@@ -3,14 +3,6 @@ import {
   PLUGIN_SETUP_CONTRACT_NAME_ZKSYNC,
 } from '../plugin-settings';
 import {VersionTag} from '../test/test-utils/psp/types';
-import {
-  ENSRegistry__factory,
-  PluginRepoFactory__factory,
-  PluginRepoRegistry__factory,
-  PluginRepo__factory,
-} from '../typechain';
-import {VersionCreatedEvent} from '../typechain/PluginRepo';
-import {PluginRepoRegisteredEvent} from '../typechain/PluginRepoRegistry';
 import {isLocal, pluginDomainEnv} from '../utils/environment';
 import {ZK_SYNC_NETWORKS} from '../utils/zkSync';
 import {
@@ -18,6 +10,14 @@ import {
   getLatestNetworkDeployment,
 } from '@aragon/osx-commons-configs';
 import {findEvent, findEventTopicLog, Operation} from '@aragon/osx-commons-sdk';
+import {
+  ENSRegistry__factory,
+  PluginRepoFactory__factory,
+  PluginRepoRegistry__factory,
+  PluginRepo__factory,
+  PluginRepoEvents,
+  PluginRepoRegistryEvents,
+} from '@aragon/osx-ethers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {Contract} from 'ethers';
 import {ethers} from 'hardhat';
@@ -185,11 +185,12 @@ export async function createPluginRepo(
     `Creating & registering repo for ${pluginName} with tx ${tx.hash}`
   );
 
-  const event = findEventTopicLog<PluginRepoRegisteredEvent>(
-    await tx.wait(),
-    PluginRepoRegistry__factory.createInterface(),
-    'PluginRepoRegistered'
-  );
+  const event =
+    findEventTopicLog<PluginRepoRegistryEvents.PluginRepoRegisteredEvent>(
+      await tx.wait(),
+      PluginRepoRegistry__factory.createInterface(),
+      'PluginRepoRegistered'
+    );
   const repoAddress = event.args.pluginRepo;
 
   hre.aragonPluginRepos[pluginName] = repoAddress;
@@ -222,7 +223,7 @@ export async function createVersion(
 
   const receipt = await tx.wait();
 
-  const versionCreatedEvent = findEvent<VersionCreatedEvent>(
+  const versionCreatedEvent = findEvent<PluginRepoEvents.VersionCreatedEvent>(
     receipt,
     'VersionCreated'
   );

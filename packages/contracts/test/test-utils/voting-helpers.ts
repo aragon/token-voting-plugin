@@ -1,4 +1,4 @@
-import {TestGovernanceERC20} from '@aragon/osx-ethers';
+import {TestGovernanceERC20} from '../../typechain';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber, Contract} from 'ethers';
