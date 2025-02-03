@@ -1,3 +1,7 @@
+import {
+  PLUGIN_SETUP_CONTRACT_NAME,
+  PLUGIN_SETUP_CONTRACT_NAME_ZKSYNC,
+} from '../plugin-settings';
 import {VersionTag} from '../test/test-utils/psp/types';
 import {
   ENSRegistry__factory,
@@ -8,6 +12,7 @@ import {
 import {VersionCreatedEvent} from '../typechain/PluginRepo';
 import {PluginRepoRegisteredEvent} from '../typechain/PluginRepoRegistry';
 import {isLocal, pluginDomainEnv} from '../utils/environment';
+import {ZK_SYNC_NETWORKS} from '../utils/zkSync';
 import {
   getNetworkNameByAlias,
   getLatestNetworkDeployment,
@@ -17,7 +22,6 @@ import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {Contract} from 'ethers';
 import {ethers} from 'hardhat';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
-import IPFS from 'ipfs-http-client';
 
 // TODO: Add support for L2 such as Arbitrum. (https://discuss.ens.domains/t/register-using-layer-2/688)
 // Make sure you own the ENS set in the {{NETWORK}}_ENS_DOMAIN variable in .env
@@ -59,28 +63,6 @@ export const DAO_PERMISSIONS = [
   'SET_METADATA_PERMISSION',
   'REGISTER_STANDARD_CALLBACK_PERMISSION',
 ];
-
-export async function uploadToIPFS(
-  metadata: string,
-  networkName: string
-): Promise<string> {
-  const client = IPFS.create({
-    url: 'https://prod.ipfs.aragon.network/api/v0',
-    headers: {
-      'X-API-KEY': 'b477RhECf8s8sdM7XrkLBs2wHc4kCMwpbcFC55Kt',
-    },
-  });
-
-  if (networkName === 'hardhat' || networkName === 'localhost') {
-    // return a dummy path
-    return 'QmNnobxuyCjtYgsStCPhXKEiQR5cjsc3GtG9ZMTKFTTEFJ';
-  }
-
-  const res = await client.add(metadata);
-  await client.pin.add(res.cid);
-  console.log(`Uploaded to IPFS with cid ${res.cid.toString()}`);
-  return res.cid.toString();
-}
 
 export async function getContractAddress(
   contractName: string,
@@ -434,6 +416,12 @@ export async function managePermissions(
       })`
     );
   });
+}
+
+export function pluginSetupContractName(hre: HardhatRuntimeEnvironment) {
+  return ZK_SYNC_NETWORKS.includes(hre.network.name)
+    ? PLUGIN_SETUP_CONTRACT_NAME_ZKSYNC
+    : PLUGIN_SETUP_CONTRACT_NAME;
 }
 
 export async function isENSDomainRegistered(

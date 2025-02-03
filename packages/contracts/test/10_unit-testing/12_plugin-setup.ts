@@ -12,6 +12,9 @@ import {
 } from '../../typechain';
 import {IGovernanceWrappedERC20__factory} from '../../typechain/factories/src/ERC20/governance';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
+import {ZK_SYNC_NETWORKS} from '../../utils/zkSync';
+import {loadFixtureCustom} from '../test-utils/fixture';
+import {skipTestIfNetworkIsZkSync} from '../test-utils/skip-functions';
 import {
   ANY_ADDR,
   CREATE_PROPOSAL_PERMISSION_ID,
@@ -29,6 +32,7 @@ import {
   TokenVotingSetup__factory,
 } from '../test-utils/typechain-versions';
 import {VotingMode} from '../test-utils/voting-helpers';
+import {ARTIFACT_SOURCES} from '../test-utils/wrapper';
 import {
   DAO_PERMISSIONS,
   getInterfaceId,
@@ -40,10 +44,9 @@ import {TIME} from '@aragon/osx-commons-sdk';
 import {pctToRatio} from '@aragon/osx-commons-sdk';
 import {DAO} from '@aragon/osx-ethers';
 import {BigNumber} from '@ethersproject/bignumber';
-import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
-import {ethers} from 'hardhat';
+import hre, {ethers} from 'hardhat';
 
 const abiCoder = ethers.utils.defaultAbiCoder;
 const AddressZero = ethers.constants.AddressZero;
@@ -90,23 +93,38 @@ async function fixture(): Promise<FixtureResult> {
   };
   const defaultMintSettings = {receivers: [], amounts: []};
 
-  const erc20 = await new ERC20__factory(deployer).deploy('erc20', 'ERC20');
+  const erc20 = await hre.wrapper.deploy(ARTIFACT_SOURCES.ERC20, {
+    args: ['erc20', 'ERC20'],
+  });
 
   // Deploy the GovernanceERC20 token base class
-  const governanceERC20Base = await new GovernanceERC20__factory(
-    deployer
-  ).deploy(AddressZero, 'gov', 'GOV', defaultMintSettings);
+  const governanceERC20Base = await hre.wrapper.deploy(
+    ARTIFACT_SOURCES.GovernanceERC20,
+    {
+      args: [AddressZero, 'gov', 'GOV', defaultMintSettings],
+    }
+  );
 
   // Deploy the GovernanceWrappedERC20 token base class
-  const governanceWrappedERC20Base = await new GovernanceWrappedERC20__factory(
-    deployer
-  ).deploy(AddressZero, 'wrappedGov', 'wGOV');
+  const governanceWrappedERC20Base = await hre.wrapper.deploy(
+    ARTIFACT_SOURCES.GovernanceWrappedERC20,
+    {
+      args: [AddressZero, 'wrappedGov', 'wGOV'],
+    }
+  );
 
   // Deploy a plugin setup contract
-  const pluginSetup = await new TokenVotingSetup__factory(deployer).deploy(
-    governanceERC20Base.address,
-    governanceWrappedERC20Base.address
-  );
+  const isZkSync = ZK_SYNC_NETWORKS.includes(hre.network.name);
+
+  const artifactSource = isZkSync
+    ? ARTIFACT_SOURCES.TokenVotingSetupZkSync
+    : ARTIFACT_SOURCES.TokenVotingSetup;
+
+  const deployArgs = isZkSync
+    ? {} // No arguments for zkSync
+    : {args: [governanceERC20Base.address, governanceWrappedERC20Base.address]};
+
+  const pluginSetup = await hre.wrapper.deploy(artifactSource, deployArgs);
 
   const defaultTargetConfig: TargetConfig = {
     target: dao.address,
@@ -190,27 +208,29 @@ async function fixture(): Promise<FixtureResult> {
 
 describe('TokenVotingSetup', function () {
   it('does not support the empty interface', async () => {
-    const {pluginSetup} = await loadFixture(fixture);
+    const {pluginSetup} = await loadFixtureCustom(fixture);
     expect(await pluginSetup.supportsInterface('0xffffffff')).to.be.false;
   });
 
-  it('stores the bases provided through the constructor', async () => {
-    const {pluginSetup, governanceERC20Base, governanceWrappedERC20Base} =
-      await loadFixture(fixture);
+  skipTestIfNetworkIsZkSync(
+    'stores the bases provided through the constructor',
+    async () => {
+      const {pluginSetup, governanceERC20Base, governanceWrappedERC20Base} =
+        await loadFixtureCustom(fixture);
 
-    expect(await pluginSetup.governanceERC20Base()).to.be.eq(
-      governanceERC20Base.address
-    );
-    expect(await pluginSetup.governanceWrappedERC20Base()).to.be.eq(
-      governanceWrappedERC20Base.address
-    );
-  });
+      expect(await pluginSetup.governanceERC20Base()).to.be.eq(
+        governanceERC20Base.address
+      );
+      expect(await pluginSetup.governanceWrappedERC20Base()).to.be.eq(
+        governanceWrappedERC20Base.address
+      );
+    }
+  );
 
   describe('prepareInstallation', async () => {
     it('fails if data is empty, or not of minimum length', async () => {
-      const {pluginSetup, dao, prepareInstallationInputs} = await loadFixture(
-        fixture
-      );
+      const {pluginSetup, dao, prepareInstallationInputs} =
+        await loadFixtureCustom(fixture);
 
       // Try calling `prepareInstallation` without input data.
       await expect(pluginSetup.prepareInstallation(dao.address, [])).to.be
@@ -240,7 +260,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const receivers: string[] = [AddressZero];
       const amounts: number[] = [];
@@ -258,9 +278,7 @@ describe('TokenVotingSetup', function () {
         ]
       );
 
-      const nonce = await ethers.provider.getTransactionCount(
-        pluginSetup.address
-      );
+      const nonce = await hre.wrapper.getNonce(pluginSetup.address);
       const anticipatedPluginAddress = ethers.utils.getContractAddress({
         from: pluginSetup.address,
         nonce,
@@ -288,7 +306,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const data = abiCoder.encode(
         getNamedTypesFromMetadata(
@@ -318,7 +336,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const data = abiCoder.encode(
         getNamedTypesFromMetadata(
@@ -350,23 +368,21 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
-      const nonce = await ethers.provider.getTransactionCount(
-        pluginSetup.address
+      const nonce = await hre.wrapper.getNonce(pluginSetup.address);
+      const anticipatedWrappedTokenAddress = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce
       );
-      const anticipatedWrappedTokenAddress = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce,
-      });
-      const anticipatedPluginAddress = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce + 1,
-      });
-      const anticipatedCondition = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce + 2,
-      });
+      const anticipatedPluginAddress = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce + 1
+      );
+      const anticipatedCondition = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce + 2
+      );
 
       const data = abiCoder.encode(
         getNamedTypesFromMetadata(
@@ -459,15 +475,14 @@ describe('TokenVotingSetup', function () {
         defaultTargetConfig,
         defaultMinApproval,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
-      const nonce = await ethers.provider.getTransactionCount(
-        pluginSetup.address
+      const nonce = await hre.wrapper.getNonce(pluginSetup.address);
+
+      const anticipatedWrappedTokenAddress = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce
       );
-      const anticipatedWrappedTokenAddress = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce,
-      });
 
       const data = abiCoder.encode(
         getNamedTypesFromMetadata(
@@ -532,7 +547,6 @@ describe('TokenVotingSetup', function () {
 
     it('correctly returns plugin, helpers and permissions, when a governance token address is supplied', async () => {
       const {
-        deployer,
         pluginSetup,
         dao,
         defaultVotingSettings,
@@ -540,25 +554,24 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
-      const governanceERC20 = await new GovernanceERC20__factory(
-        deployer
-      ).deploy(dao.address, 'name', 'symbol', {receivers: [], amounts: []});
-
-      const nonce = await ethers.provider.getTransactionCount(
-        pluginSetup.address
+      const governanceERC20 = await hre.wrapper.deploy(
+        ARTIFACT_SOURCES.GovernanceERC20,
+        {args: [dao.address, 'name', 'symbol', {receivers: [], amounts: []}]}
       );
 
-      const anticipatedPluginAddress = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce,
-      });
+      const nonce = await hre.wrapper.getNonce(pluginSetup.address);
 
-      const anticipatedCondition = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce + 1,
-      });
+      const anticipatedPluginAddress = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce
+      );
+
+      const anticipatedCondition = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce + 1
+      );
 
       const data = abiCoder.encode(
         getNamedTypesFromMetadata(
@@ -641,25 +654,24 @@ describe('TokenVotingSetup', function () {
         dao,
         defaultTokenSettings,
         prepareInstallationInputs,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
-      const nonce = await ethers.provider.getTransactionCount(
-        pluginSetup.address
+      const nonce = await hre.wrapper.getNonce(pluginSetup.address);
+
+      const anticipatedTokenAddress = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce
       );
-      const anticipatedTokenAddress = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce,
-      });
 
-      const anticipatedPluginAddress = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce + 1,
-      });
+      const anticipatedPluginAddress = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce + 1
+      );
 
-      const anticipatedCondition = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce + 2,
-      });
+      const anticipatedCondition = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce + 2
+      );
 
       const {
         plugin,
@@ -744,7 +756,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const daoAddress = dao.address;
 
@@ -762,17 +774,15 @@ describe('TokenVotingSetup', function () {
         ]
       );
 
-      const nonce = await ethers.provider.getTransactionCount(
-        pluginSetup.address
+      const nonce = await hre.wrapper.getNonce(pluginSetup.address);
+      const anticipatedTokenAddress = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce
       );
-      const anticipatedTokenAddress = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce,
-      });
-      const anticipatedPluginAddress = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce + 1,
-      });
+      const anticipatedPluginAddress = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce + 1
+      );
 
       await pluginSetup.prepareInstallation(daoAddress, data);
 
@@ -833,16 +843,14 @@ describe('TokenVotingSetup', function () {
         dao,
         prepareInstallationInputs,
         prepareUpdateBuild3Inputs,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
-      const nonce = await ethers.provider.getTransactionCount(
-        pluginSetup.address
+      const nonce = await hre.wrapper.getNonce(pluginSetup.address);
+
+      const plugin = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce + 1
       );
-
-      const plugin = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce + 1,
-      });
 
       await pluginSetup.prepareInstallation(
         dao.address,
@@ -870,14 +878,12 @@ describe('TokenVotingSetup', function () {
         )
       );
 
-      const currentNonce = await ethers.provider.getTransactionCount(
-        pluginSetup.address
-      );
+      const currentNonce = await hre.wrapper.getNonce(pluginSetup.address);
 
-      const anticipatedCondition = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: currentNonce,
-      });
+      const anticipatedCondition = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        currentNonce
+      );
 
       expect(helpers).to.deep.equal([anticipatedCondition]);
       expect(permissions.length).to.be.eql(5);
@@ -926,16 +932,14 @@ describe('TokenVotingSetup', function () {
         dao,
         prepareInstallationInputs,
         prepareUpdateBuild3Inputs,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
-      const nonce = await ethers.provider.getTransactionCount(
-        pluginSetup.address
+      const nonce = await hre.wrapper.getNonce(pluginSetup.address);
+
+      const plugin = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        nonce + 1
       );
-
-      const plugin = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: nonce + 1,
-      });
 
       await pluginSetup.prepareInstallation(
         dao.address,
@@ -955,14 +959,12 @@ describe('TokenVotingSetup', function () {
         plugin,
       });
 
-      const currentNonce = await ethers.provider.getTransactionCount(
-        pluginSetup.address
-      );
+      const currentNonce = await hre.wrapper.getNonce(pluginSetup.address);
 
-      const anticipatedCondition = ethers.utils.getContractAddress({
-        from: pluginSetup.address,
-        nonce: currentNonce,
-      });
+      const anticipatedCondition = hre.wrapper.getCreateAddress(
+        pluginSetup.address,
+        currentNonce
+      );
 
       // Check the return data.
       expect(initData).to.be.eq(
@@ -1013,9 +1015,8 @@ describe('TokenVotingSetup', function () {
     });
 
     it('returns the permissions expected for the update from build 3 (empty list)', async () => {
-      const {pluginSetup, dao, prepareUpdateBuild3Inputs} = await loadFixture(
-        fixture
-      );
+      const {pluginSetup, dao, prepareUpdateBuild3Inputs} =
+        await loadFixtureCustom(fixture);
       const plugin = ethers.Wallet.createRandom().address;
 
       // Make a static call to check that the plugin update data being returned is correct.
@@ -1041,32 +1042,38 @@ describe('TokenVotingSetup', function () {
   describe('prepareUninstallation', async () => {
     it('correctly returns permissions, when the required number of helpers is supplied', async () => {
       const {
-        deployer,
         pluginSetup,
         dao,
         defaultTokenSettings,
         prepareUninstallationInputs,
-      } = await loadFixture(fixture);
+      } = await loadFixtureCustom(fixture);
 
       const plugin = ethers.Wallet.createRandom().address;
-      const governanceERC20 = await new GovernanceERC20__factory(
-        deployer
-      ).deploy(
-        dao.address,
-        defaultTokenSettings.name,
-        defaultTokenSettings.symbol,
+
+      const governanceERC20 = await hre.wrapper.deploy(
+        ARTIFACT_SOURCES.GovernanceERC20,
         {
-          receivers: [],
-          amounts: [],
+          args: [
+            dao.address,
+            defaultTokenSettings.name,
+            defaultTokenSettings.symbol,
+            {
+              receivers: [],
+              amounts: [],
+            },
+          ],
         }
       );
 
-      const governanceWrappedERC20 = await new GovernanceWrappedERC20__factory(
-        deployer
-      ).deploy(
-        governanceERC20.address,
-        defaultTokenSettings.name,
-        defaultTokenSettings.symbol
+      const governanceWrappedERC20 = await hre.wrapper.deploy(
+        ARTIFACT_SOURCES.GovernanceWrappedERC20,
+        {
+          args: [
+            governanceERC20.address,
+            defaultTokenSettings.name,
+            defaultTokenSettings.symbol,
+          ],
+        }
       );
 
       // When the helpers contain governanceWrappedERC20 token

@@ -430,7 +430,10 @@ abstract contract MajorityVotingBase is
             revert NonexistentProposal(_proposalId);
         }
 
-        return _hasSucceeded(_proposalId);
+        Proposal storage proposal_ = proposals[_proposalId];
+        bool isProposalOpen = _isProposalOpen(proposal_);
+
+        return _hasSucceeded(_proposalId, isProposalOpen);
     }
 
     /// @inheritdoc IMajorityVoting
@@ -640,20 +643,26 @@ abstract contract MajorityVotingBase is
 
     /// @notice An internal function that checks if the proposal succeeded or not.
     /// @param _proposalId The ID of the proposal.
+    /// @param _isOpen Weather the proposal is open or not.
     /// @return Returns `true` if the proposal succeeded depending on the thresholds and voting modes.
-    function _hasSucceeded(uint256 _proposalId) internal view virtual returns (bool) {
+    function _hasSucceeded(uint256 _proposalId, bool _isOpen) internal view virtual returns (bool) {
         Proposal storage proposal_ = proposals[_proposalId];
 
-        if (_isProposalOpen(proposal_)) {
-            // Early execution
-            if (proposal_.parameters.votingMode != VotingMode.EarlyExecution) {
+        if (_isOpen) {
+            // If the proposal is still open and the voting mode is VoteReplacement,
+            // success cannot be determined until the voting period ends.
+            if (proposal_.parameters.votingMode == VotingMode.VoteReplacement) {
                 return false;
             }
+
+            // For Standard and EarlyExecution modes, check if the support threshold
+            // has been reached early to determine success while proposal is still open.
             if (!isSupportThresholdReachedEarly(_proposalId)) {
                 return false;
             }
         } else {
-            // Normal execution
+            // When the proposal is closed, check if the support threshold
+            // has been reached based on final voting results.
             if (!isSupportThresholdReached(_proposalId)) {
                 return false;
             }
@@ -680,7 +689,14 @@ abstract contract MajorityVotingBase is
             return false;
         }
 
-        return _hasSucceeded(_proposalId);
+        bool isProposalOpen = _isProposalOpen(proposal_);
+
+        // For Standard and VoteReplacement modes, enforce waiting until end date
+        if (proposal_.parameters.votingMode != VotingMode.EarlyExecution && isProposalOpen) {
+            return false;
+        }
+
+        return _hasSucceeded(_proposalId, isProposalOpen);
     }
 
     /// @notice Internal function to check if a proposal is still open.

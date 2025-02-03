@@ -78,7 +78,9 @@ Note that if using some networks (e.g. sepolia), fork tests will be unable to fi
 
 ## Contracts
 
-In `packages/contracts`, first run
+This package is located in `packages/contracts`.
+
+### Install Dependencies
 
 ```sh
 yarn install
@@ -86,33 +88,30 @@ yarn install
 
 ### Building
 
-First build the contracts and
+To build the contracts on EVM based networks:
 
 ```sh
 yarn build
 ```
 
-and generate the [typechain TypeScript bindings](https://github.com/dethcrypto/TypeChain) with
+On Zksync:
 
 ```sh
-yarn typechain
+yarn build:zksync
 ```
-
-During development of your smart contracts, changes can result in altered typechain bindings.
-You can remove the outdated build- and typechain-related files with
-
-```sh
-yarn clean
-```
-
-which will execute `yarn typechain` again. For convenience, use `yarn clean && yarn build`.
 
 ### Testing
 
-To test your contracts, run
+To test your contracts on EVM based networks, run
 
 ```sh
 yarn test
+```
+
+On Zksync:
+
+```sh
+yarn test:zksync
 ```
 
 ### Linting
@@ -225,6 +224,13 @@ This will upgrade your plugin repo to the latest Aragon OSx protocol version imp
 **For this to work, make sure that you are using the latest version of [this repository](https://github.com/aragon/osx-plugin-template-hardhat) in your fork.**
 
 Note, that if the deploying account doesn't own the repo anymore, this will create a `upgradeRepoProposalData-sepolia.json` containing the data for a management DAO signer to create a proposal upgrading the repo.
+
+If you want to run deployments against zksync, you can use:
+
+```sh
+yarn deploy:zksync --network zksyncSepolia --tags ...
+yarn deploy:zksync --network zksyncMainnet --tags ...
+```
 
 ## Subgraph
 

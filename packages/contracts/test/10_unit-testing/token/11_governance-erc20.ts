@@ -11,11 +11,12 @@ import {
   GovernanceERC20__factory,
   GovernanceERC20,
 } from '../../test-utils/typechain-versions';
+import {ARTIFACT_SOURCES} from '../../test-utils/wrapper';
 import {getInterfaceId} from '@aragon/osx-commons-sdk';
 import {DAO} from '@aragon/osx-ethers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
-import {ethers} from 'hardhat';
+import hre, {ethers} from 'hardhat';
 
 const governanceERC20Name = 'GovernanceToken';
 const governanceERC20Symbol = 'GOV';
@@ -31,7 +32,6 @@ describe('GovernanceERC20', function () {
   let signers: SignerWithAddress[];
   let dao: DAO;
   let token: GovernanceERC20;
-  let GovernanceERC20: GovernanceERC20__factory;
   let mintSettings: GovernanceERC20.MintSettingsStruct;
   let defaultInitData: [
     string,
@@ -43,7 +43,6 @@ describe('GovernanceERC20', function () {
   before(async () => {
     signers = await ethers.getSigners();
     dao = await createDaoProxy(signers[0], '0x');
-    GovernanceERC20 = new GovernanceERC20__factory(signers[0]);
 
     from = signers[0];
     to = signers[1];
@@ -62,7 +61,9 @@ describe('GovernanceERC20', function () {
       mintSettings,
     ];
 
-    token = await GovernanceERC20.deploy(...defaultInitData);
+    token = await hre.wrapper.deploy(ARTIFACT_SOURCES.GovernanceERC20, {
+      args: defaultInitData,
+    });
   });
 
   describe('initialize:', async () => {
@@ -78,20 +79,25 @@ describe('GovernanceERC20', function () {
     });
 
     it('sets the managing DAO ', async () => {
-      token = await GovernanceERC20.deploy(...defaultInitData);
+      token = await hre.wrapper.deploy(ARTIFACT_SOURCES.GovernanceERC20, {
+        args: defaultInitData,
+      });
       expect(await token.dao()).to.eq(dao.address);
     });
 
     it('reverts if the `receivers` and `amounts` array lengths in the mint settings mismatch', async () => {
       const receivers = [signers[0].address];
       const amounts = [123, 456];
+
       await expect(
-        GovernanceERC20.deploy(
-          dao.address,
-          governanceERC20Name,
-          governanceERC20Symbol,
-          {receivers: receivers, amounts: amounts}
-        )
+        hre.wrapper.deploy(ARTIFACT_SOURCES.GovernanceERC20, {
+          args: [
+            dao.address,
+            governanceERC20Name,
+            governanceERC20Symbol,
+            {receivers: receivers, amounts: amounts},
+          ],
+        })
       )
         .to.be.revertedWithCustomError(token, 'MintSettingsArrayLengthMismatch')
         .withArgs(receivers.length, amounts.length);
@@ -228,9 +234,16 @@ describe('GovernanceERC20', function () {
 
   describe('afterTokenTransfer', async () => {
     beforeEach(async () => {
-      token = await GovernanceERC20.deploy(dao.address, 'name', 'symbol', {
-        receivers: [],
-        amounts: [],
+      token = await hre.wrapper.deploy(ARTIFACT_SOURCES.GovernanceERC20, {
+        args: [
+          dao.address,
+          'name',
+          'symbol',
+          {
+            receivers: [],
+            amounts: [],
+          },
+        ],
       });
 
       await dao.grant(token.address, signers[0].address, MINT_PERMISSION_ID);

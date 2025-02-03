@@ -2,6 +2,7 @@ import {METADATA, VERSION} from '../../plugin-settings';
 import {GovernanceERC20, TokenVoting__factory} from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {getProductionNetworkName, findPluginRepo} from '../../utils/helpers';
+import {skipTestSuiteIfNetworkIsZkSync} from '../test-utils/skip-functions';
 import {
   Operation,
   TargetConfig,
@@ -206,208 +207,211 @@ async function fixture(): Promise<FixtureResult> {
   };
 }
 
-describe(`PluginSetup processing on network '${productionNetworkName}'`, function () {
-  it('installs & uninstalls the current build with a token', async () => {
-    const {
-      alice,
-      deployer,
-      psp,
-      dao,
-      pluginSetupRefLatestBuild,
-      prepareInstallationInputs,
-    } = await loadFixture(fixture);
+skipTestSuiteIfNetworkIsZkSync(
+  `PluginSetup processing on network '${productionNetworkName}'`,
+  function () {
+    it('installs & uninstalls the current build with a token', async () => {
+      const {
+        alice,
+        deployer,
+        psp,
+        dao,
+        pluginSetupRefLatestBuild,
+        prepareInstallationInputs,
+      } = await loadFixture(fixture);
 
-    // Grant deployer all required permissions
-    await dao
-      .connect(deployer)
-      .grant(
-        psp.address,
-        deployer.address,
-        PLUGIN_SETUP_PROCESSOR_PERMISSIONS.APPLY_INSTALLATION_PERMISSION_ID
+      // Grant deployer all required permissions
+      await dao
+        .connect(deployer)
+        .grant(
+          psp.address,
+          deployer.address,
+          PLUGIN_SETUP_PROCESSOR_PERMISSIONS.APPLY_INSTALLATION_PERMISSION_ID
+        );
+      await dao
+        .connect(deployer)
+        .grant(
+          psp.address,
+          deployer.address,
+          PLUGIN_SETUP_PROCESSOR_PERMISSIONS.APPLY_UNINSTALLATION_PERMISSION_ID
+        );
+      await dao
+        .connect(deployer)
+        .grant(dao.address, psp.address, DAO_PERMISSIONS.ROOT_PERMISSION_ID);
+
+      const results = await installPLugin(
+        deployer,
+        psp,
+        dao,
+        pluginSetupRefLatestBuild,
+        prepareInstallationInputs
       );
-    await dao
-      .connect(deployer)
-      .grant(
-        psp.address,
-        deployer.address,
-        PLUGIN_SETUP_PROCESSOR_PERMISSIONS.APPLY_UNINSTALLATION_PERMISSION_ID
+
+      const plugin = TokenVoting__factory.connect(
+        results.preparedEvent.args.plugin,
+        deployer
       );
-    await dao
-      .connect(deployer)
-      .grant(dao.address, psp.address, DAO_PERMISSIONS.ROOT_PERMISSION_ID);
 
-    const results = await installPLugin(
-      deployer,
-      psp,
-      dao,
-      pluginSetupRefLatestBuild,
-      prepareInstallationInputs
-    );
+      const pluginToken = await plugin.getVotingToken();
 
-    const plugin = TokenVoting__factory.connect(
-      results.preparedEvent.args.plugin,
-      deployer
-    );
+      // we used an existing token so the deployer (who was minted tokens)
+      // in the test fixture will be a member, but alice won't be
+      expect(await plugin.isMember(alice.address)).to.be.false;
+      expect(await plugin.isMember(deployer.address)).to.be.true;
 
-    const pluginToken = await plugin.getVotingToken();
+      const condition = results.preparedEvent.args.preparedSetupData.helpers[0];
 
-    // we used an existing token so the deployer (who was minted tokens)
-    // in the test fixture will be a member, but alice won't be
-    expect(await plugin.isMember(alice.address)).to.be.false;
-    expect(await plugin.isMember(deployer.address)).to.be.true;
-
-    const condition = results.preparedEvent.args.preparedSetupData.helpers[0];
-
-    // Uninstall the current build.
-    await uninstallPLugin(
-      deployer,
-      psp,
-      dao,
-      plugin,
-      pluginSetupRefLatestBuild,
-      ethers.utils.defaultAbiCoder.encode(
-        getNamedTypesFromMetadata(
-          METADATA.build.pluginSetup.prepareUninstallation.inputs
+      // Uninstall the current build.
+      await uninstallPLugin(
+        deployer,
+        psp,
+        dao,
+        plugin,
+        pluginSetupRefLatestBuild,
+        ethers.utils.defaultAbiCoder.encode(
+          getNamedTypesFromMetadata(
+            METADATA.build.pluginSetup.prepareUninstallation.inputs
+          ),
+          []
         ),
-        []
-      ),
-      [condition, pluginToken]
-    );
-  });
-
-  it('installs & uninstalls the current build without a token', async () => {
-    const {
-      alice,
-      deployer,
-      psp,
-      dao,
-      defaultVotingSettings,
-      pluginSetupRefLatestBuild,
-      defaultMinApproval,
-      defaultMetadata,
-      defaultTargetConfig,
-    } = await loadFixture(fixture);
-
-    // Grant deployer all required permissions
-    await dao
-      .connect(deployer)
-      .grant(
-        psp.address,
-        deployer.address,
-        PLUGIN_SETUP_PROCESSOR_PERMISSIONS.APPLY_INSTALLATION_PERMISSION_ID
+        [condition, pluginToken]
       );
-    await dao
-      .connect(deployer)
-      .grant(
-        psp.address,
-        deployer.address,
-        PLUGIN_SETUP_PROCESSOR_PERMISSIONS.APPLY_UNINSTALLATION_PERMISSION_ID
+    });
+
+    it('installs & uninstalls the current build without a token', async () => {
+      const {
+        alice,
+        deployer,
+        psp,
+        dao,
+        defaultVotingSettings,
+        pluginSetupRefLatestBuild,
+        defaultMinApproval,
+        defaultMetadata,
+        defaultTargetConfig,
+      } = await loadFixture(fixture);
+
+      // Grant deployer all required permissions
+      await dao
+        .connect(deployer)
+        .grant(
+          psp.address,
+          deployer.address,
+          PLUGIN_SETUP_PROCESSOR_PERMISSIONS.APPLY_INSTALLATION_PERMISSION_ID
+        );
+      await dao
+        .connect(deployer)
+        .grant(
+          psp.address,
+          deployer.address,
+          PLUGIN_SETUP_PROCESSOR_PERMISSIONS.APPLY_UNINSTALLATION_PERMISSION_ID
+        );
+      await dao
+        .connect(deployer)
+        .grant(dao.address, psp.address, DAO_PERMISSIONS.ROOT_PERMISSION_ID);
+
+      const prepareInstallData = {
+        votingSettings: Object.values(defaultVotingSettings),
+        tokenSettings: [ethers.constants.AddressZero, 'testToken', 'TEST'],
+        mintSettings: [[alice.address], ['1000']],
+        defaultTargetConfig,
+        defaultMinApproval,
+        defaultMetadata,
+      };
+
+      const prepareInstallInputType = getNamedTypesFromMetadata(
+        METADATA.build.pluginSetup.prepareInstallation.inputs
       );
-    await dao
-      .connect(deployer)
-      .grant(dao.address, psp.address, DAO_PERMISSIONS.ROOT_PERMISSION_ID);
 
-    const prepareInstallData = {
-      votingSettings: Object.values(defaultVotingSettings),
-      tokenSettings: [ethers.constants.AddressZero, 'testToken', 'TEST'],
-      mintSettings: [[alice.address], ['1000']],
-      defaultTargetConfig,
-      defaultMinApproval,
-      defaultMetadata,
-    };
+      const results = await installPLugin(
+        deployer,
+        psp,
+        dao,
+        pluginSetupRefLatestBuild,
+        ethers.utils.defaultAbiCoder.encode(
+          prepareInstallInputType,
+          Object.values(prepareInstallData)
+        )
+      );
 
-    const prepareInstallInputType = getNamedTypesFromMetadata(
-      METADATA.build.pluginSetup.prepareInstallation.inputs
-    );
+      const plugin = TokenVoting__factory.connect(
+        results.preparedEvent.args.plugin,
+        deployer
+      );
 
-    const results = await installPLugin(
-      deployer,
-      psp,
-      dao,
-      pluginSetupRefLatestBuild,
-      ethers.utils.defaultAbiCoder.encode(
-        prepareInstallInputType,
-        Object.values(prepareInstallData)
-      )
-    );
+      const pluginToken = await plugin.getVotingToken();
 
-    const plugin = TokenVoting__factory.connect(
-      results.preparedEvent.args.plugin,
-      deployer
-    );
+      // We didn't pass a token so one was created and the deployer (who was minted tokens)
+      // is not yet a member, but alice is - as the mint settings were set to mint tokens for her
+      expect(await plugin.isMember(alice.address)).to.be.true;
+      expect(await plugin.isMember(deployer.address)).to.be.false;
 
-    const pluginToken = await plugin.getVotingToken();
+      const condition = results.preparedEvent.args.preparedSetupData.helpers[0];
 
-    // We didn't pass a token so one was created and the deployer (who was minted tokens)
-    // is not yet a member, but alice is - as the mint settings were set to mint tokens for her
-    expect(await plugin.isMember(alice.address)).to.be.true;
-    expect(await plugin.isMember(deployer.address)).to.be.false;
-
-    const condition = results.preparedEvent.args.preparedSetupData.helpers[0];
-
-    // Uninstall the current build.
-    await uninstallPLugin(
-      deployer,
-      psp,
-      dao,
-      plugin,
-      pluginSetupRefLatestBuild,
-      ethers.utils.defaultAbiCoder.encode(
-        getNamedTypesFromMetadata(
-          METADATA.build.pluginSetup.prepareUninstallation.inputs
+      // Uninstall the current build.
+      await uninstallPLugin(
+        deployer,
+        psp,
+        dao,
+        plugin,
+        pluginSetupRefLatestBuild,
+        ethers.utils.defaultAbiCoder.encode(
+          getNamedTypesFromMetadata(
+            METADATA.build.pluginSetup.prepareUninstallation.inputs
+          ),
+          []
         ),
-        []
-      ),
-      [condition, pluginToken]
-    );
-  });
+        [condition, pluginToken]
+      );
+    });
 
-  it('updates from build 1 to the current build', async () => {
-    const {
-      deployer,
-      psp,
-      dao,
-      pluginRepo,
-      pluginSetupRefLatestBuild,
-      prepareInstallData,
-      prepareUpdateData,
-    } = await loadFixture(fixture);
+    it('updates from build 1 to the current build', async () => {
+      const {
+        deployer,
+        psp,
+        dao,
+        pluginRepo,
+        pluginSetupRefLatestBuild,
+        prepareInstallData,
+        prepareUpdateData,
+      } = await loadFixture(fixture);
 
-    await updateFromBuildTest(
-      dao,
-      deployer,
-      psp,
-      pluginRepo,
-      pluginSetupRefLatestBuild,
-      1,
-      Object.values(prepareInstallData),
-      prepareUpdateData,
-      latestInitializerVersion
-    );
-  });
+      await updateFromBuildTest(
+        dao,
+        deployer,
+        psp,
+        pluginRepo,
+        pluginSetupRefLatestBuild,
+        1,
+        Object.values(prepareInstallData),
+        prepareUpdateData,
+        latestInitializerVersion
+      );
+    });
 
-  it('updates from build 2 to the current build', async () => {
-    const {
-      deployer,
-      psp,
-      dao,
-      pluginRepo,
-      pluginSetupRefLatestBuild,
+    it('updates from build 2 to the current build', async () => {
+      const {
+        deployer,
+        psp,
+        dao,
+        pluginRepo,
+        pluginSetupRefLatestBuild,
 
-      prepareInstallData,
-      prepareUpdateData,
-    } = await loadFixture(fixture);
+        prepareInstallData,
+        prepareUpdateData,
+      } = await loadFixture(fixture);
 
-    await updateFromBuildTest(
-      dao,
-      deployer,
-      psp,
-      pluginRepo,
-      pluginSetupRefLatestBuild,
-      2,
-      Object.values(prepareInstallData),
-      prepareUpdateData,
-      latestInitializerVersion
-    );
-  });
-});
+      await updateFromBuildTest(
+        dao,
+        deployer,
+        psp,
+        pluginRepo,
+        pluginSetupRefLatestBuild,
+        2,
+        Object.values(prepareInstallData),
+        prepareUpdateData,
+        latestInitializerVersion
+      );
+    });
+  }
+);

@@ -1,5 +1,6 @@
 import {TestGovernanceERC20} from '@aragon/osx-ethers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
+import {expect} from 'chai';
 import {BigNumber, Contract} from 'ethers';
 import {ethers} from 'hardhat';
 
@@ -47,10 +48,9 @@ export async function setBalances(
   token: TestGovernanceERC20,
   balances: {receiver: string; amount: number | BigNumber}[]
 ) {
-  const promises = balances.map(balance =>
-    token.setBalance(balance.receiver, balance.amount)
-  );
-  await Promise.all(promises);
+  for (let i = 0; i < balances.length; i++) {
+    await token.setBalance(balances[i].receiver, balances[i].amount);
+  }
 }
 
 export async function setTotalSupply(
@@ -68,4 +68,23 @@ export async function setTotalSupply(
     `0x${'0'.repeat(39)}1`, // address(1)
     BigNumber.from(totalSupply).sub(currentTotalSupply)
   );
+}
+
+export async function getTime(): Promise<number> {
+  return (await ethers.provider.getBlock('latest')).timestamp;
+}
+
+export async function advanceTime(time: number) {
+  await ethers.provider.send('evm_increaseTime', [time]);
+  await ethers.provider.send('evm_mine', []);
+}
+
+export async function advanceTimeTo(timestamp: number) {
+  const delta = timestamp - (await getTime());
+  await advanceTime(delta);
+}
+
+export async function advanceAfterVoteEnd(endDate: number) {
+  await advanceTimeTo(endDate);
+  expect(await getTime()).to.be.greaterThanOrEqual(endDate);
 }
