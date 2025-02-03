@@ -2,7 +2,6 @@ import {
   METADATA,
   PLUGIN_CONTRACT_NAME,
   PLUGIN_REPO_ENS_SUBDOMAIN_NAME,
-  PLUGIN_SETUP_CONTRACT_NAME,
   VERSION,
 } from '../../plugin-settings';
 import {
@@ -12,12 +11,16 @@ import {
   isLocal,
   pluginEnsDomain,
 } from '../../utils/helpers';
-import {PLUGIN_REPO_PERMISSIONS, uploadToIPFS} from '@aragon/osx-commons-sdk';
+import {pluginSetupContractName} from '../helpers';
+import {PLUGIN_REPO_PERMISSIONS, uploadToPinata} from '@aragon/osx-commons-sdk';
 import {writeFile} from 'fs/promises';
 import {ethers} from 'hardhat';
+import hre from 'hardhat';
 import {DeployFunction} from 'hardhat-deploy/types';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import path from 'path';
+
+const PLUGIN_SETUP_CONTRACT_NAME = pluginSetupContractName(hre);
 
 /**
  * Publishes the plugin setup in the plugin repo as a new version as specified in the `./plugin-settings.ts` file.
@@ -31,14 +34,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments} = hre;
   const [deployer] = await hre.ethers.getSigners();
 
-  // Upload the metadata to IPFS
-  const releaseMetadataURI = `ipfs://${await uploadToIPFS(
-    JSON.stringify(METADATA.release, null, 2)
-  )}`;
-  const buildMetadataURI = `ipfs://${await uploadToIPFS(
-    JSON.stringify(METADATA.build, null, 2)
-  )}`;
+  let releaseMetadataURI = '0x';
+  let buildMetadataURI = '0x';
 
+  if (!isLocal(hre)) {
+    // Upload the metadata to IPFS
+    releaseMetadataURI = await uploadToPinata(
+      JSON.stringify(METADATA.release, null, 2),
+      `${PLUGIN_REPO_ENS_SUBDOMAIN_NAME}-release-metadata`
+    );
+    buildMetadataURI = await uploadToPinata(
+      JSON.stringify(METADATA.build, null, 2),
+      `${PLUGIN_REPO_ENS_SUBDOMAIN_NAME}-build-metadata`
+    );
+  }
   console.log(`Uploaded release metadata: ${releaseMetadataURI}`);
   console.log(`Uploaded build metadata: ${buildMetadataURI}`);
 

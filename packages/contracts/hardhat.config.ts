@@ -1,3 +1,4 @@
+import './types/hardhat';
 import {
   addRpcUrlToNetwork,
   networks as osxCommonsConfigNetworks,
@@ -12,7 +13,7 @@ import {config as dotenvConfig} from 'dotenv';
 import {BigNumber, ethers} from 'ethers';
 import 'hardhat-deploy';
 import 'hardhat-gas-reporter';
-import {extendEnvironment, HardhatUserConfig} from 'hardhat/config';
+import {extendEnvironment, HardhatUserConfig, task} from 'hardhat/config';
 import {
   HardhatNetworkAccountsUserConfig,
   HardhatRuntimeEnvironment,
@@ -31,6 +32,19 @@ if (process.env.ALCHEMY_API_KEY) {
 } else {
   throw new Error('ALCHEMY_API_KEY in .env not set');
 }
+
+task('test-contracts').setAction(async (args, hre) => {
+  await hre.run('compile');
+  const imp = await import('./test/test-utils/wrapper');
+
+  const wrapper = await imp.Wrapper.create(
+    hre.network.name,
+    hre.ethers.provider
+  );
+  hre.wrapper = wrapper;
+
+  await hre.run('test');
+});
 
 // Fetch the accounts specified in the .env file
 function specifiedAccounts(): string[] {

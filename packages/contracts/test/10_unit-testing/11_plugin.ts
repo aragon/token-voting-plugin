@@ -12,18 +12,19 @@ import {
   VotingPowerCondition__factory,
   CustomExecutorMock__factory,
 } from '../../typechain';
-import {ProxyCreatedEvent} from '../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {
   ProposalCreatedEvent,
   ProposalExecutedEvent,
 } from '../../typechain/src/TokenVoting';
 import {ExecutedEvent} from '../../typechain/src/mocks/DAOMock';
+import {loadFixtureCustom} from '../test-utils/fixture';
 import {
   MAJORITY_VOTING_BASE_INTERFACE,
   MAJORITY_VOTING_BASE_OLD_INTERFACE,
   VOTING_EVENTS,
 } from '../test-utils/majority-voting-constants';
+import {skipTestIfNetworkIsZkSync} from '../test-utils/skip-functions';
 import {
   TOKEN_VOTING_INTERFACE,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
@@ -49,7 +50,9 @@ import {
   voteWithSigners,
   setBalances,
   setTotalSupply,
+  advanceAfterVoteEnd,
 } from '../test-utils/voting-helpers';
+import {ARTIFACT_SOURCES} from '../test-utils/wrapper';
 import {
   findEvent,
   findEventTopicLog,
@@ -60,12 +63,12 @@ import {
   DAO_PERMISSIONS,
 } from '@aragon/osx-commons-sdk';
 import {DAO, DAOStructs, DAO__factory} from '@aragon/osx-ethers';
-import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
+import {time} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
 import {defaultAbiCoder, keccak256} from 'ethers/lib/utils';
-import {ethers} from 'hardhat';
+import hre, {ethers} from 'hardhat';
 
 type GlobalFixtureResult = {
   deployer: SignerWithAddress;
@@ -137,22 +140,18 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
   const dao = await createDaoProxy(deployer, dummyMetadata);
 
   // Deploy a plugin proxy factory containing the plugin implementation.
-  const pluginImplementation = await new TokenVoting__factory(
-    deployer
-  ).deploy();
-  const proxyFactory = await new ProxyFactory__factory(deployer).deploy(
-    pluginImplementation.address
-  );
 
-  const token = await new TestGovernanceERC20__factory(deployer).deploy(
-    dao.address,
-    'gov',
-    'GOV',
-    {
-      receivers: [],
-      amounts: [],
-    }
-  );
+  const token = await hre.wrapper.deploy(ARTIFACT_SOURCES.TestGovernanceERC20, {
+    args: [
+      dao.address,
+      'gov',
+      'GOV',
+      {
+        receivers: [],
+        amounts: [],
+      },
+    ],
+  });
 
   // Deploy an initialized plugin proxy.
   const defaultVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
@@ -172,25 +171,20 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     operation: Operation.call,
   };
 
-  const pluginInitData = pluginImplementation.interface.encodeFunctionData(
-    INITIALIZE_SIGNATURE,
-    [
-      dao.address,
-      defaultVotingSettings,
-      token.address,
-      defaultTargetConfig,
-      defaultMinApproval,
-      defaultMetadata,
-    ]
+  const initializedPlugin = await hre.wrapper.deploy(
+    ARTIFACT_SOURCES.TokenVoting,
+    {
+      withProxy: true,
+    }
   );
-  const deploymentTx1 = await proxyFactory.deployUUPSProxy(pluginInitData);
-  const proxyCreatedEvent1 = findEvent<ProxyCreatedEvent>(
-    await deploymentTx1.wait(),
-    proxyFactory.interface.getEvent('ProxyCreated').name
-  );
-  const initializedPlugin = TokenVoting__factory.connect(
-    proxyCreatedEvent1.args.proxy,
-    deployer
+
+  await initializedPlugin.initialize(
+    dao.address,
+    defaultVotingSettings,
+    token.address,
+    defaultTargetConfig,
+    defaultMinApproval,
+    defaultMetadata
   );
 
   // Grant ANY_ADDR the permission to execute proposals
@@ -217,14 +211,11 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     );
 
   // Deploy an uninitialized plugin proxy.
-  const deploymentTx2 = await proxyFactory.deployUUPSProxy([]);
-  const proxyCreatedEvent2 = findEvent<ProxyCreatedEvent>(
-    await deploymentTx2.wait(),
-    proxyFactory.interface.getEvent('ProxyCreated').name
-  );
-  const uninitializedPlugin = TokenVoting__factory.connect(
-    proxyCreatedEvent2.args.proxy,
-    deployer
+  const uninitializedPlugin = await hre.wrapper.deploy(
+    ARTIFACT_SOURCES.TokenVoting,
+    {
+      withProxy: true,
+    }
   );
 
   // Provide a dummy action array.
@@ -275,8 +266,11 @@ async function grantCreateProposalPermissions(
   initializedPlugin: TokenVoting,
   uninitializedPlugin: TokenVoting
 ) {
-  const condition = await new VotingPowerCondition__factory(deployer).deploy(
-    initializedPlugin.address
+  const condition = await hre.wrapper.deploy(
+    ARTIFACT_SOURCES.VotingPowerCondition,
+    {
+      args: [initializedPlugin.address],
+    }
   );
 
   await dao.grantWithCondition(
@@ -308,7 +302,7 @@ describe('TokenVoting', function () {
         defaultMetadata,
         defaultTargetConfig,
         token,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Try to reinitialize the initialized plugin.
       await expect(
@@ -332,7 +326,7 @@ describe('TokenVoting', function () {
         defaultMetadata,
         defaultTargetConfig,
         token,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Initialize the uninitialized plugin.
       await expect(
@@ -356,7 +350,7 @@ describe('TokenVoting', function () {
         defaultTargetConfig,
         defaultMetadata,
         token,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Check that the uninitialized plugin doesn't have voting settings and token set yet.
       expect(await plugin.minDuration()).to.equal(0);
@@ -414,55 +408,73 @@ describe('TokenVoting', function () {
 
   describe('ERC-165', async () => {
     it('does not support the empty interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       expect(await plugin.supportsInterface('0xffffffff')).to.be.false;
     });
 
     it('supports the `IERC165Upgradeable` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IERC165Upgradeable__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IPlugin` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IPlugin__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IProtocolVersion` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IProtocolVersion__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IProposal` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IProposal__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IMembership` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IMembership__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IMajorityVoting` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const iface = IMajorityVoting__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(iface))).to.be.true;
     });
 
     it('supports the `IMajorityVoting` OLD interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const oldIface = IMajorityVoting_V1_3_0__factory.createInterface();
       expect(await plugin.supportsInterface(getInterfaceId(oldIface))).to.be
         .true;
     });
 
     it('supports the `MajorityVotingBase` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       expect(
         await plugin.supportsInterface(
           getInterfaceId(MAJORITY_VOTING_BASE_INTERFACE)
@@ -471,7 +483,9 @@ describe('TokenVoting', function () {
     });
 
     it('supports the `MajorityVotingBase` OLD interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       expect(
         await plugin.supportsInterface(
           getInterfaceId(MAJORITY_VOTING_BASE_OLD_INTERFACE)
@@ -480,7 +494,9 @@ describe('TokenVoting', function () {
     });
 
     it('supports the `TokenVoting` interface', async () => {
-      const {initializedPlugin: plugin} = await loadFixture(globalFixture);
+      const {initializedPlugin: plugin} = await loadFixtureCustom(
+        globalFixture
+      );
       const interfaceId = getInterfaceId(TOKEN_VOTING_INTERFACE);
       expect(await plugin.supportsInterface(interfaceId)).to.be.true;
     });
@@ -488,7 +504,7 @@ describe('TokenVoting', function () {
 
   describe('isMember', async () => {
     it('returns true if the account currently owns at least one token', async () => {
-      const {alice, bob, initializedPlugin, token} = await loadFixture(
+      const {alice, bob, initializedPlugin, token} = await loadFixtureCustom(
         globalFixture
       );
 
@@ -506,7 +522,7 @@ describe('TokenVoting', function () {
         bob,
         initializedPlugin: plugin,
         token,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Set Alice's balance to 1, while Bob's is still 0.
       await token.setBalance(alice.address, 1);
@@ -551,7 +567,7 @@ describe('TokenVoting', function () {
         token,
         dummyActions,
         dummyMetadata,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       await plugin.updateVotingSettings(voteSettingsWithMinProposerVotingPower);
 
@@ -598,7 +614,7 @@ describe('TokenVoting', function () {
         token,
         dummyActions,
         dummyMetadata,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       await plugin.updateVotingSettings(voteSettingsWithMinProposerVotingPower);
 
@@ -654,7 +670,7 @@ describe('TokenVoting', function () {
           token,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         await setTotalSupply(token, 1);
 
@@ -696,7 +712,7 @@ describe('TokenVoting', function () {
           dummyActions,
           dummyMetadata,
           dao,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         await plugin
           .connect(deployer)
@@ -748,49 +764,77 @@ describe('TokenVoting', function () {
         ).not.to.be.reverted;
       });
 
-      it('reverts if `_msgSender` owns no tokens and has no tokens delegated to her/him in the current block although having them in the last block', async () => {
-        const {
-          deployer,
-          dao,
-          alice,
-          bob,
-          initializedPlugin: plugin,
-          token,
-          dummyActions,
-          dummyMetadata,
-        } = await loadFixture(globalFixture);
+      skipTestIfNetworkIsZkSync(
+        'reverts if `_msgSender` owns no tokens and has no tokens delegated to her/him in the current block although having them in the last block',
+        async () => {
+          const {
+            deployer,
+            dao,
+            alice,
+            bob,
+            initializedPlugin: plugin,
+            token,
+            dummyActions,
+            dummyMetadata,
+          } = await loadFixtureCustom(globalFixture);
 
-        // Set `minProposerVotingPower` to be greater than 0.
-        await plugin
-          .connect(deployer)
-          .updateVotingSettings(voteSettingsWithMinProposerVotingPower);
+          // Set `minProposerVotingPower` to be greater than 0.
+          await plugin
+            .connect(deployer)
+            .updateVotingSettings(voteSettingsWithMinProposerVotingPower);
 
-        // Set Alice's balance to the `minProposerVotingPower` value.
-        await token.setBalance(
-          alice.address,
-          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
-        );
-
-        const endDate = (await time.latest()) + TIME.DAY;
-
-        // Disable auto-mining to put the following three transactions into the same block.
-        await ethers.provider.send('evm_setAutomine', [false]);
-        const expectedSnapshotBlockNumber = (
-          await ethers.provider.getBlock('latest')
-        ).number;
-
-        // Transaction 1: Transfer the tokens from Alice to Bob.
-        const tx1 = await token
-          .connect(alice)
-          .transfer(
-            bob.address,
+          // Set Alice's balance to the `minProposerVotingPower` value.
+          await token.setBalance(
+            alice.address,
             voteSettingsWithMinProposerVotingPower.minProposerVotingPower
           );
 
-        // Transaction 2: Expect the proposal creation to fail for Alice because she transferred the tokens in transaction 1.
-        await expect(
-          plugin
+          const endDate = (await time.latest()) + TIME.DAY;
+
+          // Disable auto-mining to put the following three transactions into the same block.
+          await ethers.provider.send('evm_setAutomine', [false]);
+          const expectedSnapshotBlockNumber = (
+            await ethers.provider.getBlock('latest')
+          ).number;
+
+          // Transaction 1: Transfer the tokens from Alice to Bob.
+          const tx1 = await token
             .connect(alice)
+            .transfer(
+              bob.address,
+              voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+            );
+
+          // Transaction 2: Expect the proposal creation to fail for Alice because she transferred the tokens in transaction 1.
+          await expect(
+            plugin
+              .connect(alice)
+              [CREATE_PROPOSAL_SIGNATURE](
+                dummyMetadata,
+                dummyActions,
+                0,
+                0,
+                endDate,
+                VoteOption.None,
+                false
+              )
+          )
+            .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
+            .withArgs(
+              dao.address,
+              plugin.address,
+              alice.address,
+              CREATE_PROPOSAL_PERMISSION_ID
+            );
+
+          // Transaction 3: Create the proposal as Bob.
+          const id = await createProposalId(
+            plugin.address,
+            dummyActions,
+            dummyMetadata
+          );
+          const tx3 = await plugin
+            .connect(bob)
             [CREATE_PROPOSAL_SIGNATURE](
               dummyMetadata,
               dummyActions,
@@ -799,75 +843,50 @@ describe('TokenVoting', function () {
               endDate,
               VoteOption.None,
               false
-            )
-        )
-          .to.be.revertedWithCustomError(plugin, 'DaoUnauthorized')
-          .withArgs(
-            dao.address,
-            plugin.address,
-            alice.address,
-            CREATE_PROPOSAL_PERMISSION_ID
+            );
+
+          // Check the balances before the block is mined. Note that `balanceOf` is a view function,
+          // whose result will be immediately available and does not rely on the block to be mined.
+          expect(await token.balanceOf(alice.address)).to.equal(
+            voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+          );
+          expect(await token.balanceOf(bob.address)).to.equal(0);
+
+          // Mine the block. This will result in the transactions 1 to 3 to be executed.
+          // Transaction 1 and 3 will produce a receipt whereas transaction 2 will revert with an error as expected.
+          await ethers.provider.send('evm_mine', []);
+          const minedBlockNumber = (await ethers.provider.getBlock('latest'))
+            .number;
+
+          // Expect the transaction receipts to be in the same block after the snapshot block.
+          expect((await tx1.wait()).blockNumber).to.equal(minedBlockNumber);
+          expect((await tx3.wait()).blockNumber).to.equal(minedBlockNumber);
+          expect(minedBlockNumber).to.equal(expectedSnapshotBlockNumber + 1);
+
+          // Expect the balances to have changed
+          expect(await token.balanceOf(alice.address)).to.equal(0);
+          expect(await token.balanceOf(bob.address)).to.equal(
+            voteSettingsWithMinProposerVotingPower.minProposerVotingPower
           );
 
-        // Transaction 3: Create the proposal as Bob.
-        const id = await createProposalId(
-          plugin.address,
-          dummyActions,
-          dummyMetadata
-        );
-        const tx3 = await plugin
-          .connect(bob)
-          [CREATE_PROPOSAL_SIGNATURE](
-            dummyMetadata,
-            dummyActions,
-            0,
-            0,
-            endDate,
-            VoteOption.None,
-            false
+          // Check the `ProposalCreatedEvent` for the creator and proposalId
+          const event = findEvent<ProposalCreatedEvent>(
+            await tx3.wait(),
+            'ProposalCreated'
+          );
+          expect(event.args.proposalId).to.equal(id);
+          expect(event.args.creator).to.equal(bob.address);
+
+          // Check that the snapshot block stored in the proposal struct is as expected.
+          const proposal = await plugin.getProposal(id);
+          expect(proposal.parameters.snapshotBlock).to.equal(
+            expectedSnapshotBlockNumber
           );
 
-        // Check the balances before the block is mined. Note that `balanceOf` is a view function,
-        // whose result will be immediately available and does not rely on the block to be mined.
-        expect(await token.balanceOf(alice.address)).to.equal(
-          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
-        );
-        expect(await token.balanceOf(bob.address)).to.equal(0);
-
-        // Mine the block. This will result in the transactions 1 to 3 to be executed.
-        // Transaction 1 and 3 will produce a receipt whereas transaction 2 will revert with an error as expected.
-        await ethers.provider.send('evm_mine', []);
-        const minedBlockNumber = (await ethers.provider.getBlock('latest'))
-          .number;
-
-        // Expect the transaction receipts to be in the same block after the snapshot block.
-        expect((await tx1.wait()).blockNumber).to.equal(minedBlockNumber);
-        expect((await tx3.wait()).blockNumber).to.equal(minedBlockNumber);
-        expect(minedBlockNumber).to.equal(expectedSnapshotBlockNumber + 1);
-
-        // Expect the balances to have changed
-        expect(await token.balanceOf(alice.address)).to.equal(0);
-        expect(await token.balanceOf(bob.address)).to.equal(
-          voteSettingsWithMinProposerVotingPower.minProposerVotingPower
-        );
-
-        // Check the `ProposalCreatedEvent` for the creator and proposalId
-        const event = findEvent<ProposalCreatedEvent>(
-          await tx3.wait(),
-          'ProposalCreated'
-        );
-        expect(event.args.proposalId).to.equal(id);
-        expect(event.args.creator).to.equal(bob.address);
-
-        // Check that the snapshot block stored in the proposal struct is as expected.
-        const proposal = await plugin.getProposal(id);
-        expect(proposal.parameters.snapshotBlock).to.equal(
-          expectedSnapshotBlockNumber
-        );
-
-        // Re-enable auto-mining for the subsequent tests.
-        await ethers.provider.send('evm_setAutomine', [true]);
-      });
+          // Re-enable auto-mining for the subsequent tests.
+          await ethers.provider.send('evm_setAutomine', [true]);
+        }
+      );
 
       it('creates a proposal if `_msgSender` owns enough tokens in the current block', async () => {
         const {
@@ -879,7 +898,7 @@ describe('TokenVoting', function () {
           token,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         // Set `minProposerVotingPower` to be greater than 0.
 
@@ -941,7 +960,7 @@ describe('TokenVoting', function () {
           token,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         // Set `minProposerVotingPower` to be greater than 0.
         await plugin
@@ -992,7 +1011,7 @@ describe('TokenVoting', function () {
           token,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         // Set `minProposerVotingPower` to be greater than 0.
         await plugin
@@ -1036,7 +1055,7 @@ describe('TokenVoting', function () {
           token,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         // Set `minProposerVotingPower` to be greater than 0.
         await plugin
@@ -1114,7 +1133,7 @@ describe('TokenVoting', function () {
         token,
         dummyActions,
         dummyMetadata,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       await setTotalSupply(token, 0);
 
@@ -1141,12 +1160,12 @@ describe('TokenVoting', function () {
         token,
         dummyActions,
         dummyMetadata,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
 
-      // Create a start date that is in the past.
+      // // Create a start date that is in the past.
       const currentDate = await time.latest();
       const startDateInThePast = currentDate - 1;
       const endDate = 0; // startDate + minDuration
@@ -1177,7 +1196,7 @@ describe('TokenVoting', function () {
         token,
         dummyActions,
         dummyMetadata,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
@@ -1214,7 +1233,7 @@ describe('TokenVoting', function () {
         token,
         dummyActions,
         dummyMetadata,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
@@ -1250,7 +1269,7 @@ describe('TokenVoting', function () {
         token,
         defaultVotingSettings,
         dummyMetadata,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
@@ -1259,6 +1278,11 @@ describe('TokenVoting', function () {
       const startDate = 0; // now
       const endDate = 0; // startDate + minDuration
       const id = await createProposalId(plugin.address, [], dummyMetadata);
+
+      const expectedStartDate = BigNumber.from(await time.latest());
+      const expectedEndDate = expectedStartDate.add(
+        await defaultVotingSettings.minDuration
+      );
 
       const creationTx = await plugin
         .connect(alice)
@@ -1271,11 +1295,6 @@ describe('TokenVoting', function () {
           VoteOption.None,
           false
         );
-
-      const expectedStartDate = BigNumber.from(await time.latest());
-      const expectedEndDate = expectedStartDate.add(
-        await defaultVotingSettings.minDuration
-      );
 
       // Check the state
       const proposal = await plugin.getProposal(id);
@@ -1303,7 +1322,7 @@ describe('TokenVoting', function () {
         token,
         dummyActions,
         dummyMetadata,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Set the total supply to 10 tokens.
       await setTotalSupply(token, 10);
@@ -1351,7 +1370,7 @@ describe('TokenVoting', function () {
         token,
         dummyActions,
         dummyMetadata,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Set the total supply to 10 tokens.
       await setTotalSupply(token, 10);
@@ -1402,12 +1421,16 @@ describe('TokenVoting', function () {
         dummyActions,
         dummyMetadata,
         defaultTargetConfig,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       const allowFailureMap = 1;
 
       // Set Alice's balance to 10
       await token.setBalance(alice.address, 10);
+
+      const expectedSnapshotBlockNumber = (
+        await ethers.provider.getBlock('latest')
+      ).number;
 
       // Create a proposal as Alice.
       const id = await createProposalId(
@@ -1447,8 +1470,6 @@ describe('TokenVoting', function () {
       expect(event.args.actions[0].data).to.equal(dummyActions[0].data);
       expect(event.args.allowFailureMap).to.equal(allowFailureMap);
 
-      const block = await ethers.provider.getBlock('latest');
-
       // Check that the proposal state is set to the expected data.
       const proposal = await plugin.getProposal(id);
 
@@ -1464,7 +1485,10 @@ describe('TokenVoting', function () {
           .mul(await defaultVotingSettings.minParticipation)
           .div(pctToRatio(100))
       );
-      expect(proposal.parameters.snapshotBlock).to.equal(block.number - 1);
+
+      expect(proposal.parameters.snapshotBlock).to.equal(
+        expectedSnapshotBlockNumber
+      );
       expect(
         proposal.parameters.startDate.add(
           await defaultVotingSettings.minDuration
@@ -1503,10 +1527,14 @@ describe('TokenVoting', function () {
         dummyActions,
         dummyMetadata,
         defaultTargetConfig,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Set Alice's balance to 10.
       await token.setBalance(alice.address, 10);
+
+      const expectedSnapshotBlockNumber = (
+        await ethers.provider.getBlock('latest')
+      ).number;
 
       // Create a proposal as Alice.
       const id = await createProposalId(
@@ -1547,8 +1575,6 @@ describe('TokenVoting', function () {
       expect(event.args.allowFailureMap).to.equal(0);
 
       // Check that the proposal state is set to the expected data.
-      const block = await ethers.provider.getBlock('latest');
-
       const proposal = await plugin.getProposal(id);
       expect(proposal.open).to.equal(true);
       expect(proposal.executed).to.equal(false);
@@ -1561,7 +1587,9 @@ describe('TokenVoting', function () {
           .mul(await defaultVotingSettings.minParticipation)
           .div(pctToRatio(100))
       );
-      expect(proposal.parameters.snapshotBlock).to.equal(block.number - 1);
+      expect(proposal.parameters.snapshotBlock).to.equal(
+        expectedSnapshotBlockNumber
+      );
 
       expect(
         await plugin.totalVotingPower(proposal.parameters.snapshotBlock)
@@ -1582,7 +1610,7 @@ describe('TokenVoting', function () {
         token,
         dummyActions,
         dummyMetadata,
-      } = await loadFixture(globalFixture);
+      } = await loadFixtureCustom(globalFixture);
 
       // Make sure the supply is not zero.
       await setTotalSupply(token, 1);
@@ -1656,7 +1684,9 @@ describe('TokenVoting', function () {
       }>
     ) {
       it('reverts if proposal does not exist', async () => {
-        const {initializedPlugin: plugin} = await loadFixture(localFixture);
+        const {initializedPlugin: plugin} = await loadFixtureCustom(
+          localFixture
+        );
 
         const id = 10;
 
@@ -1679,7 +1709,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const startDate = (await time.latest()) + TIME.HOUR;
         const endDate = startDate + TIME.DAY;
@@ -1711,7 +1741,7 @@ describe('TokenVoting', function () {
           token,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -1749,7 +1779,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -1815,7 +1845,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -1886,11 +1916,11 @@ describe('TokenVoting', function () {
           dao,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         // Set voter balances
         const amount = 10;
-        const promises = [
+        const accounts = [
           alice,
           bob,
           carol,
@@ -1901,8 +1931,10 @@ describe('TokenVoting', function () {
           harold,
           ivan,
           judy,
-        ].map(signer => token.setBalance(signer.address, amount));
-        await Promise.all(promises);
+        ];
+        for (let i = 0; i < accounts.length; i++) {
+          await token.setBalance(accounts[i].address, amount);
+        }
 
         // Update Voting settings
         const newVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
@@ -1947,7 +1979,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -1998,7 +2030,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -2033,8 +2065,8 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(false);
-        // Still return false as voting mode is Standard and proposal is still open.
-        expect(await plugin.hasSucceeded(id)).to.be.false;
+        // It should return true as voting mode is Standard and proposal is still open, but thresholds are met.
+        expect(await plugin.hasSucceeded(id)).to.be.true;
       });
 
       it('can execute normally if participation and support are met', async () => {
@@ -2049,7 +2081,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -2081,7 +2113,7 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
 
         // Wait until the vote is over.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the proposal can be executed.
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -2103,7 +2135,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -2156,7 +2188,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -2195,7 +2227,7 @@ describe('TokenVoting', function () {
           dummyMetadata,
           dummyActions,
           dao,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -2223,7 +2255,7 @@ describe('TokenVoting', function () {
         });
 
         // Wait until the vote is over.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the proposal can be executed.
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -2289,11 +2321,11 @@ describe('TokenVoting', function () {
           dao,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         // Set voter balances
         const amount = 10;
-        const promises = [
+        const accounts = [
           alice,
           bob,
           carol,
@@ -2304,8 +2336,11 @@ describe('TokenVoting', function () {
           harold,
           ivan,
           judy,
-        ].map(signer => token.setBalance(signer.address, amount));
-        await Promise.all(promises);
+        ];
+
+        for (let i = 0; i < accounts.length; i++) {
+          await token.setBalance(accounts[i].address, amount);
+        }
 
         // // Update Voting settings
         const newVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
@@ -2350,7 +2385,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         // Create a proposal
         const endDate = (await time.latest()) + TIME.DAY;
@@ -2399,7 +2434,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         // Create a Proposal
         const endDate = (await time.latest()) + TIME.DAY;
@@ -2442,7 +2477,7 @@ describe('TokenVoting', function () {
         expect(await plugin.hasSucceeded(id)).to.be.true;
 
         // Advance time after the end date.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the proposal can still be executed.
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
@@ -2465,7 +2500,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -2495,7 +2530,7 @@ describe('TokenVoting', function () {
         expect(await plugin.hasSucceeded(id)).to.be.true;
 
         // Advance after the end date.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the vote is executable because support > 50%, participation > 20%, and the voting period is over.
         expect(await plugin.canExecute(id)).to.equal(true);
@@ -2512,7 +2547,7 @@ describe('TokenVoting', function () {
           token,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
@@ -2545,7 +2580,7 @@ describe('TokenVoting', function () {
         });
 
         // Advance time after the end date.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the vote is not executable because the participation with 19% is still too low, despite a support of 67% and the voting period being over.
         expect(await plugin.canExecute(id)).to.equal(false);
@@ -2568,10 +2603,11 @@ describe('TokenVoting', function () {
           deployer,
           dao,
           initializedPlugin: plugin,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
-        const executorFactory = new CustomExecutorMock__factory(deployer);
-        const executor = await executorFactory.deploy();
+        const executor = await hre.wrapper.deploy(
+          ARTIFACT_SOURCES.CustomExecutorMock
+        );
 
         const abiA = CustomExecutorMock__factory.abi;
         const abiB = TokenVoting__factory.abi;
@@ -2620,7 +2656,7 @@ describe('TokenVoting', function () {
         });
 
         // Advance after the end date.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the vote is executable because support > 50%, participation > 20%, and the voting period is over.
         expect(await plugin.canExecute(id)).to.equal(true);
@@ -2645,7 +2681,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         // Create a Proposal.
         const endDate = (await time.latest()) + TIME.DAY;
@@ -2727,7 +2763,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
@@ -2765,7 +2801,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         // Create a Proposal.
         const endDate = (await time.latest()) + TIME.DAY;
@@ -2853,11 +2889,11 @@ describe('TokenVoting', function () {
           dao,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         // Set voter balances
         const amount = 10;
-        const promises = [
+        const accounts = [
           alice,
           bob,
           carol,
@@ -2868,8 +2904,11 @@ describe('TokenVoting', function () {
           harold,
           ivan,
           judy,
-        ].map(signer => token.setBalance(signer.address, amount));
-        await Promise.all(promises);
+        ];
+
+        for (let i = 0; i < accounts.length; i++) {
+          await token.setBalance(accounts[i].address, amount);
+        }
 
         // Update Voting settings
         const newVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
@@ -2915,7 +2954,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
@@ -2977,7 +3016,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
@@ -3023,7 +3062,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -3057,7 +3096,7 @@ describe('TokenVoting', function () {
         expect(await plugin.hasSucceeded(id)).to.be.false;
 
         // Advance time to the end date.
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         // Check that the proposal can be executed regularly.
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3078,7 +3117,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
@@ -3132,7 +3171,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         // Create a proposal.
         const endDate = (await time.latest()) + TIME.DAY;
@@ -3201,11 +3240,11 @@ describe('TokenVoting', function () {
           dao,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         // Set voter balances
         const amount = 10;
-        const promises = [
+        const accounts = [
           alice,
           bob,
           carol,
@@ -3216,8 +3255,10 @@ describe('TokenVoting', function () {
           harold,
           ivan,
           judy,
-        ].map(signer => token.setBalance(signer.address, amount));
-        await Promise.all(promises);
+        ];
+        for (let i = 0; i < accounts.length; i++) {
+          await token.setBalance(accounts[i].address, amount);
+        }
 
         // Update Voting settings
         const newVotingSettings: MajorityVotingBase.VotingSettingsStruct = {
@@ -3266,7 +3307,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -3292,7 +3333,7 @@ describe('TokenVoting', function () {
 
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.false;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3307,7 +3348,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
 
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
@@ -3338,7 +3379,7 @@ describe('TokenVoting', function () {
 
         expect(await plugin.canExecute(id)).to.be.false;
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3355,7 +3396,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
           plugin.address,
@@ -3383,7 +3424,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.false;
@@ -3402,7 +3443,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
           plugin.address,
@@ -3431,7 +3472,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isMinApprovalReached(id)).to.be.true;
@@ -3447,7 +3488,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
           plugin.address,
@@ -3477,7 +3518,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.false;
         expect(await plugin.canExecute(id)).to.equal(false);
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3496,7 +3537,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
           plugin.address,
@@ -3529,7 +3570,7 @@ describe('TokenVoting', function () {
         expect(await plugin.isSupportThresholdReachedEarly(id)).to.be.true;
         expect(await plugin.canExecute(id)).to.equal(true);
 
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3557,7 +3598,7 @@ describe('TokenVoting', function () {
           dao,
           dummyActions,
           dummyMetadata,
-        } = await loadFixture(globalFixture);
+        } = await loadFixtureCustom(globalFixture);
 
         // Set Alice's balance to 1% of the total supply.
         await token.setBalance(alice.address, 1);
@@ -3599,7 +3640,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
           plugin.address,
@@ -3623,7 +3664,7 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(false);
 
         // does not execute normally
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.false;
@@ -3636,7 +3677,7 @@ describe('TokenVoting', function () {
           initializedPlugin: plugin,
           dummyMetadata,
           dummyActions,
-        } = await loadFixture(localFixture);
+        } = await loadFixtureCustom(localFixture);
         const endDate = (await time.latest()) + TIME.DAY;
         const id = await createProposalId(
           plugin.address,
@@ -3662,7 +3703,7 @@ describe('TokenVoting', function () {
         expect(await plugin.canExecute(id)).to.equal(true);
 
         // Check if the proposal can execute normally
-        await time.increaseTo(endDate);
+        await advanceAfterVoteEnd(endDate);
 
         expect(await plugin.isMinParticipationReached(id)).to.be.true;
         expect(await plugin.isSupportThresholdReached(id)).to.be.true;
@@ -3696,7 +3737,7 @@ describe('TokenVoting', function () {
             dao,
             dummyActions,
             dummyMetadata,
-          } = await loadFixture(globalFixture);
+          } = await loadFixtureCustom(globalFixture);
 
           // Set the balances of alice, bob, and carol.
           const totalSupply = ethers.BigNumber.from(10).pow(18);
@@ -3751,7 +3792,7 @@ describe('TokenVoting', function () {
             initializedPlugin: plugin,
             dummyMetadata,
             dummyActions,
-          } = await loadFixture(localFixture);
+          } = await loadFixtureCustom(localFixture);
           const endDate = (await time.latest()) + TIME.DAY;
           const id = await createProposalId(
             plugin.address,
@@ -3808,7 +3849,7 @@ describe('TokenVoting', function () {
             initializedPlugin: plugin,
             dummyMetadata,
             dummyActions,
-          } = await loadFixture(localFixture);
+          } = await loadFixtureCustom(localFixture);
 
           // Create a proposal.
           const endDate = (await time.latest()) + TIME.DAY;
@@ -3874,7 +3915,7 @@ describe('TokenVoting', function () {
             dao,
             dummyActions,
             dummyMetadata,
-          } = await loadFixture(globalFixture);
+          } = await loadFixtureCustom(globalFixture);
 
           // Set the balances of alice and bob.
           const totalSupply = ethers.BigNumber.from(10).pow(6);
@@ -3918,7 +3959,7 @@ describe('TokenVoting', function () {
             initializedPlugin: plugin,
             dummyMetadata,
             dummyActions,
-          } = await loadFixture(localFixture);
+          } = await loadFixtureCustom(localFixture);
           const endDate = (await time.latest()) + TIME.DAY;
           const id = await createProposalId(
             plugin.address,
@@ -3964,7 +4005,7 @@ describe('TokenVoting', function () {
             initializedPlugin: plugin,
             dummyMetadata,
             dummyActions,
-          } = await loadFixture(localFixture);
+          } = await loadFixtureCustom(localFixture);
           const endDate = (await time.latest()) + TIME.DAY;
           const id = await createProposalId(
             plugin.address,
@@ -4017,7 +4058,7 @@ describe('TokenVoting', function () {
             token,
             dummyMetadata,
             dummyActions,
-          } = await loadFixture(globalFixture);
+          } = await loadFixtureCustom(globalFixture);
 
           // Set the balances of Alice and Bob.
           const baseUnit = BigNumber.from(10).pow(power);
