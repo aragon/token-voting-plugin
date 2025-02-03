@@ -31,7 +31,7 @@
 :xref-MajorityVotingBase-updateVotingSettings-struct-MajorityVotingBase-VotingSettings-: xref:TokenVoting.adoc#MajorityVotingBase-updateVotingSettings-struct-MajorityVotingBase-VotingSettings-
 :xref-MajorityVotingBase-updateMinApprovals-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-updateMinApprovals-uint256-
 :xref-MajorityVotingBase-_execute-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-_execute-uint256-
-:xref-MajorityVotingBase-_hasSucceeded-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-_hasSucceeded-uint256-
+:xref-MajorityVotingBase-_hasSucceeded-uint256-bool-: xref:TokenVoting.adoc#MajorityVotingBase-_hasSucceeded-uint256-bool-
 :xref-MajorityVotingBase-_canExecute-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-_canExecute-uint256-
 :xref-MajorityVotingBase-_isProposalOpen-struct-MajorityVotingBase-Proposal-: xref:TokenVoting.adoc#MajorityVotingBase-_isProposalOpen-struct-MajorityVotingBase-Proposal-
 :xref-MajorityVotingBase-_updateVotingSettings-struct-MajorityVotingBase-VotingSettings-: xref:TokenVoting.adoc#MajorityVotingBase-_updateVotingSettings-struct-MajorityVotingBase-VotingSettings-
@@ -80,7 +80,7 @@
 :xref-MajorityVotingBase-_vote-uint256-enum-IMajorityVoting-VoteOption-address-bool-: xref:TokenVoting.adoc#MajorityVotingBase-_vote-uint256-enum-IMajorityVoting-VoteOption-address-bool-
 :xref-MajorityVotingBase-_execute-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-_execute-uint256-
 :xref-MajorityVotingBase-_canVote-uint256-address-enum-IMajorityVoting-VoteOption-: xref:TokenVoting.adoc#MajorityVotingBase-_canVote-uint256-address-enum-IMajorityVoting-VoteOption-
-:xref-MajorityVotingBase-_hasSucceeded-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-_hasSucceeded-uint256-
+:xref-MajorityVotingBase-_hasSucceeded-uint256-bool-: xref:TokenVoting.adoc#MajorityVotingBase-_hasSucceeded-uint256-bool-
 :xref-MajorityVotingBase-_canExecute-uint256-: xref:TokenVoting.adoc#MajorityVotingBase-_canExecute-uint256-
 :xref-MajorityVotingBase-_isProposalOpen-struct-MajorityVotingBase-Proposal-: xref:TokenVoting.adoc#MajorityVotingBase-_isProposalOpen-struct-MajorityVotingBase-Proposal-
 :xref-MajorityVotingBase-_updateVotingSettings-struct-MajorityVotingBase-VotingSettings-: xref:TokenVoting.adoc#MajorityVotingBase-_updateVotingSettings-struct-MajorityVotingBase-VotingSettings-
@@ -177,7 +177,7 @@ v1.3 (Release 1, Build 3). For each upgrade, if the reinitialization step is req
 * {xref-MajorityVotingBase-updateVotingSettings-struct-MajorityVotingBase-VotingSettings-}[`++updateVotingSettings(_votingSettings)++`]
 * {xref-MajorityVotingBase-updateMinApprovals-uint256-}[`++updateMinApprovals(_minApprovals)++`]
 * {xref-MajorityVotingBase-_execute-uint256-}[`++_execute(_proposalId)++`]
-* {xref-MajorityVotingBase-_hasSucceeded-uint256-}[`++_hasSucceeded(_proposalId)++`]
+* {xref-MajorityVotingBase-_hasSucceeded-uint256-bool-}[`++_hasSucceeded(_proposalId, _isOpen)++`]
 * {xref-MajorityVotingBase-_canExecute-uint256-}[`++_canExecute(_proposalId)++`]
 * {xref-MajorityVotingBase-_isProposalOpen-struct-MajorityVotingBase-Proposal-}[`++_isProposalOpen(proposal_)++`]
 * {xref-MajorityVotingBase-_updateVotingSettings-struct-MajorityVotingBase-VotingSettings-}[`++_updateVotingSettings(_votingSettings)++`]
@@ -617,7 +617,7 @@ The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contra
 :_vote: pass:normal[xref:#MajorityVotingBase-_vote-uint256-enum-IMajorityVoting-VoteOption-address-bool-[`++_vote++`]]
 :_execute: pass:normal[xref:#MajorityVotingBase-_execute-uint256-[`++_execute++`]]
 :_canVote: pass:normal[xref:#MajorityVotingBase-_canVote-uint256-address-enum-IMajorityVoting-VoteOption-[`++_canVote++`]]
-:_hasSucceeded: pass:normal[xref:#MajorityVotingBase-_hasSucceeded-uint256-[`++_hasSucceeded++`]]
+:_hasSucceeded: pass:normal[xref:#MajorityVotingBase-_hasSucceeded-uint256-bool-[`++_hasSucceeded++`]]
 :_canExecute: pass:normal[xref:#MajorityVotingBase-_canExecute-uint256-[`++_canExecute++`]]
 :_isProposalOpen: pass:normal[xref:#MajorityVotingBase-_isProposalOpen-struct-MajorityVotingBase-Proposal-[`++_isProposalOpen++`]]
 :_updateVotingSettings: pass:normal[xref:#MajorityVotingBase-_updateVotingSettings-struct-MajorityVotingBase-VotingSettings-[`++_updateVotingSettings++`]]
@@ -659,7 +659,7 @@ This contract implements the `IMajorityVoting` interface.
 * {xref-MajorityVotingBase-_vote-uint256-enum-IMajorityVoting-VoteOption-address-bool-}[`++_vote(_proposalId, _voteOption, _voter, _tryEarlyExecution)++`]
 * {xref-MajorityVotingBase-_execute-uint256-}[`++_execute(_proposalId)++`]
 * {xref-MajorityVotingBase-_canVote-uint256-address-enum-IMajorityVoting-VoteOption-}[`++_canVote(_proposalId, _account, _voteOption)++`]
-* {xref-MajorityVotingBase-_hasSucceeded-uint256-}[`++_hasSucceeded(_proposalId)++`]
+* {xref-MajorityVotingBase-_hasSucceeded-uint256-bool-}[`++_hasSucceeded(_proposalId, _isOpen)++`]
 * {xref-MajorityVotingBase-_canExecute-uint256-}[`++_canExecute(_proposalId)++`]
 * {xref-MajorityVotingBase-_isProposalOpen-struct-MajorityVotingBase-Proposal-}[`++_isProposalOpen(proposal_)++`]
 * {xref-MajorityVotingBase-_updateVotingSettings-struct-MajorityVotingBase-VotingSettings-}[`++_updateVotingSettings(_votingSettings)++`]
@@ -1124,8 +1124,8 @@ Internal function to execute a proposal. It assumes the queried proposal exists.
 Internal function to check if a voter can vote. It assumes the queried proposal exists.
 
 [.contract-item]
-[[MajorityVotingBase-_hasSucceeded-uint256-]]
-==== `[.contract-item-name]#++_hasSucceeded++#++(uint256 _proposalId) → bool++` [.item-kind]#internal#
+[[MajorityVotingBase-_hasSucceeded-uint256-bool-]]
+==== `[.contract-item-name]#++_hasSucceeded++#++(uint256 _proposalId, bool _isOpen) → bool++` [.item-kind]#internal#
 
 An internal function that checks if the proposal succeeded or not.
 

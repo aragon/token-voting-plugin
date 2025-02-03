@@ -33,7 +33,9 @@ if (process.env.ALCHEMY_API_KEY) {
   throw new Error('ALCHEMY_API_KEY in .env not set');
 }
 
-task('test-contracts').setAction(async (args, hre) => {
+// Override the test task so it injects wrapper.
+// Note that this also gets injected when running it through coverage.
+task('test').setAction(async (args, hre, runSuper) => {
   await hre.run('compile');
   const imp = await import('./test/test-utils/wrapper');
 
@@ -43,7 +45,7 @@ task('test-contracts').setAction(async (args, hre) => {
   );
   hre.wrapper = wrapper;
 
-  await hre.run('test');
+  await runSuper(args);
 });
 
 // Fetch the accounts specified in the .env file
