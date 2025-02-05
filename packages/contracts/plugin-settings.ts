@@ -3,6 +3,12 @@ import releaseMetadata from './src/release-metadata.json';
 import {GovernanceERC20} from './test/test-utils/typechain-versions';
 import {VersionTag} from '@aragon/osx-commons-sdk';
 import {ethers} from 'hardhat';
+import path from 'path';
+
+export const DEPLOYMENT_JSON_PATH = path.join(
+  __dirname,
+  './deployed-contracts.json'
+);
 
 export const PLUGIN_CONTRACT_NAME = 'TokenVoting'; // This must match the filename `packages/contracts/src/MyPlugin.sol` and the contract name `MyPlugin` within.
 export const PLUGIN_SETUP_CONTRACT_NAME = 'TokenVotingSetup'; // This must match the filename `packages/contracts/src/MyPluginSetup.sol` and the contract name `MyPluginSetup` within.

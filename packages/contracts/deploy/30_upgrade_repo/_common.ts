@@ -1,10 +1,18 @@
-import {findPluginRepo, getProductionNetworkName} from '../../utils/helpers';
+import {
+  findPluginRepo,
+  getProductionNetworkName,
+  isValidAddress,
+} from '../../utils/helpers';
 import {
   getLatestNetworkDeployment,
   getNetworkNameByAlias,
 } from '@aragon/osx-commons-configs';
 import {UnsupportedNetworkError} from '@aragon/osx-commons-sdk';
-import {PluginRepo, PluginRepo__factory} from '@aragon/osx-ethers';
+import {
+  PluginRepo,
+  PluginRepo__factory,
+  PluginRepoFactory__factory,
+} from '@aragon/osx-ethers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {DeployFunction} from 'hardhat-deploy/types';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
@@ -30,10 +38,10 @@ export async function fetchData(
   if (network === null) {
     throw new UnsupportedNetworkError(productionNetworkName);
   }
-  const networkDeployments = getLatestNetworkDeployment(network);
-  if (networkDeployments === null) {
-    throw `Deployments are not available on network ${network}.`;
-  }
+  // const networkDeployments = getLatestNetworkDeployment(network);
+  // if (networkDeployments === null) {
+  //   throw `Deployments are not available on network ${network}.`;
+  // }
 
   // Get PluginRepo
   const {pluginRepo, ensDomain} = await findPluginRepo(hre);
@@ -45,11 +53,34 @@ export async function fetchData(
     `Upgrading plugin repo '${ensDomain}' (${pluginRepo.address})...`
   );
 
-  // Get the latest `PluginRepo` implementation as the upgrade target
-  const latestPluginRepoImplementation = PluginRepo__factory.connect(
-    networkDeployments.PluginRepoBase.address,
-    deployer
-  );
+  let latestPluginRepoImplementation;
+  const pluginRepoFactoryAddress = process.env.PLUGIN_REPO_FACTORY_ADDRESS;
+
+  if (pluginRepoFactoryAddress) {
+    if (!isValidAddress(pluginRepoFactoryAddress)) {
+      throw new Error(
+        'Plugin Repo Factory in .env is not a valid address (is not an address or is address zero)'
+      );
+    }
+
+    const pluginRepoFactory = PluginRepoFactory__factory.connect(
+      pluginRepoFactoryAddress,
+      deployer
+    );
+    latestPluginRepoImplementation = PluginRepo__factory.connect(
+      await pluginRepoFactory.pluginRepoBase(),
+      deployer
+    );
+  } else {
+    const networkDeployments = getLatestNetworkDeployment(network);
+    if (networkDeployments === null) {
+      throw `Deployments are not available on network ${network}.`;
+    }
+    latestPluginRepoImplementation = PluginRepo__factory.connect(
+      networkDeployments.PluginRepoBase.address,
+      deployer
+    );
+  }
 
   // Get the current OSX protocol version from the current plugin repo implementation
   let current: SemVer;

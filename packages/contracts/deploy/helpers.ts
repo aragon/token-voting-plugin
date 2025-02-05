@@ -2,6 +2,7 @@ import {
   PLUGIN_SETUP_CONTRACT_NAME,
   PLUGIN_SETUP_CONTRACT_NAME_ZKSYNC,
 } from '../plugin-settings';
+import {DEPLOYMENT_JSON_PATH} from '../plugin-settings';
 import {VersionTag} from '../test/test-utils/psp/types';
 import {
   ENSRegistry__factory,
@@ -110,10 +111,6 @@ export function getLatestContractAddress(
 ): string {
   let networkName = hre.network.name;
 
-  if (hre.testingFork.network) {
-    networkName = hre.testingFork.network;
-  }
-
   const osxNetworkName = getNetworkNameByAlias(networkName);
   if (!osxNetworkName) {
     if (isLocal(hre.network)) {
@@ -129,6 +126,22 @@ export function getLatestContractAddress(
     return latestNetworkDeployment[key]?.address ?? '';
   }
   return '';
+}
+
+export async function forkNetwork(
+  hre: HardhatRuntimeEnvironment,
+  fork_url: string
+) {
+  await hre.network.provider.request({
+    method: 'hardhat_reset',
+    params: [
+      {
+        forking: {
+          jsonRpcUrl: fork_url,
+        },
+      },
+    ],
+  });
 }
 
 export async function detemineDeployerNextAddress(
@@ -577,6 +590,41 @@ export function getManagementDAOMultisigAddress(
     );
   }
   return address;
+}
+
+export type AddressInfo = {
+  name: string;
+  address: string;
+  blockNumber: number | undefined | null;
+  txHash: string | undefined | null;
+};
+
+export function saveToDeployedJson(
+  addressesInfo: AddressInfo[],
+  newDeployment: boolean = false
+) {
+  // Write plugin repo address to file
+  const fs = require('fs');
+  const outputPath = DEPLOYMENT_JSON_PATH;
+
+  // Read existing JSON file
+  let existingData: {[key: string]: AddressInfo} = {};
+
+  if (fs.existsSync(outputPath) && !newDeployment) {
+    const fileContent = fs.readFileSync(outputPath, 'utf8');
+    existingData = JSON.parse(fileContent);
+  }
+
+  for (const addressInfo of addressesInfo) {
+    existingData[addressInfo.name] = {
+      address: addressInfo.address,
+      blockNumber: addressInfo.blockNumber,
+      txHash: addressInfo.txHash,
+    };
+  }
+
+  fs.writeFileSync(outputPath, JSON.stringify(existingData, null, 2));
+  console.log(`Plugin repo addresses saved to ${outputPath}`);
 }
 
 // hh-deploy cannot process files without default exports
