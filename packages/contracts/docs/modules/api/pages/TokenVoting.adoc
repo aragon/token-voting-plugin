@@ -114,8 +114,6 @@
 :xref-VotingPowerCondition-isGranted-address-address-bytes32-bytes-: xref:TokenVoting.adoc#VotingPowerCondition-isGranted-address-address-bytes32-bytes-
 = TokenVoting API
 
-IMPORTANT: The contracts of build 3(use build 2) are currently being audited, DO NOT USE IN PRODUCTION.
-
 == Core
 
 :TOKEN_VOTING_INTERFACE_ID: pass:normal[xref:#TokenVoting-TOKEN_VOTING_INTERFACE_ID-bytes4[`++TOKEN_VOTING_INTERFACE_ID++`]]
@@ -134,7 +132,7 @@ IMPORTANT: The contracts of build 3(use build 2) are currently being audited, DO
 
 [.contract]
 [[TokenVoting]]
-=== `++TokenVoting++` link:https://github.com/aragon/token-voting-plugin/blob/v1.4.0-alpha.1/packages/contracts/src/TokenVoting.sol[{github-icon},role=heading-link]
+=== `++TokenVoting++` link:https://github.com/aragon/token-voting-plugin/blob/v1.3/packages/contracts/src/TokenVoting.sol[{github-icon},role=heading-link]
 
 v1.3 (Release 1, Build 3). For each upgrade, if the reinitialization step is required,
      increment the version numbers in the modifier for both the initialize and initializeFrom functions.
@@ -626,7 +624,7 @@ The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contra
 
 [.contract]
 [[MajorityVotingBase]]
-=== `++MajorityVotingBase++` link:https://github.com/aragon/token-voting-plugin/blob/v1.4.0-alpha.1/packages/contracts/src/MajorityVotingBase.sol[{github-icon},role=heading-link]
+=== `++MajorityVotingBase++` link:https://github.com/aragon/token-voting-plugin/blob/v1.3/packages/contracts/src/MajorityVotingBase.sol[{github-icon},role=heading-link]
 
 This contract implements the `IMajorityVoting` interface.
 
@@ -1262,7 +1260,7 @@ A mapping between proposal IDs and proposal information.
 
 [.contract]
 [[TokenVotingSetup]]
-=== `++TokenVotingSetup++` link:https://github.com/aragon/token-voting-plugin/blob/v1.4.0-alpha.1/packages/contracts/src/TokenVotingSetup.sol[{github-icon},role=heading-link]
+=== `++TokenVotingSetup++` link:https://github.com/aragon/token-voting-plugin/blob/v1.3/packages/contracts/src/TokenVotingSetup.sol[{github-icon},role=heading-link]
 
 v1.3 (Release 1, Build 3)
 
@@ -1391,7 +1389,7 @@ Thrown if token address is not ERC20.
 
 [.contract]
 [[VotingPowerCondition]]
-=== `++VotingPowerCondition++` link:https://github.com/aragon/token-voting-plugin/blob/v1.4.0-alpha.1/packages/contracts/src/VotingPowerCondition.sol[{github-icon},role=heading-link]
+=== `++VotingPowerCondition++` link:https://github.com/aragon/token-voting-plugin/blob/v1.3/packages/contracts/src/VotingPowerCondition.sol[{github-icon},role=heading-link]
 
 [.contract-index]
 .Functions
