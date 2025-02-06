@@ -9,6 +9,7 @@ yarn add @aragon/token-voting-plugin-artifacts
 ## Usage
 
 ```typescript
+// ABI definitions
 import {
     TokenVotingABI,
     ITokenVotingABI,
@@ -16,10 +17,11 @@ import {
     TokenVotingSetupABI
 } from "@aragon/token-voting-plugin-artifacts";
 
+// Plugin Repository addresses per-network
 import { addresses } from "@aragon/token-voting-plugin-artifacts";
 ```
 
-You can also see the [addresses.json file](./src/addresses.json) directly.
+You can also open [addresses.json](./src/addresses.json) directly.
 
 ## Development
 
