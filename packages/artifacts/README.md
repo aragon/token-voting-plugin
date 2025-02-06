@@ -19,6 +19,8 @@ import {
 import { addresses } from "@aragon/token-voting-plugin-artifacts";
 ```
 
+You can also see the [addresses.json file](./src/addresses.json) directly.
+
 ## Development
 
 ### Building the package
