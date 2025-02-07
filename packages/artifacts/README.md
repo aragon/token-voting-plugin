@@ -11,10 +11,11 @@ yarn add @aragon/token-voting-plugin-artifacts
 ```typescript
 // ABI definitions
 import {
+    IMajorityVotingABI,
     TokenVotingABI,
-    ITokenVotingABI,
-    ListedCheckConditionABI,
-    TokenVotingSetupABI
+    TokenVotingSetupABI,
+    TokenVotingSetupZkSyncABI,
+    VotingPowerConditionABI
 } from "@aragon/token-voting-plugin-artifacts";
 
 // Plugin Repository addresses per-network
