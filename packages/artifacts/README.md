@@ -1,6 +1,6 @@
 # Token Voting Plugin artifacts
 
-This package contains the ABI of the TokenVoting Plugin for OSx, as well as the address of its plugin repository on each network. Install it with:
+This package contains the ABI of the TokenVoting Plugin for OSx, as well as the address of its plugin repository on each supported network. Install it with:
 
 ```sh
 yarn add @aragon/token-voting-plugin-artifacts
