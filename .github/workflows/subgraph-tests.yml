@@ -25,15 +25,15 @@ jobs:
           node-version: 18
 
       - name: 'Install root dependencies'
-        run: 'yarn install --frozen-lockfile'
+        run: 'yarn install --frozen-lockfile --ignore-scripts'
         working-directory: .
 
       - name: 'Install dependencies for contracts'
-        run: 'yarn install --frozen-lockfile'
+        run: 'yarn install --frozen-lockfile --ignore-scripts'
         working-directory: packages/contracts
 
       - name: 'Install the dependencies for subgraph'
-        run: 'yarn install --frozen-lockfile'
+        run: 'yarn install --frozen-lockfile --ignore-scripts'
         working-directory: packages/subgraph
 
       - name: 'Build the subgraph'

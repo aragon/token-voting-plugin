@@ -31,7 +31,7 @@ You can also open [addresses.json](./src/addresses.json) directly.
 Install the dependencies and generate the local ABI definitions.
 
 ```sh
-yarn install
+yarn --ignore-scripts
 yarn build
 ```
 
