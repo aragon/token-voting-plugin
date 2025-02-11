@@ -32,4 +32,18 @@ do
     echo "" >> $TARGET_ABI_FILE
 done
 
+# Same for governance
+for SRC_CONTRACT_FILE in $(ls $CONTRACTS_FOLDER/src/ERC20/governance/*.sol)
+do
+    SRC_FILE_NAME=$(basename $(echo $SRC_CONTRACT_FILE))
+    SRC_FILE_PATH=$CONTRACTS_FOLDER/artifacts/src/ERC20/governance/$SRC_FILE_NAME/${SRC_FILE_NAME%".sol"}.json
+
+    ABI=$(node -e "console.log(JSON.stringify(JSON.parse(fs.readFileSync(\"$SRC_FILE_PATH\").toString()).abi))")
+    CONTRACT_NAME=${SRC_FILE_NAME%".sol"}
+
+    echo "const ${CONTRACT_NAME}ABI = $ABI as const;" >> $TARGET_ABI_FILE
+    echo "export {${CONTRACT_NAME}ABI};" >> $TARGET_ABI_FILE
+    echo "" >> $TARGET_ABI_FILE
+done
+
 echo "ABI prepared: $TARGET_ABI_FILE"

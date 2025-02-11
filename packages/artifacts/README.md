@@ -15,7 +15,10 @@ import {
     TokenVotingABI,
     TokenVotingSetupABI,
     TokenVotingSetupZkSyncABI,
-    VotingPowerConditionABI
+    VotingPowerConditionABI,
+    GovernanceERC20ABI,
+    GovernanceWrappedERC20ABI,
+    IGovernanceWrappedERC20ABI
 } from "@aragon/token-voting-plugin-artifacts";
 
 // Plugin Repository addresses per-network
