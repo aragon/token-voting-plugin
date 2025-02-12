@@ -37,14 +37,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   let releaseMetadataURI = '0x';
   let buildMetadataURI = '0x';
 
- 
-
   if (!isLocal(hre)) {
-
     if (!process.env.PUB_PINATA_JWT) {
       throw Error('PUB_PINATA_JWT is not set');
     }
-    
+
     // Upload the metadata to IPFS
     releaseMetadataURI = await uploadToPinata(
       METADATA.release,
