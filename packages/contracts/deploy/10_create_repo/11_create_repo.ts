@@ -6,19 +6,11 @@ import {
   getPluginRepoFactory,
   frameworkSupportsENS,
 } from '../../utils/helpers';
-import {
-  getLatestNetworkDeployment,
-  getNetworkNameByAlias,
-} from '@aragon/osx-commons-configs';
-import {
-  UnsupportedNetworkError,
-  findEventTopicLog,
-} from '@aragon/osx-commons-sdk';
+import {findEventTopicLog} from '@aragon/osx-commons-sdk';
 import {
   PluginRepoRegistryEvents,
   PluginRepoRegistry__factory,
   PluginRepo__factory,
-  PluginRepoFactory__factory,
 } from '@aragon/osx-ethers';
 import {DeployFunction} from 'hardhat-deploy/types';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
