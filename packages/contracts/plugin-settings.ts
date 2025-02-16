@@ -4,6 +4,7 @@ import {GovernanceERC20} from './test/test-utils/typechain-versions';
 import {VersionTag} from '@aragon/osx-commons-sdk';
 import {ethers} from 'hardhat';
 
+export const PLUGIN_REPO_PROXY_NAME = 'TokenVotingProxy';
 export const PLUGIN_CONTRACT_NAME = 'TokenVoting'; // This must match the filename `packages/contracts/src/MyPlugin.sol` and the contract name `MyPlugin` within.
 export const PLUGIN_SETUP_CONTRACT_NAME = 'TokenVotingSetup'; // This must match the filename `packages/contracts/src/MyPluginSetup.sol` and the contract name `MyPluginSetup` within.
 export const PLUGIN_SETUP_CONTRACT_NAME_ZKSYNC = 'TokenVotingSetupZkSync';
