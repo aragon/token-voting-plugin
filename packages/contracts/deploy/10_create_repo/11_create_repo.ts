@@ -1,4 +1,7 @@
-import {PLUGIN_REPO_ENS_SUBDOMAIN_NAME} from '../../plugin-settings';
+import {
+  PLUGIN_REPO_ENS_SUBDOMAIN_NAME,
+  PLUGIN_REPO_PROXY_NAME,
+} from '../../plugin-settings';
 import {
   findPluginRepo,
   getProductionNetworkName,
@@ -51,6 +54,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     eventLog.args.pluginRepo,
     deployer
   );
+
+  // Save the plugin repo deployment
+  await hre.deployments.save(PLUGIN_REPO_PROXY_NAME, {
+    abi: PluginRepo__factory.abi,
+    address: pluginRepo.address,
+    receipt: await tx.wait(),
+    transactionHash: tx.hash,
+  });
 
   console.log(
     `PluginRepo ${
