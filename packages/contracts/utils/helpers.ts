@@ -91,6 +91,10 @@ export async function findPluginRepo(
       );
     }
 
+    console.log(
+      'from env var PLUGIN_REPO_ADDRESS',
+      process.env.PLUGIN_REPO_ADDRESS
+    );
     return {
       pluginRepo: PluginRepo__factory.connect(
         process.env.PLUGIN_REPO_ADDRESS,
@@ -107,6 +111,8 @@ export async function findPluginRepo(
       'using the plugin repo from the deployments',
       pluginRepo.address
     );
+
+    console.log('from deployments', pluginRepo.address);
     return {
       pluginRepo: PluginRepo__factory.connect(pluginRepo.address, deployer),
       ensDomain,
@@ -297,6 +303,11 @@ export async function getPluginRepoFactory(
         'Plugin Repo Factory address in .env is not valid address (is not an address or is address zero)'
       );
     }
+
+    console.log(
+      'from env var PLUGIN_REPO_FACTORY_ADDRESS',
+      process.env.PLUGIN_REPO_FACTORY_ADDRESS
+    );
     return PluginRepoFactory__factory.connect(
       process.env.PLUGIN_REPO_FACTORY_ADDRESS,
       deployer
