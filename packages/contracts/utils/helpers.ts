@@ -91,10 +91,6 @@ export async function findPluginRepo(
       );
     }
 
-    console.log(
-      'from env var PLUGIN_REPO_ADDRESS',
-      process.env.PLUGIN_REPO_ADDRESS
-    );
     return {
       pluginRepo: PluginRepo__factory.connect(
         process.env.PLUGIN_REPO_ADDRESS,
@@ -107,12 +103,6 @@ export async function findPluginRepo(
   // from deployments
   const pluginRepo = await hre.deployments.getOrNull(PLUGIN_REPO_PROXY_NAME);
   if (pluginRepo) {
-    console.log(
-      'using the plugin repo from the deployments',
-      pluginRepo.address
-    );
-
-    console.log('from deployments', pluginRepo.address);
     return {
       pluginRepo: PluginRepo__factory.connect(pluginRepo.address, deployer),
       ensDomain,
@@ -246,11 +236,6 @@ export async function createVersion(
 export const AragonOSxAsciiArt =
   "                                          ____   _____      \n     /\\                                  / __ \\ / ____|     \n    /  \\   _ __ __ _  __ _  ___  _ __   | |  | | (_____  __ \n   / /\\ \\ | '__/ _` |/ _` |/ _ \\| '_ \\  | |  | |\\___ \\ \\/ / \n  / ____ \\| | | (_| | (_| | (_) | | | | | |__| |____) >  <  \n /_/    \\_\\_|  \\__,_|\\__, |\\___/|_| |_|  \\____/|_____/_/\\_\\ \n                      __/ |                                 \n                     |___/                                  \n";
 
-/**
- * try to get the management dao first
- * 1- env var MANAGEMENT_DAO_ADDRESS
- * 2- commons configs deployments
- */
 export async function getManagementDao(
   hre: HardhatRuntimeEnvironment
 ): Promise<DAO> {
@@ -258,77 +243,31 @@ export async function getManagementDao(
 
   const managementDaoAddress = process.env.MANAGEMENT_DAO_ADDRESS;
 
-  if (managementDaoAddress) {
-    // getting the management DAO from the env var
-    if (!isValidAddress(managementDaoAddress)) {
-      throw new Error(
-        'Management DAO address in .env is not valid address (is not an address or is address zero)'
-      );
-    }
-
-    return DAO__factory.connect(managementDaoAddress, deployer);
+  // getting the management DAO from the env var
+  if (!managementDaoAddress || !isValidAddress(managementDaoAddress)) {
+    throw new Error(
+      'Management DAO address in .env is not defined or is not a valid address (is not an address or is address zero)'
+    );
   }
 
-  // getting the management DAO from the commons configs deployments
-  const productionNetworkName = getProductionNetworkName(hre);
-  const network = getNetworkNameByAlias(productionNetworkName);
-  if (network === null) {
-    throw new UnsupportedNetworkError(productionNetworkName);
-  }
-  const networkDeployments = getLatestNetworkDeployment(network);
-  if (networkDeployments === null) {
-    throw `Deployments are not available on network ${network}.`;
-  }
-
-  return DAO__factory.connect(
-    networkDeployments.ManagementDAOProxy.address,
-    deployer
-  );
+  return DAO__factory.connect(managementDaoAddress, deployer);
 }
 
-/**
- * try to get the plugin repo factory first
- * 1- env var PLUGIN_REPO_FACTORY_ADDRESS
- * 2- commons configs deployments
- */
 export async function getPluginRepoFactory(
   hre: HardhatRuntimeEnvironment
 ): Promise<PluginRepoFactory> {
   const [deployer] = await hre.ethers.getSigners();
 
+  const pluginRepoFactoryAddress = process.env.PLUGIN_REPO_FACTORY_ADDRESS;
+
   // from env var
-  if (process.env.PLUGIN_REPO_FACTORY_ADDRESS) {
-    if (!isValidAddress(process.env.PLUGIN_REPO_FACTORY_ADDRESS)) {
-      throw new Error(
-        'Plugin Repo Factory address in .env is not valid address (is not an address or is address zero)'
-      );
-    }
-
-    console.log(
-      'from env var PLUGIN_REPO_FACTORY_ADDRESS',
-      process.env.PLUGIN_REPO_FACTORY_ADDRESS
-    );
-    return PluginRepoFactory__factory.connect(
-      process.env.PLUGIN_REPO_FACTORY_ADDRESS,
-      deployer
+  if (!pluginRepoFactoryAddress || !isValidAddress(pluginRepoFactoryAddress)) {
+    throw new Error(
+      'Plugin Repo Factory address in .env is not defined or is not a valid address (is not an address or is address zero)'
     );
   }
 
-  // from commons configs deployments
-  const productionNetworkName = getProductionNetworkName(hre);
-  const network = getNetworkNameByAlias(productionNetworkName);
-  if (network === null) {
-    throw new UnsupportedNetworkError(productionNetworkName);
-  }
-  const networkDeployments = getLatestNetworkDeployment(network);
-  if (networkDeployments === null) {
-    throw `Deployments are not available on network ${network}.`;
-  }
-
-  return PluginRepoFactory__factory.connect(
-    networkDeployments.PluginRepoFactory.address,
-    deployer
-  );
+  return PluginRepoFactory__factory.connect(pluginRepoFactoryAddress, deployer);
 }
 
 export async function impersonatedManagementDaoSigner(
