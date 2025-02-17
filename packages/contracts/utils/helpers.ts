@@ -379,15 +379,19 @@ export async function publishPlaceholderVersion(
 ) {
   for (let i = 0; i < versionBuild - 1; i++) {
     console.log('Publishing placeholder', i + 1);
-    // todo
-    // await createVersion(
-    //   pluginRepo,
-    //   versionRelease,
-    //   placeholderSetup,
-    //   `{}`,
-    //   'placeholder-setup-build',
-    //   signer
-    // );
+
+    const tx = await pluginRepo
+      .connect(signer)
+      .createVersion(
+        versionRelease,
+        placeholderSetup,
+        ethers.utils.hexlify(ethers.utils.toUtf8Bytes(`{}`)),
+        ethers.utils.hexlify(
+          ethers.utils.toUtf8Bytes('placeholder-setup-build')
+        )
+      );
+
+    await tx.wait();
   }
 }
 
