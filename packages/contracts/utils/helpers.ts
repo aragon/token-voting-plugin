@@ -75,8 +75,7 @@ export function pluginEnsDomain(hre: HardhatRuntimeEnvironment): string {
  * 1- env var PLUGIN_REPO_ADDRESS
  * 2- try to get the latest network deployment
  * 3- from the commons configs
- *    3.1- plugin repo factory address from env var
- *    3.2- plugin repo factory address from commons configs
+ *   - plugin repo factory address from env var
  */
 export async function findPluginRepo(
   hre: HardhatRuntimeEnvironment
@@ -114,43 +113,16 @@ export async function findPluginRepo(
     };
   }
 
-  // from commons configs
-  let subdomainRegistrarAddress;
-  const pluginRepoFactoryAddress = process.env.PLUGIN_REPO_FACTORY_ADDRESS;
-  if (pluginRepoFactoryAddress) {
-    if (!isValidAddress(pluginRepoFactoryAddress)) {
-      throw new Error(
-        'Plugin Repo Factory in .env is not valid address (is not an address or is address zero)'
-      );
-    }
+  // get ENS registrar from the plugin factory provided
+  const pluginRepoFactory = await getPluginRepoFactory(hre);
 
-    // get ENS registrar from the plugin factory provided
-    const pluginRepoFactory = PluginRepoFactory__factory.connect(
-      pluginRepoFactoryAddress,
-      deployer
-    );
+  const pluginRepoRegistry = PluginRepoRegistry__factory.connect(
+    await pluginRepoFactory.pluginRepoRegistry(),
+    deployer
+  );
 
-    const pluginRepoRegistry = PluginRepoRegistry__factory.connect(
-      await pluginRepoFactory.pluginRepoRegistry(),
-      deployer
-    );
-
-    subdomainRegistrarAddress = await pluginRepoRegistry.subdomainRegistrar();
-  } else {
-    // get ENS registrar from the commons configs deployments
-    const productionNetworkName: string = getProductionNetworkName(hre);
-    const network = getNetworkNameByAlias(productionNetworkName);
-    if (network === null) {
-      throw new UnsupportedNetworkError(productionNetworkName);
-    }
-    const networkDeployments = getLatestNetworkDeployment(network);
-    if (networkDeployments === null) {
-      throw `Deployments are not available on network ${network}.`;
-    }
-
-    subdomainRegistrarAddress =
-      networkDeployments.PluginENSSubdomainRegistrarProxy.address;
-  }
+  const subdomainRegistrarAddress =
+    await pluginRepoRegistry.subdomainRegistrar();
 
   if (subdomainRegistrarAddress === ethers.constants.AddressZero) {
     // the network does not support ENS and the plugin repo could not be found by env var or deployments
