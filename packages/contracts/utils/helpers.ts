@@ -4,7 +4,6 @@ import {
 } from '../plugin-settings';
 import {
   SupportedNetworks,
-  getLatestNetworkDeployment,
   getNetworkNameByAlias,
   getPluginEnsDomain,
 } from '@aragon/osx-commons-configs';
