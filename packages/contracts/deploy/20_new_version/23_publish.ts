@@ -10,6 +10,8 @@ import {
   impersonatedManagementDaoSigner,
   isLocal,
   pluginEnsDomain,
+  isValidAddress,
+  publishPlaceholderVersion,
 } from '../../utils/helpers';
 import {pluginSetupContractName} from '../helpers';
 import {PLUGIN_REPO_PERMISSIONS, uploadToPinata} from '@aragon/osx-commons-sdk';
@@ -79,18 +81,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Check build number
   const latestBuild = (await pluginRepo.buildCount(VERSION.release)).toNumber();
-  if (VERSION.build < latestBuild) {
-    throw Error(
-      `Publishing with build number ${VERSION.build} is not possible. The latest build is ${latestBuild}. Aborting publication...`
-    );
-  }
-  if (VERSION.build > latestBuild + 1) {
-    throw Error(
-      `Publishing with build number ${VERSION.build} is not possible. 
+  if (latestBuild == 0 && VERSION.build > 1) {
+    // it means there's no build yet on the repo on the specific VERSION.release
+    // and build version in the plugin settings is > 1, meaning that
+    // it must push placeholder contracts and as the last one, push the actual plugin setup.
+  } else {
+    if (VERSION.build < latestBuild) {
+      throw Error(
+        `Publishing with build number ${VERSION.build} is not possible. The latest build is ${latestBuild}. Aborting publication...`
+      );
+    }
+    if (VERSION.build > latestBuild + 1) {
+      throw Error(
+        `Publishing with build number ${VERSION.build} is not possible. 
         The latest build is ${latestBuild} and the next release you can publish is release number ${
-        latestBuild + 1
-      }. Aborting publication...`
-    );
+          latestBuild + 1
+        }. Aborting publication...`
+      );
+    }
   }
 
   if (setup == undefined || setup?.receipt == undefined) {
@@ -120,6 +128,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       []
     )
   ) {
+    if (latestBuild == 0 && VERSION.build > 1) {
+      // We are publishing the first version as build > 1.
+      // So we need to publish placeholders first..
+      const placeholderSetup = process.env.PLACEHOLDER_SETUP;
+
+      if (!placeholderSetup || !isValidAddress(placeholderSetup)) {
+        throw new Error(
+          'Aborting. Placeholder setup not defined in .env or is not a valid address (is not an address or is address zero)'
+        );
+      }
+      await publishPlaceholderVersion(
+        placeholderSetup,
+        VERSION.build,
+        VERSION.release,
+        pluginRepo,
+        signer
+      );
+    }
+
     // Create the new version
     const tx = await pluginRepo
       .connect(signer)

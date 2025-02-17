@@ -1,8 +1,9 @@
-import {findPluginRepo, getProductionNetworkName} from '../../utils/helpers';
 import {
-  getLatestNetworkDeployment,
-  getNetworkNameByAlias,
-} from '@aragon/osx-commons-configs';
+  findPluginRepo,
+  getProductionNetworkName,
+  getPluginRepoFactory,
+} from '../../utils/helpers';
+import {getNetworkNameByAlias} from '@aragon/osx-commons-configs';
 import {UnsupportedNetworkError} from '@aragon/osx-commons-sdk';
 import {PluginRepo, PluginRepo__factory} from '@aragon/osx-ethers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
@@ -30,10 +31,6 @@ export async function fetchData(
   if (network === null) {
     throw new UnsupportedNetworkError(productionNetworkName);
   }
-  const networkDeployments = getLatestNetworkDeployment(network);
-  if (networkDeployments === null) {
-    throw `Deployments are not available on network ${network}.`;
-  }
 
   // Get PluginRepo
   const {pluginRepo, ensDomain} = await findPluginRepo(hre);
@@ -46,8 +43,10 @@ export async function fetchData(
   );
 
   // Get the latest `PluginRepo` implementation as the upgrade target
+  const pluginRepoFactory = await getPluginRepoFactory(hre);
+
   const latestPluginRepoImplementation = PluginRepo__factory.connect(
-    networkDeployments.PluginRepoBase.address,
+    await pluginRepoFactory.pluginRepoBase(),
     deployer
   );
 
