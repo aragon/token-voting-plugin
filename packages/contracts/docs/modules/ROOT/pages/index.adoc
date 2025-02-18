@@ -1,0 +1,152 @@
+:stem: latexmath
+
+= Token Voting
+
+== Description
+
+**TokenVoting** is a governance plugin developed and maintained by the Aragon core team. It enables decision-making in DAOs through proposals and token-based voting, where members’ influence is proportional to their token holdings or delegated voting power. Proposals succeed if they meet a configurable majority voting rule and other customizable parameters.
+
+The plugin supports governance-ready ERC20 tokens (`ERC20Votes`) and can also deploy and mint new tokens that implement `ERC20Votes`. Additionally, it allows existing standard ERC20 tokens to be wrapped with governance capabilities using an `ERC20Votes` wrapper.
+
+== Proposal Lifecycle
+
+=== Creation
+Proposals can be created by users granted the `CREATE_PROPOSAL_PERMISSION` or those verified through the `VotingPowerCondition`, depending on the plugin's configuration. 
+Below are the essential operations of proposal creation:
+
+* **Snapshot Block**: Captures the state of the previous block (`block.number - 1`) at the time of creation.
+* **Proposal Initialization**: Instantiates a new proposal and records all relevant parameters, such as metadata, proposed actions, start and end dates, and voting settings.
+* **Creator Voting**: Allows proposal creators to cast their vote during the creation process, aligning their intent with the proposal.
+
+[NOTE]
+====
+**Proposal creation settings**:
+
+* **Minimum Duration (`minDuration`)**: The shortest duration a proposal can remain open for voting.
+* **Minimum Proposer Voting Power (`minProposerVotingPower`)**: The minimum voting power required to create a proposal.
+====
+
+=== Voting
+Voters express their preferences through the `vote` function, which:
+
+* Verifies voter eligibility and records their vote.
+* Supports vote replacement (if enabled).
+* Allows early execution attempts if thresholds are met and the voter is eligible to execute the proposal.
+
+=== Execution
+Proposals can be executed by calling the `execute` function on the plugin, provided the following conditions are met:
+
+* **Permission Verification**: The `execute` function is guarded by the `EXECUTE_PROPOSAL_PERMISSION`, ensuring only authorized users can trigger the execution.
+[TIP]
+====
+Typically, this permission is set to any address, allowing anyone to execute, but it can also be restricted to specific users or conditions if needed.
+====
+* **Threshold Verification**: The plugin ensures that all thresholds (Support, Participation, and Approval) are satisfied, verifying the proposal's success.
+* **Action Passing**: The plugin passes them to the associated DAO or to the configured executor, which is responsible for their execution.
+* **Finalization**: Once the actions are passed and executed, the plugin marks the proposal as executed.
+
+[NOTE]
+====
+**Proposal execution settings**:
+
+* **Support Threshold (`supportThreshold`)**: The minimum ratio of "Yes" votes to total votes (Yes + No) required for a proposal to pass.
+* **Minimum Participation (`minParticipation`)**: Ensures a percentage of total voting power participates for a proposal to be valid.
+* **Minimum Approval Power (`minApprovalPower`)**: Specifies the minimum number of "Yes" votes required for a proposal to pass.
+====
+
+== Voting Modes
+
+The **TokenVoting** plugin supports three distinct voting modes, each designed to meet different governance needs. These modes cannot be enabled simultaneously because their logic and execution criteria conflict. DAOs must choose one mode based on their decision-making preferences.
+
+* **Normal**: Proposals succeed after the voting period ends if:
+  - **Support Criterion**: +
+  latexmath:[(1 - \texttt{supportThreshold}) \cdot N_\text{yes} > \texttt{supportThreshold} \cdot N_\text{no}] +
+  The ratio of "Yes" votes to "No" votes must exceed the configured support threshold.
+  - **Participation Criterion**: +
+  latexmath:[N_\text{yes} + N_\text{no} + N_\text{abstain} \geq \texttt{minVotingPower}] +
+  The total voting power used in the proposal must meet the minimum participation requirement.
+  - **Approval Criterion**: +
+  latexmath:[N_\text{yes} \geq \texttt{minApprovalPower}] +
+  The number of "Yes" votes meets or exceeds the minApprovalPower.
+
+* **Early Execution**: Proposals in this mode can succeed before the voting period ends if the outcome is mathematically certain, even if all remaining votes are "No."
+
+  - **Worst-Case No Votes Formula**: + 
+  latexmath:[N_\text{no, worst-case} = N_\text{total} - N_\text{yes} - N_\text{abstain}] +
+  Calculates the maximum possible "No" votes by assuming all remaining voting power is cast as "No."
+
+  - **Support Criterion for Early Execution**: +
+  latexmath:[(1 - \texttt{supportThreshold}) \cdot N_\text{yes} > \texttt{supportThreshold} \cdot N_\text{no, worst-case}] +
+  Ensures "Yes" votes exceed the support threshold, even in the worst-case scenario of all remaining votes being "No."
+
+* **Vote Replacement**: Voters can update their preferences during the voting period. Only the latest vote is tallied.
+
+
+== Token Support
+
+The **TokenVoting** plugin exclusively supports tokens that implement the `ERC20Votes` standard from OpenZeppelin (link:https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Votes[Learn more]), which provides block-specific voting power snapshots and delegation capabilities.
+[TIP]
+====
+For DAOs with existing non-governance tokens, these tokens can still be used with the plugin. Please refer to the <<token_wrapping,Wrapped Token Setup>> section for details on how standard ERC20 tokens can be wrapped for governance.
+====
+
+== Plugin Setup
+
+* **Contracts**: The **TokenVotingSetup** contains the **TokenVoting** plugin’s implementation and automatically deploys and prepares the following contracts:
+  - **TokenVoting Proxy**: The ERC1967Proxy contract pointing to the plugin’s implementation.
+  - **VotingPowerCondition**: A condition contract to determine if a user meets the minimum voting power or balance required to create a proposal.
+  - **Governance ERC20 Token**: The plugin setup offers flexible options for DAOs to prepare tokens for governance, depending on their existing token situation:
+    1. **Existing Governance Tokens**: If an `ERC20Votes` token is provided during setup, the plugin will use it directly.
+    2. **Token Deployment and Minting**: If no token is provided, the setup deploys a new `GovernanceERC20` token and mints an initial supply as specified by the user.
+    [[token_wrapping]]
+    3. **Token Wrapping**: For DAOs with a standard (non-governance) ERC20 token, the setup wraps it into a `GovernanceWrappedERC20` token. This wrapper adds governance capabilities, enabling voting and delegation, while allowing deposits and withdrawals of the original token.
+
+* **Permissions**: The following permissions are set up by default by the **TokenVotingSetup**:
+[cols="2,2,2,2,2", options="header"]
+|===
+| Permission ID | Where (Granted By) | Who (Granted To) | Condition | Functions
+
+| `EXECUTE_PERMISSION_ID`
+| DAO
+| Plugin
+| None
+| `execute`
+
+| `UPDATE_VOTING_SETTINGS_PERMISSION_ID`
+| Plugin
+| DAO
+| None
+| `updateVotingSettings, updateMinApprovals`
+
+| `SET_TARGET_CONFIG_PERMISSION_ID`
+| Plugin
+| DAO
+| None
+| `setTargetConfig`
+
+| `SET_METADATA_PERMISSION_ID`
+| Plugin
+| DAO
+| None
+| `setMetadata`
+
+| `CREATE_PROPOSAL_PERMISSION_ID`
+| Plugin
+| Any Address
+| `VotingPowerCondition`
+| `createProposal`
+
+| `EXECUTE_PROPOSAL_PERMISSION_ID`
+| Plugin
+| Any Address
+| None
+| `execute`
+
+| `MINT_PERMISSION_ID`
+| Associated Governance Token
+| DAO
+| None
+| `mint`
+|===
+
+This setup ensures that the **TokenVoting** plugin is ready for operation immediately after installation, with all required contracts deployed and permissions configured.

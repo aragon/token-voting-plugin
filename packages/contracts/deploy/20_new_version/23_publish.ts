@@ -10,9 +10,12 @@ import {
   impersonatedManagementDaoSigner,
   isLocal,
   pluginEnsDomain,
+  isValidAddress,
+  publishPlaceholderVersion,
 } from '../../utils/helpers';
 import {pluginSetupContractName} from '../helpers';
 import {PLUGIN_REPO_PERMISSIONS, uploadToPinata} from '@aragon/osx-commons-sdk';
+import {PluginRepo__factory} from '@aragon/osx-ethers';
 import {writeFile} from 'fs/promises';
 import {ethers} from 'hardhat';
 import hre from 'hardhat';
@@ -38,14 +41,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   let buildMetadataURI = '0x';
 
   if (!isLocal(hre)) {
+    if (!process.env.PUB_PINATA_JWT) {
+      throw Error('PUB_PINATA_JWT is not set');
+    }
+
     // Upload the metadata to IPFS
     releaseMetadataURI = await uploadToPinata(
-      JSON.stringify(METADATA.release, null, 2),
-      `${PLUGIN_REPO_ENS_SUBDOMAIN_NAME}-release-metadata`
+      METADATA.release,
+      `${PLUGIN_REPO_ENS_SUBDOMAIN_NAME}-release-metadata`,
+      process.env.PUB_PINATA_JWT
     );
     buildMetadataURI = await uploadToPinata(
-      JSON.stringify(METADATA.build, null, 2),
-      `${PLUGIN_REPO_ENS_SUBDOMAIN_NAME}-build-metadata`
+      METADATA.build,
+      `${PLUGIN_REPO_ENS_SUBDOMAIN_NAME}-build-metadata`,
+      process.env.PUB_PINATA_JWT
     );
   }
   console.log(`Uploaded release metadata: ${releaseMetadataURI}`);
@@ -73,18 +82,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Check build number
   const latestBuild = (await pluginRepo.buildCount(VERSION.release)).toNumber();
-  if (VERSION.build < latestBuild) {
-    throw Error(
-      `Publishing with build number ${VERSION.build} is not possible. The latest build is ${latestBuild}. Aborting publication...`
-    );
-  }
-  if (VERSION.build > latestBuild + 1) {
-    throw Error(
-      `Publishing with build number ${VERSION.build} is not possible. 
+  if (latestBuild == 0 && VERSION.build > 1) {
+    // it means there's no build yet on the repo on the specific VERSION.release
+    // and build version in the plugin settings is > 1, meaning that
+    // it must push placeholder contracts and as the last one, push the actual plugin setup.
+  } else {
+    if (VERSION.build < latestBuild) {
+      throw Error(
+        `Publishing with build number ${VERSION.build} is not possible. The latest build is ${latestBuild}. Aborting publication...`
+      );
+    }
+    if (VERSION.build > latestBuild + 1) {
+      throw Error(
+        `Publishing with build number ${VERSION.build} is not possible. 
         The latest build is ${latestBuild} and the next release you can publish is release number ${
-        latestBuild + 1
-      }. Aborting publication...`
-    );
+          latestBuild + 1
+        }. Aborting publication...`
+      );
+    }
   }
 
   if (setup == undefined || setup?.receipt == undefined) {
@@ -114,6 +129,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       []
     )
   ) {
+    if (latestBuild == 0 && VERSION.build > 1) {
+      // We are publishing the first version as build > 1.
+      // So we need to publish placeholders first..
+      const placeholderSetup = process.env.PLACEHOLDER_SETUP;
+
+      if (!placeholderSetup || !isValidAddress(placeholderSetup)) {
+        throw new Error(
+          'Aborting. Placeholder setup not defined in .env or is not a valid address (is not an address or is address zero)'
+        );
+      }
+      await publishPlaceholderVersion(
+        placeholderSetup,
+        VERSION.build,
+        VERSION.release,
+        pluginRepo,
+        signer
+      );
+    }
+
     // Create the new version
     const tx = await pluginRepo
       .connect(signer)
@@ -139,6 +173,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   } else {
     // The deployer does not have `MAINTAINER_PERMISSION_ID` permission and we are not deploying to a production network,
     // so we write the data into a file for a management DAO member to create a proposal from it.
+    const pluginRepoInterface = PluginRepo__factory.createInterface();
+    const versionData = {
+      _release: VERSION.release,
+      _pluginSetup: setup.address,
+      _buildMetadata: ethers.utils.hexlify(
+        ethers.utils.toUtf8Bytes(buildMetadataURI)
+      ),
+      _releaseMetadata: ethers.utils.hexlify(
+        ethers.utils.toUtf8Bytes(releaseMetadataURI)
+      ),
+    };
+
+    const calldata = pluginRepoInterface.encodeFunctionData('createVersion', [
+      versionData._release,
+      versionData._pluginSetup,
+      versionData._buildMetadata,
+      versionData._releaseMetadata,
+    ]);
+
     const data = {
       proposalTitle: `Publish '${PLUGIN_CONTRACT_NAME}' plugin v${VERSION.release}.${VERSION.build}`,
       proposalSummary: `Publishes v${VERSION.release}.${VERSION.build} of the '${PLUGIN_CONTRACT_NAME}' plugin in the '${ensDomain}' plugin repo.`,
@@ -148,16 +201,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       actions: [
         {
           to: pluginRepo.address,
-          createVersion: {
-            _release: VERSION.release,
-            _pluginSetup: setup.address,
-            _buildMetadata: ethers.utils.hexlify(
-              ethers.utils.toUtf8Bytes(buildMetadataURI)
-            ),
-            _releaseMetadata: ethers.utils.hexlify(
-              ethers.utils.toUtf8Bytes(releaseMetadataURI)
-            ),
-          },
+          value: 0,
+          data: calldata,
+          createVersion: versionData,
         },
       ],
     };
