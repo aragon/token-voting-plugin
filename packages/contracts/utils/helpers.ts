@@ -73,7 +73,7 @@ export function pluginEnsDomain(hre: HardhatRuntimeEnvironment): string {
  * try to get the plugin repo first
  * 1- env var PLUGIN_REPO_ADDRESS
  * 2- try to get the latest network deployment
- * 3- from the commons configs
+ * 3- from the ens defined in the framework
  *   - plugin repo factory address from env var
  */
 export async function findPluginRepo(
