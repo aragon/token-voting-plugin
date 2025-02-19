@@ -23,7 +23,8 @@ import {
 } from '@aragon/osx-ethers';
 import {setBalance} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
-import {BigNumber, ContractTransaction, ethers} from 'ethers';
+import {BigNumber, ContractTransaction} from 'ethers';
+import {ethers} from 'hardhat';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 
 export function isLocal(hre: HardhatRuntimeEnvironment): boolean {

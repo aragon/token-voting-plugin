@@ -88,7 +88,18 @@ function getHardhatNetworkAccountsConfig(
 }
 
 // Add the accounts specified in the `.env` file to the networks from osx-commons-configs
-const networks: {[index: string]: NetworkUserConfig} = osxCommonsConfigNetworks;
+const networks: {[index: string]: NetworkUserConfig} = {
+  ...osxCommonsConfigNetworks,
+  agungTestnet: {
+    url: 'https://wss-async.agung.peaq.network',
+    chainId: 9990,
+    gasPrice: 25000000000,
+  },
+  peaq: {
+    url: 'https://erpc-mpfn1.peaq.network',
+    chainId: 3338,
+  },
+};
 for (const network of Object.keys(networks) as SupportedNetworks[]) {
   networks[network].accounts = specifiedAccounts();
 }
@@ -117,6 +128,10 @@ const config: HardhatUserConfig = {
   namedAccounts,
   networks: {
     hardhat: {
+      forking: {
+        url: 'https://mpfn1.peaq.network',
+        blockNumber: 3936303,
+      },
       throwOnTransactionFailures: true,
       allowBlocksWithSameTimestamp: true,
       throwOnCallFailures: true,
