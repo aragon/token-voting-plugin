@@ -232,20 +232,24 @@ func.skip = async (hre: HardhatRuntimeEnvironment) => {
     throw `PluginRepo '${pluginEnsDomain(hre)}' does not exist yet.`;
   }
 
-  const pastVersions = await getPastVersionCreatedEvents(pluginRepo);
+  try {
+    const pastVersions = await getPastVersionCreatedEvents(pluginRepo);
 
-  // Check if the version was published already
-  const filteredLogs = pastVersions.filter(
-    items =>
-      items.event.args.release === VERSION.release &&
-      items.event.args.build === VERSION.build
-  );
-
-  if (filteredLogs.length !== 0) {
-    console.log(
-      `Build number ${VERSION.build} has already been published for release ${VERSION.release}. Skipping publication...`
+    // Check if the version was published already
+    const filteredLogs = pastVersions.filter(
+      items =>
+        items.event.args.release === VERSION.release &&
+        items.event.args.build === VERSION.build
     );
-    return true;
+
+    if (filteredLogs.length !== 0) {
+      console.log(
+        `Build number ${VERSION.build} has already been published for release ${VERSION.release}. Skipping publication...`
+      );
+      return true;
+    }
+  } catch (error) {
+    console.log(`Could not get the previous version ${error}.`);
   }
 
   return false;
