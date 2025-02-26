@@ -5,8 +5,8 @@ import {
   SupportedNetworks,
 } from '@aragon/osx-commons-configs';
 import '@nomicfoundation/hardhat-chai-matchers';
-import '@nomicfoundation/hardhat-toolbox';
-import '@nomiclabs/hardhat-etherscan';
+import '@nomicfoundation/hardhat-network-helpers';
+import '@nomicfoundation/hardhat-verify';
 import '@openzeppelin/hardhat-upgrades';
 import '@typechain/hardhat';
 import {config as dotenvConfig} from 'dotenv';
@@ -128,10 +128,6 @@ const config: HardhatUserConfig = {
   namedAccounts,
   networks: {
     hardhat: {
-      forking: {
-        url: 'https://mpfn1.peaq.network',
-        blockNumber: 3936303,
-      },
       throwOnTransactionFailures: true,
       allowBlocksWithSameTimestamp: true,
       throwOnCallFailures: true,
@@ -152,6 +148,7 @@ const config: HardhatUserConfig = {
       polygon: process.env.POLYGONSCAN_API_KEY || '',
       base: process.env.BASESCAN_API_KEY || '',
       arbitrumOne: process.env.ARBISCAN_API_KEY || '',
+      peaq: '1',
     },
     customChains: [
       {
@@ -168,6 +165,15 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: 'https://api.basescan.org/api',
           browserURL: 'https://basescan.org',
+        },
+      },
+      {
+        network: 'peaq',
+        chainId: 3338,
+        urls: {
+          apiURL:
+            'https://peaq.api.subscan.io/api/scan/evm/contract/verifysource',
+          browserURL: 'https://peaq.subscan.io/',
         },
       },
     ],
