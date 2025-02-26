@@ -5,8 +5,8 @@ import {
   SupportedNetworks,
 } from '@aragon/osx-commons-configs';
 import '@nomicfoundation/hardhat-chai-matchers';
-import '@nomicfoundation/hardhat-toolbox';
-import '@nomiclabs/hardhat-etherscan';
+import '@nomicfoundation/hardhat-network-helpers';
+import '@nomicfoundation/hardhat-verify';
 import '@openzeppelin/hardhat-upgrades';
 import '@typechain/hardhat';
 import {config as dotenvConfig} from 'dotenv';
@@ -88,7 +88,18 @@ function getHardhatNetworkAccountsConfig(
 }
 
 // Add the accounts specified in the `.env` file to the networks from osx-commons-configs
-const networks: {[index: string]: NetworkUserConfig} = osxCommonsConfigNetworks;
+const networks: {[index: string]: NetworkUserConfig} = {
+  ...osxCommonsConfigNetworks,
+  agungTestnet: {
+    url: 'https://wss-async.agung.peaq.network',
+    chainId: 9990,
+    gasPrice: 25000000000,
+  },
+  peaq: {
+    url: 'https://erpc-mpfn1.peaq.network',
+    chainId: 3338,
+  },
+};
 for (const network of Object.keys(networks) as SupportedNetworks[]) {
   networks[network].accounts = specifiedAccounts();
 }
@@ -137,6 +148,7 @@ const config: HardhatUserConfig = {
       polygon: process.env.POLYGONSCAN_API_KEY || '',
       base: process.env.BASESCAN_API_KEY || '',
       arbitrumOne: process.env.ARBISCAN_API_KEY || '',
+      peaq: '1',
     },
     customChains: [
       {
@@ -153,6 +165,15 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: 'https://api.basescan.org/api',
           browserURL: 'https://basescan.org',
+        },
+      },
+      {
+        network: 'peaq',
+        chainId: 3338,
+        urls: {
+          apiURL:
+            'https://peaq.api.subscan.io/api/scan/evm/contract/verifysource',
+          browserURL: 'https://peaq.subscan.io/',
         },
       },
     ],
