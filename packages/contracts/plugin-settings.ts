@@ -9,7 +9,7 @@ export const PLUGIN_CONTRACT_NAME = 'TokenVoting'; // This must match the filena
 export const PLUGIN_SETUP_CONTRACT_NAME = 'TokenVotingSetup'; // This must match the filename `packages/contracts/src/MyPluginSetup.sol` and the contract name `MyPluginSetup` within.
 export const PLUGIN_SETUP_CONTRACT_NAME_ZKSYNC = 'TokenVotingSetupZkSync';
 
-export const PLUGIN_REPO_ENS_SUBDOMAIN_NAME = 'token-voting-test-1'; // This will result in the ENS domain name 'my.plugin.dao.eth'
+export const PLUGIN_REPO_ENS_SUBDOMAIN_NAME = 'token-voting'; // This will result in the ENS domain name 'my.plugin.dao.eth'
 
 export const GOVERNANCE_ERC20_CONTRACT_NAME = 'GovernanceERC20';
 export const GOVERNANCE_WRAPPED_ERC20_CONTRACT_NAME = 'GovernanceWrappedERC20';
