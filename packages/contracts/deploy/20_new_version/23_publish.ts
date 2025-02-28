@@ -195,9 +195,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const data = {
       proposalTitle: `Publish '${PLUGIN_CONTRACT_NAME}' plugin v${VERSION.release}.${VERSION.build}`,
       proposalSummary: `Publishes v${VERSION.release}.${VERSION.build} of the '${PLUGIN_CONTRACT_NAME}' plugin in the '${ensDomain}' plugin repo.`,
-      proposalDescription: `Publishes the '${PLUGIN_SETUP_CONTRACT_NAME}' deployed at '${setup.address}' 
-      as v${VERSION.release}.${VERSION.build} in the '${ensDomain}' plugin repo at '${pluginRepo.address}', 
-      with release metadata '${releaseMetadataURI}' and (immutable) build metadata '${buildMetadataURI}'.`,
+      proposalDescription: `\n- Publishes the **'${PLUGIN_SETUP_CONTRACT_NAME}'** deployed at **'${setup.address}'** as **v${VERSION.release}.${VERSION.build}** in the **'${ensDomain}'** plugin repo at **'${pluginRepo.address}'**, with release metadata **'${releaseMetadataURI}'** and (immutable) build metadata **'${buildMetadataURI}'**.`,
       actions: [
         {
           to: pluginRepo.address,
