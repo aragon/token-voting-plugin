@@ -19,11 +19,11 @@
   "exclude": ["node_modules"],
   "files": ["./hardhat.config.ts"],
   "include": [
+    "hardhat-zksync.config.ts",
     "src/**/*",
     "deploy/**/*",
     "test/**/*",
     "utils/**/*",
-    "plugin-settings.ts",
-    "scripts/**/*.ts"
+    "plugin-settings.ts"
   ]
 }

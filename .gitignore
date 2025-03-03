@@ -2,13 +2,20 @@
 .coverage_artifacts
 .coverage_cache
 .coverage_contracts
-artifacts
 build
 cache
 coverage
 dist
 node_modules
 typechain
+
+packages/contracts/deployments
+packages/contracts/.upgradable/
+packages/contracts/createVersionProposalData*.json
+
+packages/contracts/artifacts
+
+packages/artifacts/src/abi.ts
 
 docs
 
@@ -18,3 +25,7 @@ docs
 .DS_Store
 .pnp.*
 coverage.json
+
+artifacts-zk
+cache-zk
+deployments-zk

@@ -71,8 +71,8 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     /// @param addr The token address. If set to `address(0)`, a new `GovernanceERC20` token is deployed.
     ///     If the address implements `IVotes`, it will be used directly; otherwise,
     ///     it is wrapped as `GovernanceWrappedERC20`.
-    /// @param name The name of the token, relevant only if a new token is deployed (i.e., `addr` is `address(0)`).
-    /// @param symbol The symbol of the token, relevant only if a new token is deployed (i.e., `addr` is `address(0)`).
+    /// @param name The name of the token.
+    /// @param symbol The symbol of the token.
     struct TokenSettings {
         address addr;
         string name;

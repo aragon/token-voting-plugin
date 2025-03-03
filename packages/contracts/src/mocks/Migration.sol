@@ -16,6 +16,8 @@ pragma solidity ^0.8.8;
 /* solhint-disable no-unused-import */
 /* solhint-disable max-line-length */
 
+import {DAO} from "@aragon/osx/core/dao/DAO.sol";
+
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // Regression Testing

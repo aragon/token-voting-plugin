@@ -5,12 +5,29 @@
 [license]: https://opensource.org/licenses/AGPL-v3
 [license-badge]: https://img.shields.io/badge/License-AGPL_v3-blue.svg
 
+## Audit
+
+### v1.3.0
+
+**Halborn**: [audit report](https://github.com/aragon/osx/tree/main/audits/Halborn_AragonOSx_v1_4_Smart_Contract_Security_Assessment_Report_2025_01_03.pdf)
+
+- Commit ID: [02a7dbb95c42ebd2226117bf85a0fe330c788948](https://github.com/aragon/token-voting-plugin/commit/02a7dbb95c42ebd2226117bf85a0fe330c788948)
+- Started: 2024-11-18
+- Finished: 2025-02-13
+
 ## Project
 
 The root folder of the repo includes two subfolders:
 
 ```markdown
 .
+├── packages/artifacts
+│ ├── src
+│ ├── prepare-abi.sh
+│ ├── README.md
+│ ├── ...
+| └── package.json
+|
 ├── packages/contracts
 │ ├── src
 │ ├── deploy
@@ -26,7 +43,7 @@ The root folder of the repo includes two subfolders:
 The root-level `package.json` file contains global `dev-dependencies` for formatting and linting. After installing the dependencies with
 
 ```sh
-yarn install
+yarn --ignore-scripts
 ```
 
 you can run the associated [formatting](#formatting) and [linting](#linting) commands.
@@ -68,41 +85,40 @@ Note that if using some networks (e.g. sepolia), fork tests will be unable to fi
 
 ## Contracts
 
-In `packages/contracts`, first run
+This package is located in `packages/contracts`.
+
+### Install Dependencies
 
 ```sh
-yarn install
+yarn --ignore-scripts
 ```
 
 ### Building
 
-First build the contracts and
+To build the contracts on EVM based networks:
 
 ```sh
 yarn build
 ```
 
-and generate the [typechain TypeScript bindings](https://github.com/dethcrypto/TypeChain) with
+On Zksync:
 
 ```sh
-yarn typechain
+yarn build:zksync
 ```
-
-During development of your smart contracts, changes can result in altered typechain bindings.
-You can remove the outdated build- and typechain-related files with
-
-```sh
-yarn clean
-```
-
-which will execute `yarn typechain` again. For convenience, use `yarn clean && yarn build`.
 
 ### Testing
 
-To test your contracts, run
+To test your contracts on EVM based networks, run
 
 ```sh
 yarn test
+```
+
+On Zksync:
+
+```sh
+yarn test:zksync
 ```
 
 ### Linting
@@ -215,6 +231,15 @@ This will upgrade your plugin repo to the latest Aragon OSx protocol version imp
 **For this to work, make sure that you are using the latest version of [this repository](https://github.com/aragon/osx-plugin-template-hardhat) in your fork.**
 
 Note, that if the deploying account doesn't own the repo anymore, this will create a `upgradeRepoProposalData-sepolia.json` containing the data for a management DAO signer to create a proposal upgrading the repo.
+
+# <<<<<<< HEAD
+
+If you want to run deployments against zksync, you can use:
+
+```sh
+yarn deploy:zksync --network zksyncSepolia --tags ...
+yarn deploy:zksync --network zksyncMainnet --tags ...
+```
 
 ## License
 

@@ -4,6 +4,8 @@ import {
   TestGovernanceERC20__factory,
 } from '../../typechain';
 import {MajorityVotingBase} from '../../typechain/src';
+import {ZK_SYNC_NETWORKS} from '../../utils/zkSync';
+import {loadFixtureCustom} from '../test-utils/fixture';
 import {
   INITIALIZE_SIGNATURE,
   latestInitializerVersion,
@@ -21,17 +23,18 @@ import {
   getProtocolVersion,
 } from '../test-utils/uups-upgradeable';
 import {VotingMode} from '../test-utils/voting-helpers';
+import {ARTIFACT_SOURCES} from '../test-utils/wrapper';
 import {
+  DAO_PERMISSIONS,
   PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS,
   TIME,
   pctToRatio,
 } from '@aragon/osx-commons-sdk';
 import {DAO} from '@aragon/osx-ethers';
-import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
-import {ethers} from 'hardhat';
+import hre, {ethers} from 'hardhat';
 
 const AlreadyInitializedSignature =
   TokenVoting__factory.createInterface().encodeErrorResult(
@@ -40,55 +43,59 @@ const AlreadyInitializedSignature =
 
 describe('Upgrades', () => {
   it('upgrades to a new implementation', async () => {
-    const {deployer, alice, dao, defaultInitData} = await loadFixture(fixture);
-    const currentContractFactory = new TokenVoting__factory(deployer);
+    const {dao, defaultInitData} = await loadFixtureCustom(fixture);
 
     await deployAndUpgradeSelfCheck(
-      deployer,
-      alice,
-      [
-        dao.address,
-        defaultInitData.votingSettings,
-        defaultInitData.token.address,
-        defaultInitData.targetConfig,
-        defaultInitData.minApproval,
-        defaultInitData.metadata,
-      ],
-      INITIALIZE_SIGNATURE,
-      currentContractFactory,
+      0,
+      1,
+      {
+        initArgs: {
+          dao: dao.address,
+          votingSettings: defaultInitData.votingSettings,
+          tokenAddress: defaultInitData.token.address,
+          targetConfig: defaultInitData.targetConfig,
+          minApproval: defaultInitData.minApproval,
+          metadata: defaultInitData.metadata,
+        },
+        initializerName: 'initialize',
+      },
+      ARTIFACT_SOURCES.TokenVoting,
+      ARTIFACT_SOURCES.TokenVoting,
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
       dao
     );
   });
 
   it('upgrades from v1.0.0 with `initializeFrom`', async () => {
-    const {deployer, alice, dao, defaultInitData, encodedParamsForUpgrade} =
-      await loadFixture(fixture);
+    const {deployer, dao, defaultInitData, encodeDataForUpgrade} =
+      await loadFixtureCustom(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
     const legacyContractFactory = new TokenVoting_V1_0_0__factory(deployer);
 
     const data = [
-      deployer,
-      alice,
-      [
-        dao.address,
-        defaultInitData.votingSettings,
-        defaultInitData.token.address,
-      ],
-      'initialize',
-      legacyContractFactory,
-      currentContractFactory,
+      0,
+      1,
+      {
+        initArgs: [
+          dao.address,
+          defaultInitData.votingSettings,
+          defaultInitData.token.address,
+        ],
+        initializerName: 'initialize',
+        reinitializerName: 'initialize',
+        reinitArgs: [
+          dao.address,
+          defaultInitData.votingSettings,
+          defaultInitData.token.address,
+          defaultInitData.targetConfig,
+          defaultInitData.minApproval,
+          defaultInitData.metadata,
+        ],
+      },
+      ARTIFACT_SOURCES.TokenVoting_V1_0_0,
+      ARTIFACT_SOURCES.TokenVoting,
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
       dao,
-      'initialize',
-      [
-        dao.address,
-        defaultInitData.votingSettings,
-        defaultInitData.token.address,
-        defaultInitData.targetConfig,
-        defaultInitData.minApproval,
-        defaultInitData.metadata,
-      ],
     ];
 
     // Ensure that on the `upgrade`, `initialize` can not be called.
@@ -99,15 +106,18 @@ describe('Upgrades', () => {
       );
       throw new Error('');
     } catch (err: any) {
-      if (err.data === undefined) {
-        throw err;
+      if (!ZK_SYNC_NETWORKS.includes(hre.network.name)) {
+        if (err.data == undefined) {
+          throw err;
+        }
+        expect(err.data).to.equal(AlreadyInitializedSignature);
       }
-      expect(err.data).to.equal(AlreadyInitializedSignature);
     }
 
-    data[8] = 'initializeFrom';
+    // @ts-expect-error `data` doesn't have type.
+    data[2].reinitializerName = 'initializeFrom';
     // @ts-expect-error types castings will work
-    data[9] = [latestInitializerVersion, encodedParamsForUpgrade];
+    data[2].reinitArgs = [latestInitializerVersion, encodeDataForUpgrade];
 
     const {proxy, fromImplementation, toImplementation} =
       await deployAndUpgradeFromToCheck(
@@ -160,52 +170,57 @@ describe('Upgrades', () => {
   });
 
   it('upgrades from v1.3.0 with `initializeFrom`', async () => {
-    const {deployer, alice, dao, defaultInitData, encodedParamsForUpgrade} =
-      await loadFixture(fixture);
+    const {deployer, dao, defaultInitData, encodeDataForUpgrade} =
+      await loadFixtureCustom(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
     const legacyContractFactory = new TokenVoting_V1_3_0__factory(deployer);
 
     const data = [
-      deployer,
-      alice,
-      [
-        dao.address,
-        defaultInitData.votingSettings,
-        defaultInitData.token.address,
-      ],
-      'initialize',
-      legacyContractFactory,
-      currentContractFactory,
+      0,
+      1,
+      {
+        initArgs: [
+          dao.address,
+          defaultInitData.votingSettings,
+          defaultInitData.token.address,
+        ],
+        initializerName: 'initialize',
+        reinitializerName: 'initialize',
+        reinitArgs: [
+          dao.address,
+          defaultInitData.votingSettings,
+          defaultInitData.token.address,
+          defaultInitData.targetConfig,
+          defaultInitData.minApproval,
+          defaultInitData.metadata,
+        ],
+      },
+      ARTIFACT_SOURCES.TokenVoting_V1_3_0,
+      ARTIFACT_SOURCES.TokenVoting,
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
       dao,
-      'initialize',
-      [
-        dao.address,
-        defaultInitData.votingSettings,
-        defaultInitData.token.address,
-        defaultInitData.targetConfig,
-        defaultInitData.minApproval,
-        defaultInitData.metadata,
-      ],
     ];
 
     // Ensure that on the `upgrade`, `initialize` can not be called.
     try {
       await deployAndUpgradeFromToCheck(
         // @ts-expect-error correct data type
-
         ...data
       );
       throw new Error('');
     } catch (err: any) {
-      if (err.data === undefined) {
-        throw err;
+      if (!ZK_SYNC_NETWORKS.includes(hre.network.name)) {
+        if (err.data == undefined) {
+          throw err;
+        }
+        expect(err.data).to.equal(AlreadyInitializedSignature);
       }
-      expect(err.data).to.equal(AlreadyInitializedSignature);
     }
-    data[8] = 'initializeFrom';
+
+    // @ts-expect-error `data` doesn't have type.
+    data[2].reinitializerName = 'initializeFrom';
     // @ts-expect-error types castings will work
-    data[9] = [latestInitializerVersion, encodedParamsForUpgrade];
+    data[2].reinitArgs = [latestInitializerVersion, encodeDataForUpgrade];
 
     const {proxy, fromImplementation, toImplementation} =
       await deployAndUpgradeFromToCheck(
@@ -271,7 +286,7 @@ type FixtureResult = {
     targetConfig: TargetConfig;
     metadata: string;
   };
-  encodedParamsForUpgrade: string;
+  encodeDataForUpgrade: string;
 };
 
 async function fixture(): Promise<FixtureResult> {
@@ -281,15 +296,17 @@ async function fixture(): Promise<FixtureResult> {
 
   const dao = await createDaoProxy(deployer, dummyMetadata);
 
-  const token = await new TestGovernanceERC20__factory(deployer).deploy(
-    dao.address,
-    'GOV',
-    'GOV',
-    {
-      receivers: [],
-      amounts: [],
-    }
-  );
+  const token = await hre.wrapper.deploy(ARTIFACT_SOURCES.TestGovernanceERC20, {
+    args: [
+      dao.address,
+      'GOV',
+      'GOV',
+      {
+        receivers: [],
+        amounts: [],
+      },
+    ],
+  });
 
   const votingSettings: MajorityVotingBase.VotingSettingsStruct = {
     votingMode: VotingMode.EarlyExecution,
@@ -312,7 +329,7 @@ async function fixture(): Promise<FixtureResult> {
   };
 
   // initial data is minApproval and targetConfig
-  const encodedParamsForUpgrade = ethers.utils.defaultAbiCoder.encode(
+  const encodeDataForUpgrade = ethers.utils.defaultAbiCoder.encode(
     ['uint256', 'address', 'uint8', 'bytes'],
     [
       defaultInitData.minApproval,
@@ -329,6 +346,6 @@ async function fixture(): Promise<FixtureResult> {
     carol,
     dao,
     defaultInitData,
-    encodedParamsForUpgrade,
+    encodeDataForUpgrade,
   };
 }

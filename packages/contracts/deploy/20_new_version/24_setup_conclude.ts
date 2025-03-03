@@ -3,12 +3,15 @@ import {
   GOVERNANCE_ERC20_DEPLOY_ARGS,
   GOVERNANCE_WRAPPED_ERC20_CONTRACT_NAME,
   GOVERNANCE_WRAPPED_ERC20_DEPLOY_ARGS,
-  PLUGIN_SETUP_CONTRACT_NAME,
 } from '../../plugin-settings';
 import {TokenVotingSetup__factory, TokenVoting__factory} from '../../typechain';
+import {pluginSetupContractName} from '../helpers';
+import hre from 'hardhat';
 import {DeployFunction} from 'hardhat-deploy/types';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import path from 'path';
+
+const PLUGIN_SETUP_CONTRACT_NAME = pluginSetupContractName(hre);
 
 /**
  * Concludes the plugin setup and implementation contract deployment by queuing the addresses in the verification array.
@@ -48,10 +51,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   hre.aragonToVerifyContracts.push({
     address: implementation.address,
-    args: [
-      governanceERC20DeployResult.address,
-      governanceWrappedERC20DeployResult.address,
-    ],
+    args: [],
   });
 
   hre.aragonToVerifyContracts.push({
