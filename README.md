@@ -232,8 +232,6 @@ This will upgrade your plugin repo to the latest Aragon OSx protocol version imp
 
 Note, that if the deploying account doesn't own the repo anymore, this will create a `upgradeRepoProposalData-sepolia.json` containing the data for a management DAO signer to create a proposal upgrading the repo.
 
-# <<<<<<< HEAD
-
 If you want to run deployments against zksync, you can use:
 
 ```sh
