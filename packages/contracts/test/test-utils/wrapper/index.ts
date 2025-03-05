@@ -1,4 +1,4 @@
-import {ProxyCreatedEvent} from '../../../typechain/ProxyFactory';
+import {ProxyCreatedEvent} from '../../../typechain/@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory';
 import {HardhatClass} from './hardhat';
 import {ZkSync} from './zksync';
 import {findEvent} from '@aragon/osx-commons-sdk';

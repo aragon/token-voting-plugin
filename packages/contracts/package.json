@@ -14,7 +14,7 @@
     "test:zksync": "hardhat test-contracts --config hardhat-zksync.config.ts",
     "docs": "DOCS=true scripts/prepare-docs.sh",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
-    "clean": "rimraf ./artifacts ./cache ./coverage ./typechain ./types ./coverage.json"
+    "clean": "rimraf ./artifacts ./cache ./coverage ./typechain ./coverage.json && yarn typechain"
   },
   "dependencies": {
     "@aragon/osx-commons-contracts": "1.4.0-alpha.8",
