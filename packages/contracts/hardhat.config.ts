@@ -143,28 +143,103 @@ const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   etherscan: {
     apiKey: {
-      mainnet: process.env.ETHERSCAN_API_KEY || '',
-      sepolia: process.env.ETHERSCAN_API_KEY || '',
-      polygon: process.env.POLYGONSCAN_API_KEY || '',
-      base: process.env.BASESCAN_API_KEY || '',
-      arbitrumOne: process.env.ARBISCAN_API_KEY || '',
+      mainnet: process.env.ETHERSCAN_KEY || '',
+      sepolia: process.env.ETHERSCAN_KEY || '',
+      holesky: process.env.ETHERSCAN_KEY || '',
+      polygon: process.env.POLYGONSCAN_KEY || '',
+      polygonMumbai: process.env.POLYGONSCAN_KEY || '',
+      baseMainnet: process.env.BASESCAN_KEY || '',
+      baseGoerli: process.env.BASESCAN_KEY || '',
+      baseSepolia: process.env.BASESCAN_KEY || '',
+      arbitrumOne: process.env.ARBISCAN_KEY || '',
+      arbitrumSepolia: process.env.ARBISCAN_KEY || '',
+      modeTestnet: 'modeTestnet',
+      modeMainnet: 'modeMainnet',
+      lineaSepolia: process.env.LINEASCAN_KEY || '',
+      linea: process.env.LINEASCAN_KEY || '',
       peaq: '1',
     },
     customChains: [
       {
-        network: 'sepolia',
-        chainId: 11155111,
+        network: 'polygon',
+        chainId: 137,
         urls: {
-          apiURL: 'https://api-sepolia.etherscan.io/api',
-          browserURL: 'https://sepolia.etherscan.io',
+          apiURL: 'https://api.polygonscan.com/api',
+          browserURL: 'https://polygonscan.com',
         },
       },
       {
-        network: 'base',
+        network: 'baseMainnet',
         chainId: 8453,
         urls: {
           apiURL: 'https://api.basescan.org/api',
           browserURL: 'https://basescan.org',
+        },
+      },
+      {
+        network: 'baseSepolia',
+        chainId: 84532,
+        urls: {
+          apiURL: 'https://api-sepolia.basescan.org/api',
+          browserURL: 'https://sepolia.basescan.org',
+        },
+      },
+      {
+        network: 'arbitrumSepolia',
+        chainId: 421614,
+        urls: {
+          apiURL: 'https://api-sepolia.arbiscan.io/api',
+          browserURL: 'https://sepolia.arbiscan.io',
+        },
+      },
+      {
+        network: 'arbitrumOne',
+        chainId: 421614,
+        urls: {
+          apiURL: 'https://api.arbiscan.io/api',
+          browserURL: 'https://arbiscan.io',
+        },
+      },
+      {
+        network: 'holesky',
+        chainId: 17000,
+        urls: {
+          apiURL: 'https://api-holesky.etherscan.io/api',
+          browserURL: 'https://holesky.etherscan.io',
+        },
+      },
+      {
+        network: 'modeTestnet',
+        chainId: 919,
+        urls: {
+          apiURL:
+            'https://api.routescan.io/v2/network/testnet/evm/919/etherscan',
+          browserURL: 'https://testnet.modescan.io',
+        },
+      },
+      {
+        network: 'modeMainnet',
+        chainId: 34443,
+        urls: {
+          apiURL:
+            'https://api.routescan.io/v2/network/mainnet/evm/34443/etherscan',
+          browserURL: 'https://modescan.io',
+        },
+      },
+      {
+        network: 'lineaSepolia',
+        chainId: 59141,
+        urls: {
+          apiURL: 'https://api-sepolia.lineascan.build/api',
+          browserURL: 'https://sepolia.lineascan.build',
+        },
+      },
+      {
+        network: 'linea',
+        chainId: 59144,
+        urls: {
+          apiURL: 'https://api.lineascan.build/api',
+          browserURL: 'https://lineascan.build',
         },
       },
       {
