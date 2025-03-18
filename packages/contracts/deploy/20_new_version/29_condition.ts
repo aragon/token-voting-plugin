@@ -9,7 +9,7 @@ import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import path from 'path';
 
 /**
- * Deploys the plugin setup contract with the plugin implementation inside.
+ * Deploys the voting power condition contract.
  * @param {HardhatRuntimeEnvironment} hre
  */
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deployer
   );
   // Get the plugin implementation address
-  const implementationAddress = await setup.implementation()
+  const implementationAddress = await setup.implementation();
 
   const res = await deploy(VOTING_POWER_CONDITION_CONTRACT_NAME, {
     from: deployer.address,
