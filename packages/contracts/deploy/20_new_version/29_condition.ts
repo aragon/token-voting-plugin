@@ -29,20 +29,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deployer
   );
   // Get the plugin implementation address
-  const implementation = TokenVoting__factory.connect(
-    await setup.implementation(),
-    deployer
-  );
+  const implementationAddress = await setup.implementation()
 
   const res = await deploy(VOTING_POWER_CONDITION_CONTRACT_NAME, {
     from: deployer.address,
-    args: [implementation.address],
+    args: [implementationAddress],
     log: true,
   });
 
   hre.aragonToVerifyContracts.push({
     address: res.address,
-    args: [implementation.address],
+    args: [implementationAddress],
   });
 
   console.log(
