@@ -14,7 +14,9 @@ import path from 'path';
  */
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`\n🏗️  ${path.basename(__filename)}:`);
-  console.log(`Deploy a dummy ${VOTING_POWER_CONDITION_CONTRACT_NAME} contract, only for the purpose of verification on explorers`);
+  console.log(
+    `Deploy a dummy ${VOTING_POWER_CONDITION_CONTRACT_NAME} contract, only for the purpose of verification on explorers`
+  );
 
   const {deployments} = hre;
   const {deploy} = deployments;
