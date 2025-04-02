@@ -94,6 +94,7 @@ find "$SOURCE_DIR" -maxdepth 1 -name '*.json' | sort | while read source_file; d
 
     if [[ $jq_exit_code -ne 0 || "$value" == "null" ]]; then
         echo "  Warning: Could not find 'TokenVotingRepoProxy' under 'v1.4.0' or 'v1.3.0' in '$filename'. Skipping." >&2
+        continue
     fi
 
     echo "  Found $value"
