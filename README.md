@@ -15,6 +15,10 @@
 - Started: 2024-11-18
 - Finished: 2025-02-13
 
+## ABI and artifacts
+
+Check out the [artifacts folder](./packages/artifacts/README.md) to get the deployed addresses and the contract ABI's.
+
 ## Project
 
 The root folder of the repo includes two subfolders:
