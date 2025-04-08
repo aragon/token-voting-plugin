@@ -1,11 +1,13 @@
 {
   "private": true,
   "version": "1.3",
+  "author": "Aragon X",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aragon/token-voting-plugin"
+    "url": "https://github.com/aragon/token-voting-plugin",
+    "directory": "packages/contracts"
   },
-  "author": "Aragon",
+  "homepage": "https://github.com/aragon/token-voting-plugin#readme",
   "license": "AGPL-3.0-or-later",
   "files": [
     "/src"
