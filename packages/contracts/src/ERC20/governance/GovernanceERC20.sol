@@ -118,6 +118,10 @@ contract GovernanceERC20 is
             if (!_mintSettings.excluded[i]) continue;
 
             excludedAccounts.push(_mintSettings.receivers[i]);
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
