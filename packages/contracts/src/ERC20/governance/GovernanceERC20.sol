@@ -32,19 +32,33 @@ contract GovernanceERC20 is
     /// @notice The permission identifier to mint new tokens
     bytes32 public constant MINT_PERMISSION_ID = keccak256("MINT_PERMISSION");
 
+    /// @notice The list of addresses excluded from voting
+    address[] public excludedAccounts;
+
     /// @notice The settings for the initial mint of the token.
     /// @param receivers The receivers of the tokens.
     /// @param amounts The amounts of tokens to be minted for each receiver.
+    /// @param amounts Wether each receiver should be excluded from voting purposes.
     /// @dev The lengths of `receivers` and `amounts` must match.
+    /// @dev `excluded` can be empty. Otherwise it must match the length of `receivers`.
     struct MintSettings {
         address[] receivers;
         uint256[] amounts;
+        bool[] excluded;
     }
 
     /// @notice Thrown if the number of receivers and amounts specified in the mint settings do not match.
     /// @param receiversArrayLength The length of the `receivers` array.
     /// @param amountsArrayLength The length of the `amounts` array.
-    error MintSettingsArrayLengthMismatch(uint256 receiversArrayLength, uint256 amountsArrayLength);
+    /// @param excludedArrayLength The length of the `excluded` array.
+    error MintSettingsArrayLengthMismatch(
+        uint256 receiversArrayLength,
+        uint256 amountsArrayLength,
+        uint256 excludedArrayLength
+    );
+
+    /// @notice Thrown when an excluded account attempts to engage in voting activity.
+    error ExcludedAccount();
 
     /// @notice Calls the initialize function.
     /// @param _dao The managing DAO.
@@ -75,7 +89,17 @@ contract GovernanceERC20 is
         if (_mintSettings.receivers.length != _mintSettings.amounts.length) {
             revert MintSettingsArrayLengthMismatch({
                 receiversArrayLength: _mintSettings.receivers.length,
-                amountsArrayLength: _mintSettings.amounts.length
+                amountsArrayLength: _mintSettings.amounts.length,
+                excludedArrayLength: _mintSettings.excluded.length
+            });
+        } else if (
+            _mintSettings.excluded.length > 0 &&
+            _mintSettings.receivers.length != _mintSettings.excluded.length
+        ) {
+            revert MintSettingsArrayLengthMismatch({
+                receiversArrayLength: _mintSettings.receivers.length,
+                amountsArrayLength: _mintSettings.amounts.length,
+                excludedArrayLength: _mintSettings.excluded.length
             });
         }
 
@@ -90,6 +114,11 @@ contract GovernanceERC20 is
                 ++i;
             }
         }
+        for (uint256 i; i < _mintSettings.excluded.length; ) {
+            if (!_mintSettings.excluded[i]) continue;
+
+            excludedAccounts.push(_mintSettings.receivers[i]);
+        }
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -103,6 +132,41 @@ contract GovernanceERC20 is
             _interfaceId == type(IVotesUpgradeable).interfaceId ||
             _interfaceId == type(IERC20MintableUpgradeable).interfaceId ||
             super.supportsInterface(_interfaceId);
+    }
+
+    function delegate(address account) public override {
+        for (uint256 i; i < excludedAccounts.length; i++) {
+            if (msg.sender != excludedAccounts[i]) continue;
+
+            revert ExcludedAccount();
+        }
+        super.delegate(account);
+    }
+
+    /// @inheritdoc ERC20VotesUpgradeable
+    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
+    function getPastVotes(
+        address account,
+        uint256 timepoint
+    ) public view override returns (uint256) {
+        for (uint256 i; i < excludedAccounts.length; ++i) {
+            if (account == excludedAccounts[i]) {
+                return 0;
+            }
+        }
+        return super.getPastVotes(account, timepoint);
+    }
+
+    /// @inheritdoc ERC20VotesUpgradeable
+    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
+    function getPastTotalSupply(uint256 timepoint) public view override returns (uint256) {
+        uint256 excludedSupply = super.getPastVotes(address(0), timepoint);
+        for (uint256 i; i < excludedAccounts.length; ++i) {
+            /// @dev Using getPastVotes() even though these addresses cannot self delegate.
+            /// @dev Another account could transfer a delegated balance to them.
+            excludedSupply += super.getPastVotes(excludedAccounts[i], timepoint);
+        }
+        return super.getPastTotalSupply(timepoint) - excludedSupply;
     }
 
     /// @notice Mints tokens to an address.
