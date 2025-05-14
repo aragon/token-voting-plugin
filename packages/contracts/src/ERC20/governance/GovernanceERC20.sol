@@ -35,6 +35,9 @@ contract GovernanceERC20 is
     /// @notice The list of addresses excluded from voting
     address[] public excludedAccounts;
 
+    /// @notice Wether mint() has been permanently disabled
+    bool public mintingFrozen;
+
     /// @notice The settings for the initial mint of the token.
     /// @param receivers The receivers of the tokens.
     /// @param amounts The amounts of tokens to be minted for each receiver.
@@ -47,6 +50,9 @@ contract GovernanceERC20 is
         bool[] excluded;
     }
 
+    /// @notice Emitted when minting is frozen permanently
+    event MintingFrozen();
+
     /// @notice Thrown if the number of receivers and amounts specified in the mint settings do not match.
     /// @param receiversArrayLength The length of the `receivers` array.
     /// @param amountsArrayLength The length of the `amounts` array.
@@ -58,7 +64,10 @@ contract GovernanceERC20 is
     );
 
     /// @notice Thrown when an excluded account attempts to engage in voting activity.
-    error ExcludedAccount();
+    error AccountIsExcluded();
+
+    /// @notice Thrown when attempting to mint when minting is permanently disabled
+    error MintingIsFrozen();
 
     /// @notice Calls the initialize function.
     /// @param _dao The managing DAO.
@@ -142,7 +151,7 @@ contract GovernanceERC20 is
         for (uint256 i; i < excludedAccounts.length; i++) {
             if (msg.sender != excludedAccounts[i]) continue;
 
-            revert ExcludedAccount();
+            revert AccountIsExcluded();
         }
         super.delegate(account);
     }
@@ -177,7 +186,19 @@ contract GovernanceERC20 is
     /// @param to The address receiving the tokens.
     /// @param amount The amount of tokens to be minted.
     function mint(address to, uint256 amount) external override auth(MINT_PERMISSION_ID) {
+        if (mintingFrozen) {
+            revert MintingIsFrozen();
+        }
+
         _mint(to, amount);
+    }
+
+    /// @notice Disables the mint() function permanently.
+    function freezeMinting() external auth(MINT_PERMISSION_ID) {
+        if (mintingFrozen) return;
+
+        mintingFrozen = true;
+        emit MintingFrozen();
     }
 
     // https://forum.openzeppelin.com/t/self-delegation-in-erc20votes/17501/12?u=novaknole

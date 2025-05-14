@@ -44,7 +44,7 @@ contract GovernanceWrappedERC20 is
     address[] public excludedAccounts;
 
     /// @notice Thrown when an excluded account attempts to engage in voting activity.
-    error ExcludedAccount();
+    error AccountIsExcluded();
 
     /// @notice Thrown when attempting to mint on the wrapper, rather than the underlying token.
     error MintUnavailable();
@@ -118,7 +118,7 @@ contract GovernanceWrappedERC20 is
         for (uint256 i; i < excludedAccounts.length; i++) {
             if (msg.sender != excludedAccounts[i]) continue;
 
-            revert ExcludedAccount();
+            revert AccountIsExcluded();
         }
         super.delegate(_account);
     }
