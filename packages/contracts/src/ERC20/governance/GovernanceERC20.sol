@@ -41,13 +41,10 @@ contract GovernanceERC20 is
     /// @notice The settings for the initial mint of the token.
     /// @param receivers The receivers of the tokens.
     /// @param amounts The amounts of tokens to be minted for each receiver.
-    /// @param amounts Wether each receiver should be excluded from voting purposes.
     /// @dev The lengths of `receivers` and `amounts` must match.
-    /// @dev `excluded` can be empty. Otherwise it must match the length of `receivers`.
     struct MintSettings {
         address[] receivers;
         uint256[] amounts;
-        bool[] excluded;
     }
 
     /// @notice Emitted when minting is frozen permanently
@@ -56,12 +53,7 @@ contract GovernanceERC20 is
     /// @notice Thrown if the number of receivers and amounts specified in the mint settings do not match.
     /// @param receiversArrayLength The length of the `receivers` array.
     /// @param amountsArrayLength The length of the `amounts` array.
-    /// @param excludedArrayLength The length of the `excluded` array.
-    error MintSettingsArrayLengthMismatch(
-        uint256 receiversArrayLength,
-        uint256 amountsArrayLength,
-        uint256 excludedArrayLength
-    );
+    error MintSettingsArrayLengthMismatch(uint256 receiversArrayLength, uint256 amountsArrayLength);
 
     /// @notice Thrown when an excluded account attempts to engage in voting activity.
     error AccountIsExcluded();
@@ -74,13 +66,15 @@ contract GovernanceERC20 is
     /// @param _name The name of the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) governance token.
     /// @param _symbol The symbol of the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) governance token.
     /// @param _mintSettings The token mint settings struct containing the `receivers` and `amounts`.
+    /// @param _excludedAccounts The list of accounts excluded from voting.
     constructor(
         IDAO _dao,
         string memory _name,
         string memory _symbol,
-        MintSettings memory _mintSettings
+        MintSettings memory _mintSettings,
+        address[] memory _excludedAccounts
     ) {
-        initialize(_dao, _name, _symbol, _mintSettings);
+        initialize(_dao, _name, _symbol, _mintSettings, _excludedAccounts);
     }
 
     /// @notice Initializes the contract and mints tokens to a list of receivers.
@@ -88,27 +82,19 @@ contract GovernanceERC20 is
     /// @param _name The name of the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) governance token.
     /// @param _symbol The symbol of the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) governance token.
     /// @param _mintSettings The token mint settings struct containing the `receivers` and `amounts`.
+    /// @param _excludedAccounts The list of accounts excluded from voting.
     function initialize(
         IDAO _dao,
         string memory _name,
         string memory _symbol,
-        MintSettings memory _mintSettings
+        MintSettings memory _mintSettings,
+        address[] memory _excludedAccounts
     ) public initializer {
         // Check mint settings
         if (_mintSettings.receivers.length != _mintSettings.amounts.length) {
             revert MintSettingsArrayLengthMismatch({
                 receiversArrayLength: _mintSettings.receivers.length,
-                amountsArrayLength: _mintSettings.amounts.length,
-                excludedArrayLength: _mintSettings.excluded.length
-            });
-        } else if (
-            _mintSettings.excluded.length > 0 &&
-            _mintSettings.receivers.length != _mintSettings.excluded.length
-        ) {
-            revert MintSettingsArrayLengthMismatch({
-                receiversArrayLength: _mintSettings.receivers.length,
-                amountsArrayLength: _mintSettings.amounts.length,
-                excludedArrayLength: _mintSettings.excluded.length
+                amountsArrayLength: _mintSettings.amounts.length
             });
         }
 
@@ -123,10 +109,8 @@ contract GovernanceERC20 is
                 ++i;
             }
         }
-        for (uint256 i; i < _mintSettings.excluded.length; ) {
-            if (!_mintSettings.excluded[i]) continue;
-
-            excludedAccounts.push(_mintSettings.receivers[i]);
+        for (uint256 i; i < _excludedAccounts.length; ) {
+            excludedAccounts.push(_excludedAccounts[i]);
 
             unchecked {
                 ++i;
