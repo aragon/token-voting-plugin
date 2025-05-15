@@ -182,23 +182,17 @@ contract GovernanceWrappedERC20 is
 
     /// @inheritdoc ERC20VotesUpgradeable
     function _mint(
-        address _to,
-        uint256 _amount
-    ) internal pure override(ERC20VotesUpgradeable, ERC20Upgradeable) {
-        // Silence the warning
-        (_to, _amount);
-
-        revert MintUnavailable();
+        address to,
+        uint256 amount
+    ) internal override(ERC20VotesUpgradeable, ERC20Upgradeable) {
+        super._mint(to, amount);
     }
 
     /// @inheritdoc ERC20VotesUpgradeable
     function _burn(
-        address _account,
-        uint256 _amount
-    ) internal pure override(ERC20VotesUpgradeable, ERC20Upgradeable) {
-        // Silence the warning
-        (_account, _amount);
-
-        revert BurnUnavailable();
+        address account,
+        uint256 amount
+    ) internal override(ERC20VotesUpgradeable, ERC20Upgradeable) {
+        super._burn(account, amount);
     }
 }
