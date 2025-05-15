@@ -129,7 +129,8 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
 
         address token = tokenSettings.addr;
 
-        if (tokenSettings.addr != address(0)) {
+        // Use the given token
+        if (token != address(0)) {
             if (!token.isContract()) {
                 revert TokenNotContract(token);
             }
@@ -140,17 +141,19 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
 
             if (!supportsIVotesInterface(token)) {
                 token = governanceWrappedERC20Base.clone();
+
                 // User already has a token. We need to wrap it in
                 // GovernanceWrappedERC20 in order to make the token
                 // include governance functionality.
                 GovernanceWrappedERC20(token).initialize(
                     IERC20Upgradeable(tokenSettings.addr),
                     tokenSettings.name,
-                    tokenSettings.symbol
+                    tokenSettings.symbol,
+                    new address[](0)
                 );
             }
         } else {
-            // Clone a `GovernanceERC20`.
+            // Create a new token: Clone a `GovernanceERC20`.
             token = governanceERC20Base.clone();
             GovernanceERC20(token).initialize(
                 IDAO(_dao),
