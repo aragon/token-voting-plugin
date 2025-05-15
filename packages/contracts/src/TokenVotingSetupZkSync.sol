@@ -98,18 +98,9 @@ contract TokenVotingSetupZkSync is PluginUpgradeableSetup {
             GovernanceERC20.MintSettings memory mintSettings,
             IPlugin.TargetConfig memory targetConfig,
             uint256 minApprovals,
-            bytes memory pluginMetadata
-        ) = abi.decode(
-                _data,
-                (
-                    MajorityVotingBase.VotingSettings,
-                    TokenSettings,
-                    GovernanceERC20.MintSettings,
-                    IPlugin.TargetConfig,
-                    uint256,
-                    bytes
-                )
-            );
+            bytes memory pluginMetadata,
+            address[] memory excludedAccounts
+        ) = decodeInstallationParameters(_data);
 
         address token = tokenSettings.addr;
 
@@ -127,7 +118,8 @@ contract TokenVotingSetupZkSync is PluginUpgradeableSetup {
                     new GovernanceWrappedERC20(
                         IERC20Upgradeable(tokenSettings.addr),
                         tokenSettings.name,
-                        tokenSettings.symbol
+                        tokenSettings.symbol,
+                        excludedAccounts
                     )
                 );
             }
@@ -137,7 +129,8 @@ contract TokenVotingSetupZkSync is PluginUpgradeableSetup {
                     IDAO(_dao),
                     tokenSettings.name,
                     tokenSettings.symbol,
-                    mintSettings
+                    mintSettings,
+                    excludedAccounts
                 )
             );
         }
@@ -375,6 +368,61 @@ contract TokenVotingSetupZkSync is PluginUpgradeableSetup {
             data2.length == 0x20 &&
             success3 &&
             data3.length == 0x20);
+    }
+
+    /// @notice Encodes the given installation parameters into a byte array
+    function encodeInstallationParameters(
+        MajorityVotingBase.VotingSettings memory votingSettings,
+        TokenSettings memory tokenSettings,
+        // only used for GovernanceERC20(token is not passed)
+        GovernanceERC20.MintSettings memory mintSettings,
+        IPlugin.TargetConfig memory targetConfig,
+        uint256 minApprovals,
+        bytes memory pluginMetadata,
+        address[] memory excludedAccounts
+    ) external pure returns (bytes memory) {
+        return
+            abi.encode(
+                votingSettings,
+                tokenSettings,
+                mintSettings,
+                targetConfig,
+                minApprovals,
+                pluginMetadata,
+                excludedAccounts
+            );
+    }
+
+    /// @notice Decodes the given byte array into the original installation parameters
+    function decodeInstallationParameters(
+        bytes memory _data
+    )
+        public
+        pure
+        returns (
+            MajorityVotingBase.VotingSettings memory votingSettings,
+            TokenSettings memory tokenSettings,
+            // only used for GovernanceERC20(token is not passed)
+            GovernanceERC20.MintSettings memory mintSettings,
+            IPlugin.TargetConfig memory targetConfig,
+            uint256 minApprovals,
+            bytes memory pluginMetadata,
+            address[] memory excludedAccounts
+        )
+    {
+        return
+            abi.decode(
+                _data,
+                (
+                    MajorityVotingBase.VotingSettings,
+                    TokenSettings,
+                    GovernanceERC20.MintSettings,
+                    IPlugin.TargetConfig,
+                    uint256,
+                    bytes,
+                    address[]
+                )
+            );
     }
 
     /// @notice Unsatisfiably determines if the contract is an ERC20 token.
