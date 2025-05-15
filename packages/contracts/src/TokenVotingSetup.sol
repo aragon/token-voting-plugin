@@ -105,74 +105,86 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
         address _dao,
         bytes calldata _data
     ) external returns (address plugin, PreparedSetupData memory preparedSetupData) {
-        // Decode `_data` to extract the params needed for deploying and initializing `TokenVoting` plugin,
-        // and the required helpers
-        (
-            MajorityVotingBase.VotingSettings memory votingSettings,
-            TokenSettings memory tokenSettings,
-            // only used for GovernanceERC20(token is not passed)
-            GovernanceERC20.MintSettings memory mintSettings,
-            IPlugin.TargetConfig memory targetConfig,
-            uint256 minApprovals,
-            bytes memory pluginMetadata,
-            address[] memory excludedAccounts
-        ) = decodeInstallationParameters(_data);
+        TokenSettings memory tokenSettings;
+        address token;
 
-        address token = tokenSettings.addr;
+        {
+            MajorityVotingBase.VotingSettings memory votingSettings;
+            GovernanceERC20.MintSettings memory mintSettings;
+            IPlugin.TargetConfig memory targetConfig;
+            uint256 minApprovals;
+            bytes memory pluginMetadata;
+            address[] memory excludedAccounts;
 
-        // Use the given token
-        if (token != address(0)) {
-            if (!token.isContract()) {
-                revert TokenNotContract(token);
-            }
+            // Decode `_data` to extract the params needed for deploying and initializing `TokenVoting` plugin,
+            // and the required helpers
+            (
+                votingSettings,
+                tokenSettings,
+                // only used for GovernanceERC20(token is not passed)
+                mintSettings,
+                targetConfig,
+                minApprovals,
+                pluginMetadata,
+                excludedAccounts
+            ) = decodeInstallationParameters(_data);
 
-            if (!_isERC20(token)) {
-                revert TokenNotERC20(token);
-            }
+            token = tokenSettings.addr;
 
-            if (!supportsIVotesInterface(token)) {
-                token = governanceWrappedERC20Base.clone();
+            // Use the given token
+            if (token != address(0)) {
+                if (!token.isContract()) {
+                    revert TokenNotContract(token);
+                }
 
-                // User already has a token. We need to wrap it in
-                // GovernanceWrappedERC20 in order to make the token
-                // include governance functionality.
-                GovernanceWrappedERC20(token).initialize(
-                    IERC20Upgradeable(tokenSettings.addr),
+                if (!_isERC20(token)) {
+                    revert TokenNotERC20(token);
+                }
+
+                if (!supportsIVotesInterface(token)) {
+                    token = governanceWrappedERC20Base.clone();
+
+                    // User already has a token. We need to wrap it in
+                    // GovernanceWrappedERC20 in order to make the token
+                    // include governance functionality.
+                    GovernanceWrappedERC20(token).initialize(
+                        IERC20Upgradeable(tokenSettings.addr),
+                        tokenSettings.name,
+                        tokenSettings.symbol,
+                        excludedAccounts
+                    );
+                }
+            } else {
+                // Create a new token: Clone a `GovernanceERC20`.
+                token = governanceERC20Base.clone();
+                GovernanceERC20(token).initialize(
+                    IDAO(_dao),
                     tokenSettings.name,
                     tokenSettings.symbol,
+                    mintSettings,
                     excludedAccounts
                 );
             }
-        } else {
-            // Create a new token: Clone a `GovernanceERC20`.
-            token = governanceERC20Base.clone();
-            GovernanceERC20(token).initialize(
-                IDAO(_dao),
-                tokenSettings.name,
-                tokenSettings.symbol,
-                mintSettings,
-                excludedAccounts
-            );
-        }
 
-        // Prepare and deploy plugin proxy.
-        plugin = address(tokenVotingBase).deployUUPSProxy(
-            abi.encodeCall(
-                TokenVoting.initialize,
-                (
-                    IDAO(_dao),
-                    votingSettings,
-                    IVotesUpgradeable(token),
-                    targetConfig,
-                    minApprovals,
-                    pluginMetadata
+            // Prepare and deploy plugin proxy.
+            plugin = address(tokenVotingBase).deployUUPSProxy(
+                abi.encodeCall(
+                    TokenVoting.initialize,
+                    (
+                        IDAO(_dao),
+                        votingSettings,
+                        IVotesUpgradeable(token),
+                        targetConfig,
+                        minApprovals,
+                        pluginMetadata
+                    )
                 )
-            )
-        );
+            );
 
-        preparedSetupData.helpers = new address[](2);
-        preparedSetupData.helpers[0] = address(new VotingPowerCondition(plugin));
-        preparedSetupData.helpers[1] = token;
+            preparedSetupData.helpers = new address[](2);
+            preparedSetupData.helpers[0] = address(new VotingPowerCondition(plugin));
+            preparedSetupData.helpers[1] = token;
+        }
 
         // Prepare permissions
         PermissionLib.MultiTargetPermission[]
