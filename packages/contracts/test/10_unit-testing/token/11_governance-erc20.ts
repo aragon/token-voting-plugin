@@ -37,7 +37,8 @@ describe('GovernanceERC20', function () {
     string,
     string,
     string,
-    GovernanceERC20.MintSettingsStruct
+    GovernanceERC20.MintSettingsStruct,
+    string[]
   ];
 
   before(async () => {
@@ -59,6 +60,7 @@ describe('GovernanceERC20', function () {
       governanceERC20Name,
       governanceERC20Symbol,
       mintSettings,
+      [],
     ];
 
     token = await hre.wrapper.deploy(ARTIFACT_SOURCES.GovernanceERC20, {

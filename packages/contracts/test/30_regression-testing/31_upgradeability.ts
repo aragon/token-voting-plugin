@@ -7,7 +7,6 @@ import {MajorityVotingBase} from '../../typechain/src';
 import {ZK_SYNC_NETWORKS} from '../../utils/zkSync';
 import {loadFixtureCustom} from '../test-utils/fixture';
 import {
-  INITIALIZE_SIGNATURE,
   latestInitializerVersion,
   Operation,
   TargetConfig,

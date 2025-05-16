@@ -43,7 +43,7 @@ describe('GovernanceWrappedERC20', function () {
   let defaultBalances: AccountBalance[];
 
   let defaultExistingERC20InitData: [string, string];
-  let defaultGovernanceWrappedERC20InitData: [string, string, string];
+  let defaultGovernanceWrappedERC20InitData: [string, string, string, string[]];
 
   before(async () => {
     signers = await ethers.getSigners();
@@ -77,6 +77,7 @@ describe('GovernanceWrappedERC20', function () {
       erc20.address,
       governanceWrappedERC20Name,
       governanceWrappedERC20Symbol,
+      [],
     ];
 
     governanceToken = await hre.wrapper.deploy(

@@ -44,9 +44,6 @@ export const VOTING_EVENTS = {
 
 export const ANY_ADDR = '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF';
 
-export const INITIALIZE_SIGNATURE =
-  'initialize(address,(uint8,uint32,uint32,uint64,uint256),address,(address,uint8),uint256,bytes)';
-
 export const CREATE_PROPOSAL_SIGNATURE =
   'createProposal(bytes,(address,uint256,bytes)[],uint256,uint64,uint64,uint8,bool)';
 
