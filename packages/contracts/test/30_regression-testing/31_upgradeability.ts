@@ -304,6 +304,7 @@ async function fixture(): Promise<FixtureResult> {
         receivers: [],
         amounts: [],
       },
+      [],
     ],
   });
 

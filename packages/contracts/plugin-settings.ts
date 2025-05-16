@@ -39,15 +39,19 @@ export const emptyMintSettings: GovernanceERC20.MintSettingsStruct = {
   amounts: [],
 };
 
+export const emptyExcludedAccounts: string[] = [];
+
 export const GOVERNANCE_ERC20_DEPLOY_ARGS = [
   zeroDaoAddress,
   emptyName,
   emptySymbol,
   emptyMintSettings,
+  emptyExcludedAccounts,
 ];
 
 export const GOVERNANCE_WRAPPED_ERC20_DEPLOY_ARGS = [
   zeroTokenAddress,
   emptyName,
   emptySymbol,
+  emptyExcludedAccounts,
 ];

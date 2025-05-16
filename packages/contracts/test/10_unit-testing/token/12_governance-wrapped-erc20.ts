@@ -360,7 +360,7 @@ describe('GovernanceWrappedERC20', function () {
       token = await hre.wrapper.deploy(
         ARTIFACT_SOURCES.GovernanceWrappedERC20,
         {
-          args: [erc20.address, 'name', 'symbol'],
+          args: [erc20.address, 'name', 'symbol', []],
         }
       );
 
