@@ -29,8 +29,6 @@ import {
   TOKEN_VOTING_INTERFACE,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
   EXECUTE_PROPOSAL_PERMISSION_ID,
-  INITIALIZE_SIGNATURE,
-  INITIALIZE_SIGNATURE_OLD,
   Operation,
   TargetConfig,
   CREATE_PROPOSAL_SIGNATURE,
@@ -150,6 +148,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
         receivers: [],
         amounts: [],
       },
+      [],
     ],
   });
 
@@ -171,7 +170,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     operation: Operation.call,
   };
 
-  const initializedPlugin = await hre.wrapper.deploy(
+  const initializedPlugin: TokenVoting = await hre.wrapper.deploy(
     ARTIFACT_SOURCES.TokenVoting,
     {
       withProxy: true,
@@ -306,7 +305,7 @@ describe('TokenVoting', function () {
 
       // Try to reinitialize the initialized plugin.
       await expect(
-        initializedPlugin[INITIALIZE_SIGNATURE](
+        initializedPlugin.initialize(
           dao.address,
           defaultVotingSettings,
           token.address,
@@ -330,7 +329,7 @@ describe('TokenVoting', function () {
 
       // Initialize the uninitialized plugin.
       await expect(
-        await uninitializedPlugin[INITIALIZE_SIGNATURE](
+        await uninitializedPlugin.initialize(
           dao.address,
           defaultVotingSettings,
           token.address,
@@ -373,7 +372,7 @@ describe('TokenVoting', function () {
       const minApproval = pctToRatio(30);
 
       // Initialize the plugin.
-      await plugin[INITIALIZE_SIGNATURE](
+      await plugin.initialize(
         dao.address,
         votingSettings,
         token.address,
@@ -1070,8 +1069,9 @@ describe('TokenVoting', function () {
           },
           {
             receiver: bob.address,
-            amount:
-              voteSettingsWithMinProposerVotingPower.minProposerVotingPower,
+            amount: BigNumber.from(
+              await voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+            ),
           },
         ]);
 
