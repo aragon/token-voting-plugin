@@ -101,7 +101,7 @@ async function fixture(): Promise<FixtureResult> {
   const governanceERC20Base = await hre.wrapper.deploy(
     ARTIFACT_SOURCES.GovernanceERC20,
     {
-      args: [AddressZero, 'gov', 'GOV', defaultMintSettings],
+      args: [AddressZero, 'gov', 'GOV', defaultMintSettings, []],
     }
   );
 
@@ -109,7 +109,7 @@ async function fixture(): Promise<FixtureResult> {
   const governanceWrappedERC20Base = await hre.wrapper.deploy(
     ARTIFACT_SOURCES.GovernanceWrappedERC20,
     {
-      args: [AddressZero, 'wrappedGov', 'wGOV'],
+      args: [AddressZero, 'wrappedGov', 'wGOV', []],
     }
   );
 
