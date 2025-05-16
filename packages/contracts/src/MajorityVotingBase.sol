@@ -192,7 +192,7 @@ abstract contract MajorityVotingBase is
     ///     The value has to be in the interval [0, 10^6] defined by `RATIO_BASE = 10**6`.
     /// @param startDate The start date of the proposal vote.
     /// @param endDate The end date of the proposal vote.
-    /// @param snapshotTimepoint The number of the block prior to the proposal creation.
+    /// @param snapshotTimepoint The block number or timestamp prior to the proposal creation.
     /// @param minVotingPower The minimum voting power needed for a proposal to reach minimum participation.
     struct ProposalParameters {
         VotingMode votingMode;
