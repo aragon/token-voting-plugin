@@ -102,7 +102,8 @@ async function fixture(): Promise<FixtureResult> {
     {
       receivers: [deployer.address],
       amounts: ['100'],
-    }
+    },
+    []
   );
 
   // Get the deployed `PluginRepo`

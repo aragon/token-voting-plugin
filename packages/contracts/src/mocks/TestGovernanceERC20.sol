@@ -15,8 +15,9 @@ contract TestGovernanceERC20 is GovernanceERC20 {
         IDAO _dao,
         string memory _name,
         string memory _symbol,
-        MintSettings memory _mintSettings
-    ) GovernanceERC20(_dao, _name, _symbol, _mintSettings) {}
+        MintSettings memory _mintSettings,
+        address[] memory _excludedAccounts
+    ) GovernanceERC20(_dao, _name, _symbol, _mintSettings, _excludedAccounts) {}
 
     // sets the balance of the address
     // this mints/burns the amount depending on the current balance

@@ -5,6 +5,7 @@ pragma solidity ^0.8.8;
 import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IERC6372Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC6372Upgradeable.sol";
 
 import {IMembership} from "@aragon/osx-commons-contracts/src/plugin/extensions/membership/IMembership.sol";
 import {_applyRatioCeiled} from "@aragon/osx-commons-contracts/src/utils/math/Ratio.sol";
@@ -33,6 +34,9 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     ///         compatible contract referencing the token being used for voting.
     IVotesUpgradeable private votingToken;
 
+    /// @notice Wether the token contract indexes past voting power by timestamp.
+    bool private tokenIndexedByTimestamp;
+
     /// @notice Thrown if the voting power is zero
     error NoVotingPower();
 
@@ -54,7 +58,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         TargetConfig calldata _targetConfig,
         uint256 _minApprovals,
         bytes calldata _pluginMetadata
-    ) external onlyCallAtInitialization reinitializer(2) {
+    ) external onlyCallAtInitialization reinitializer(3) {
         __MajorityVotingBase_init(
             _dao,
             _votingSettings,
@@ -64,6 +68,23 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         );
 
         votingToken = _token;
+
+        // Check if the given token indexes past voting power by blocks or by timestamp
+        try IERC6372Upgradeable(address(_token)).CLOCK_MODE() returns (string memory ms) {
+            if (keccak256(bytes(ms)) == keccak256(bytes("mode=timestamp&version=1"))) {
+                tokenIndexedByTimestamp = true;
+            }
+        } catch {
+            // CLOCK_MODE() not found, reverted, or other issue.
+            try IERC6372Upgradeable(address(_token)).clock() returns (uint48 cv) {
+                if (cv == block.timestamp) {
+                    tokenIndexedByTimestamp = true;
+                }
+            } catch {
+                // clock() not found, reverted, or other issue.
+                // Assuming that the token indexes by block number
+            }
+        }
 
         emit MembershipContractAnnounced({definingContract: address(_token)});
     }
@@ -76,7 +97,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @param _fromBuild Build version number of previous implementation contract this upgrade is transitioning from.
     /// @param _initData The initialization data to be passed to via `upgradeToAndCall`
     ///     (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
-    function initializeFrom(uint16 _fromBuild, bytes calldata _initData) external reinitializer(2) {
+    function initializeFrom(uint16 _fromBuild, bytes calldata _initData) external reinitializer(3) {
         if (_fromBuild < 3) {
             (
                 uint256 minApprovals,
@@ -126,14 +147,18 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         VoteOption _voteOption,
         bool _tryEarlyExecution
     ) public override auth(CREATE_PROPOSAL_PERMISSION_ID) returns (uint256 proposalId) {
-        uint256 snapshotBlock;
+        uint256 snapshotTimepoint;
         unchecked {
-            // The snapshot block must be mined already to
-            // protect the transaction against backrunning transactions causing census changes.
-            snapshotBlock = block.number - 1;
+            // The time point must be already mined (block) or in the past (timestamp) to
+            // protect against backrunning transactions causing census changes.
+            if (tokenIndexedByTimestamp) {
+                snapshotTimepoint = block.timestamp - 1;
+            } else {
+                snapshotTimepoint = block.number - 1;
+            }
         }
 
-        uint256 totalVotingPower_ = totalVotingPower(snapshotBlock);
+        uint256 totalVotingPower_ = totalVotingPower(snapshotTimepoint);
 
         if (totalVotingPower_ == 0) {
             revert NoVotingPower();
@@ -146,13 +171,13 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         // Store proposal related information
         Proposal storage proposal_ = proposals[proposalId];
 
-        if (proposal_.parameters.snapshotBlock != 0) {
+        if (proposal_.parameters.snapshotTimepoint != 0) {
             revert ProposalAlreadyExists(proposalId);
         }
 
         proposal_.parameters.startDate = _startDate;
         proposal_.parameters.endDate = _endDate;
-        proposal_.parameters.snapshotBlock = snapshotBlock.toUint64();
+        proposal_.parameters.snapshotTimepoint = snapshotTimepoint.toUint64();
         proposal_.parameters.votingMode = votingMode();
         proposal_.parameters.supportThreshold = supportThreshold();
         proposal_.parameters.minVotingPower = _applyRatioCeiled(
@@ -244,7 +269,10 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         Proposal storage proposal_ = proposals[_proposalId];
 
         // This could re-enter, though we can assume the governance token is not malicious
-        uint256 votingPower = votingToken.getPastVotes(_voter, proposal_.parameters.snapshotBlock);
+        uint256 votingPower = votingToken.getPastVotes(
+            _voter,
+            proposal_.parameters.snapshotTimepoint
+        );
         VoteOption state = proposal_.voters[_voter];
 
         // If voter had previously voted, decrease count
@@ -305,7 +333,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         }
 
         // The voter has no voting power.
-        if (votingToken.getPastVotes(_account, proposal_.parameters.snapshotBlock) == 0) {
+        if (votingToken.getPastVotes(_account, proposal_.parameters.snapshotTimepoint) == 0) {
             return false;
         }
 
@@ -343,5 +371,5 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @dev This empty reserved space is put in place to allow future versions to add new
     /// variables without shifting down storage in the inheritance chain.
     /// https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-    uint256[49] private __gap;
+    uint256[48] private __gap;
 }
