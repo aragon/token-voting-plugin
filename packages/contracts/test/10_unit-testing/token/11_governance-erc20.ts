@@ -98,6 +98,7 @@ describe('GovernanceERC20', function () {
             governanceERC20Name,
             governanceERC20Symbol,
             {receivers: receivers, amounts: amounts},
+            [],
           ],
         })
       )
@@ -245,6 +246,7 @@ describe('GovernanceERC20', function () {
             receivers: [],
             amounts: [],
           },
+          [],
         ],
       });
 
