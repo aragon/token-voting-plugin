@@ -55,11 +55,11 @@ contract GovernanceERC20 is
     /// @param amountsArrayLength The length of the `amounts` array.
     error MintSettingsArrayLengthMismatch(uint256 receiversArrayLength, uint256 amountsArrayLength);
 
-    /// @notice Thrown when an excluded account attempts to engage in voting activity.
-    error AccountIsExcluded();
-
     /// @notice Thrown when attempting to mint when minting is permanently disabled
     error MintingIsFrozen();
+
+    /// @notice Thrown when an excluded account attempts to engage in voting activity.
+    error AccountIsExcluded();
 
     /// @notice Calls the initialize function.
     /// @param _dao The managing DAO.

@@ -46,12 +46,6 @@ contract GovernanceWrappedERC20 is
     /// @notice Thrown when an excluded account attempts to engage in voting activity.
     error AccountIsExcluded();
 
-    /// @notice Thrown when attempting to mint on the wrapper, rather than the underlying token.
-    error MintUnavailable();
-
-    /// @notice Thrown when attempting to burn on the wrapper, rather than the underlying token.
-    error BurnUnavailable();
-
     /// @notice Calls the initialize function.
     /// @param _token The underlying [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token.
     /// @param _name The name of the wrapped token.

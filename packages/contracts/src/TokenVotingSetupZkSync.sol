@@ -113,7 +113,7 @@ contract TokenVotingSetupZkSync is PluginUpgradeableSetup {
                 excludedAccounts
             ) = decodeInstallationParameters(_data);
 
-            address token = tokenSettings.addr;
+            token = tokenSettings.addr;
 
             if (token != address(0)) {
                 if (!token.isContract()) {
