@@ -14,10 +14,12 @@ export const ARTIFACT_SOURCES = {
   MajorityVotingMock: 'src/mocks/MajorityVotingMock.sol:MajorityVotingMock',
   VotingPowerCondition: 'src/VotingPowerCondition.sol:VotingPowerCondition',
   TokenVoting: 'src/TokenVoting.sol:TokenVoting',
-  TokenVoting_V1_0_0:
+  TokenVoting_r1_b1:
     '@aragon/osx-v1.0.0/plugins/governance/majority-voting/token/TokenVoting.sol:TokenVoting',
-  TokenVoting_V1_3_0:
+  TokenVoting_r1_b2:
     '@aragon/osx-v1.3.0/plugins/governance/majority-voting/token/TokenVoting.sol:TokenVoting',
+  TokenVoting_r1_b3:
+    '@aragon/token-voting-plugin-r1-b3/src/TokenVoting.sol:TokenVoting',
   TestGovernanceERC20: 'src/mocks/TestGovernanceERC20.sol:TestGovernanceERC20',
   GovernanceERC20: 'src/ERC20/governance/GovernanceERC20.sol:GovernanceERC20',
   ERC20Mock: 'src/mocks/ERC20Mock.sol:ERC20Mock',

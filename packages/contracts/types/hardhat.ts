@@ -1,5 +1,3 @@
-
-
 import {Wrapper} from '../test/test-utils/wrapper';
 
 export type VerifyEntry = {
@@ -13,4 +11,3 @@ declare module 'hardhat/types/runtime' {
     aragonToVerifyContracts: VerifyEntry[];
   }
 }
-
