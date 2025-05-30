@@ -67,6 +67,7 @@ type FixtureResult = {
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
   defaultMinApproval: BigNumber;
   defaultMetadata: string;
+  defaultExcludedAccounts: string[];
   updateMinApproval: BigNumber;
   updateMetadata: string;
   updateTargetConfig: TargetConfig;
@@ -101,7 +102,7 @@ async function fixture(): Promise<FixtureResult> {
   const governanceERC20Base = await hre.wrapper.deploy(
     ARTIFACT_SOURCES.GovernanceERC20,
     {
-      args: [AddressZero, 'gov', 'GOV', defaultMintSettings],
+      args: [AddressZero, 'gov', 'GOV', defaultMintSettings, []],
     }
   );
 
@@ -109,7 +110,7 @@ async function fixture(): Promise<FixtureResult> {
   const governanceWrappedERC20Base = await hre.wrapper.deploy(
     ARTIFACT_SOURCES.GovernanceWrappedERC20,
     {
-      args: [AddressZero, 'wrappedGov', 'wGOV'],
+      args: [AddressZero, 'wrappedGov', 'wGOV', []],
     }
   );
 
@@ -130,6 +131,7 @@ async function fixture(): Promise<FixtureResult> {
     target: dao.address,
     operation: Op.call,
   };
+  const defaultExcludedAccounts: string[] = [];
 
   const defaultMetadata: string = '0x11';
 
@@ -143,20 +145,31 @@ async function fixture(): Promise<FixtureResult> {
 
   const defaultMinApproval = pctToRatio(30);
 
-  // Provide installation inputs
-  const prepareInstallationInputs = ethers.utils.defaultAbiCoder.encode(
-    getNamedTypesFromMetadata(
-      METADATA.build.pluginSetup.prepareInstallation.inputs
-    ),
-    [
-      Object.values(defaultVotingSettings),
-      Object.values(defaultTokenSettings),
-      Object.values(defaultMintSettings),
-      Object.values(defaultTargetConfig),
+  // // Provide installation inputs
+  // const prepareInstallationInputs = ethers.utils.defaultAbiCoder.encode(
+  //   getNamedTypesFromMetadata(
+  //     METADATA.build.pluginSetup.prepareInstallation.inputs
+  //   ),
+  //   [
+  //     Object.values(defaultVotingSettings),
+  //     Object.values(defaultTokenSettings),
+  //     Object.values(defaultMintSettings),
+  //     Object.values(defaultTargetConfig),
+  //     defaultMinApproval,
+  //     defaultMetadata,
+  //   ]
+  // );
+
+  const prepareInstallationInputs =
+    await pluginSetup.encodeInstallationParameters(
+      defaultVotingSettings,
+      defaultTokenSettings,
+      defaultMintSettings,
+      defaultTargetConfig,
       defaultMinApproval,
       defaultMetadata,
-    ]
-  );
+      defaultExcludedAccounts
+    );
 
   // Provide uninstallation inputs
   const prepareUninstallationInputs = ethers.utils.defaultAbiCoder.encode(
@@ -193,6 +206,7 @@ async function fixture(): Promise<FixtureResult> {
     defaultMinApproval,
     defaultMetadata,
     defaultTargetConfig,
+    defaultExcludedAccounts,
     updateMinApproval,
     updateTargetConfig,
     updateMetadata,
@@ -306,20 +320,18 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
+        defaultExcludedAccounts,
       } = await loadFixtureCustom(fixture);
 
-      const data = abiCoder.encode(
-        getNamedTypesFromMetadata(
-          METADATA.build.pluginSetup.prepareInstallation.inputs
-        ),
-        [
-          Object.values(defaultVotingSettings),
-          [alice.address, '', ''], // Instead of a token address, we pass Alice's address here.
-          Object.values(defaultMintSettings),
-          defaultTargetConfig,
-          defaultMinApproval,
-          defaultMetadata,
-        ]
+      const data = await pluginSetup.encodeInstallationParameters(
+        defaultVotingSettings,
+        // Instead of a token address, we pass Alice's address here.
+        {addr: alice.address, name: 'x', symbol: 'y'},
+        defaultMintSettings,
+        defaultTargetConfig,
+        defaultMinApproval,
+        defaultMetadata,
+        defaultExcludedAccounts
       );
 
       await expect(pluginSetup.prepareInstallation(dao.address, data))
@@ -336,20 +348,18 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
+        defaultExcludedAccounts,
       } = await loadFixtureCustom(fixture);
 
-      const data = abiCoder.encode(
-        getNamedTypesFromMetadata(
-          METADATA.build.pluginSetup.prepareInstallation.inputs
-        ),
-        [
-          Object.values(defaultVotingSettings),
-          [dao.address, '', ''],
-          Object.values(defaultMintSettings),
-          defaultTargetConfig,
-          defaultMinApproval,
-          defaultMetadata,
-        ]
+      const data = await pluginSetup.encodeInstallationParameters(
+        defaultVotingSettings,
+        // Instead of a token address, we pass DAO's address here.
+        {addr: dao.address, name: 'x', symbol: 'y'},
+        defaultMintSettings,
+        defaultTargetConfig,
+        defaultMinApproval,
+        defaultMetadata,
+        defaultExcludedAccounts
       );
 
       await expect(pluginSetup.prepareInstallation(dao.address, data))
@@ -368,6 +378,7 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
+        defaultExcludedAccounts,
       } = await loadFixtureCustom(fixture);
 
       const nonce = await hre.wrapper.getNonce(pluginSetup.address);
@@ -384,23 +395,18 @@ describe('TokenVotingSetup', function () {
         nonce + 2
       );
 
-      const data = abiCoder.encode(
-        getNamedTypesFromMetadata(
-          METADATA.build.pluginSetup.prepareInstallation.inputs
-        ),
-        [
-          Object.values(defaultVotingSettings),
-
-          [
-            erc20.address,
-            defaultTokenSettings.name,
-            defaultTokenSettings.symbol,
-          ],
-          Object.values(defaultMintSettings),
-          defaultTargetConfig,
-          defaultMinApproval,
-          defaultMetadata,
-        ]
+      const data = await pluginSetup.encodeInstallationParameters(
+        defaultVotingSettings,
+        {
+          addr: erc20.address,
+          name: defaultTokenSettings.name,
+          symbol: defaultTokenSettings.symbol,
+        },
+        defaultMintSettings,
+        defaultTargetConfig,
+        defaultMinApproval,
+        defaultMetadata,
+        defaultExcludedAccounts
       );
 
       const {
@@ -475,6 +481,7 @@ describe('TokenVotingSetup', function () {
         defaultTargetConfig,
         defaultMinApproval,
         defaultMetadata,
+        defaultExcludedAccounts,
       } = await loadFixtureCustom(fixture);
 
       const nonce = await hre.wrapper.getNonce(pluginSetup.address);
@@ -484,18 +491,18 @@ describe('TokenVotingSetup', function () {
         nonce
       );
 
-      const data = abiCoder.encode(
-        getNamedTypesFromMetadata(
-          METADATA.build.pluginSetup.prepareInstallation.inputs
-        ),
-        [
-          Object.values(defaultVotingSettings),
-          [erc20.address, 'myName', 'mySymb'],
-          Object.values(defaultMintSettings),
-          defaultTargetConfig,
-          defaultMinApproval,
-          defaultMetadata,
-        ]
+      const data = await pluginSetup.encodeInstallationParameters(
+        defaultVotingSettings,
+        {
+          addr: erc20.address,
+          name: 'myName',
+          symbol: 'mySymb',
+        },
+        defaultMintSettings,
+        defaultTargetConfig,
+        defaultMinApproval,
+        defaultMetadata,
+        defaultExcludedAccounts
       );
 
       await pluginSetup.prepareInstallation(dao.address, data);
@@ -554,11 +561,20 @@ describe('TokenVotingSetup', function () {
         defaultMinApproval,
         defaultTargetConfig,
         defaultMetadata,
+        defaultExcludedAccounts,
       } = await loadFixtureCustom(fixture);
 
       const governanceERC20 = await hre.wrapper.deploy(
         ARTIFACT_SOURCES.GovernanceERC20,
-        {args: [dao.address, 'name', 'symbol', {receivers: [], amounts: []}]}
+        {
+          args: [
+            dao.address,
+            'name',
+            'symbol',
+            {receivers: [], amounts: []},
+            [],
+          ],
+        }
       );
 
       const nonce = await hre.wrapper.getNonce(pluginSetup.address);
@@ -573,18 +589,18 @@ describe('TokenVotingSetup', function () {
         nonce + 1
       );
 
-      const data = abiCoder.encode(
-        getNamedTypesFromMetadata(
-          METADATA.build.pluginSetup.prepareInstallation.inputs
-        ),
-        [
-          Object.values(defaultVotingSettings),
-          [governanceERC20.address, '', ''],
-          Object.values(defaultMintSettings),
-          defaultTargetConfig,
-          defaultMinApproval,
-          defaultMetadata,
-        ]
+      const data = await pluginSetup.encodeInstallationParameters(
+        defaultVotingSettings,
+        {
+          addr: governanceERC20.address,
+          name: 'myName',
+          symbol: 'mySymb',
+        },
+        defaultMintSettings,
+        defaultTargetConfig,
+        defaultMinApproval,
+        defaultMetadata,
+        defaultExcludedAccounts
       );
 
       const {
@@ -1061,6 +1077,7 @@ describe('TokenVotingSetup', function () {
               receivers: [],
               amounts: [],
             },
+            [],
           ],
         }
       );
@@ -1072,6 +1089,7 @@ describe('TokenVotingSetup', function () {
             governanceERC20.address,
             defaultTokenSettings.name,
             defaultTokenSettings.symbol,
+            [],
           ],
         }
       );

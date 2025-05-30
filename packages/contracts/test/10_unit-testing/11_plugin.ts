@@ -29,8 +29,6 @@ import {
   TOKEN_VOTING_INTERFACE,
   UPDATE_VOTING_SETTINGS_PERMISSION_ID,
   EXECUTE_PROPOSAL_PERMISSION_ID,
-  INITIALIZE_SIGNATURE,
-  INITIALIZE_SIGNATURE_OLD,
   Operation,
   TargetConfig,
   CREATE_PROPOSAL_SIGNATURE,
@@ -150,6 +148,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
         receivers: [],
         amounts: [],
       },
+      [],
     ],
   });
 
@@ -171,7 +170,7 @@ async function globalFixture(): Promise<GlobalFixtureResult> {
     operation: Operation.call,
   };
 
-  const initializedPlugin = await hre.wrapper.deploy(
+  const initializedPlugin: TokenVoting = await hre.wrapper.deploy(
     ARTIFACT_SOURCES.TokenVoting,
     {
       withProxy: true,
@@ -306,7 +305,7 @@ describe('TokenVoting', function () {
 
       // Try to reinitialize the initialized plugin.
       await expect(
-        initializedPlugin[INITIALIZE_SIGNATURE](
+        initializedPlugin.initialize(
           dao.address,
           defaultVotingSettings,
           token.address,
@@ -330,7 +329,7 @@ describe('TokenVoting', function () {
 
       // Initialize the uninitialized plugin.
       await expect(
-        await uninitializedPlugin[INITIALIZE_SIGNATURE](
+        await uninitializedPlugin.initialize(
           dao.address,
           defaultVotingSettings,
           token.address,
@@ -373,7 +372,7 @@ describe('TokenVoting', function () {
       const minApproval = pctToRatio(30);
 
       // Initialize the plugin.
-      await plugin[INITIALIZE_SIGNATURE](
+      await plugin.initialize(
         dao.address,
         votingSettings,
         token.address,
@@ -879,7 +878,7 @@ describe('TokenVoting', function () {
 
           // Check that the snapshot block stored in the proposal struct is as expected.
           const proposal = await plugin.getProposal(id);
-          expect(proposal.parameters.snapshotBlock).to.equal(
+          expect(proposal.parameters.snapshotTimepoint).to.equal(
             expectedSnapshotBlockNumber
           );
 
@@ -1070,8 +1069,9 @@ describe('TokenVoting', function () {
           },
           {
             receiver: bob.address,
-            amount:
-              voteSettingsWithMinProposerVotingPower.minProposerVotingPower,
+            amount: BigNumber.from(
+              await voteSettingsWithMinProposerVotingPower.minProposerVotingPower
+            ),
           },
         ]);
 
@@ -1481,12 +1481,12 @@ describe('TokenVoting', function () {
       );
 
       expect(proposal.parameters.minVotingPower).to.equal(
-        (await plugin.totalVotingPower(proposal.parameters.snapshotBlock))
+        (await plugin.totalVotingPower(proposal.parameters.snapshotTimepoint))
           .mul(await defaultVotingSettings.minParticipation)
           .div(pctToRatio(100))
       );
 
-      expect(proposal.parameters.snapshotBlock).to.equal(
+      expect(proposal.parameters.snapshotTimepoint).to.equal(
         expectedSnapshotBlockNumber
       );
       expect(
@@ -1496,7 +1496,7 @@ describe('TokenVoting', function () {
       ).to.equal(proposal.parameters.endDate);
 
       expect(
-        await plugin.totalVotingPower(proposal.parameters.snapshotBlock)
+        await plugin.totalVotingPower(proposal.parameters.snapshotTimepoint)
       ).to.equal(10);
       expect(proposal.tally.yes).to.equal(0);
       expect(proposal.tally.no).to.equal(0);
@@ -1583,16 +1583,16 @@ describe('TokenVoting', function () {
         await defaultVotingSettings.supportThreshold
       );
       expect(proposal.parameters.minVotingPower).to.equal(
-        (await plugin.totalVotingPower(proposal.parameters.snapshotBlock))
+        (await plugin.totalVotingPower(proposal.parameters.snapshotTimepoint))
           .mul(await defaultVotingSettings.minParticipation)
           .div(pctToRatio(100))
       );
-      expect(proposal.parameters.snapshotBlock).to.equal(
+      expect(proposal.parameters.snapshotTimepoint).to.equal(
         expectedSnapshotBlockNumber
       );
 
       expect(
-        await plugin.totalVotingPower(proposal.parameters.snapshotBlock)
+        await plugin.totalVotingPower(proposal.parameters.snapshotTimepoint)
       ).to.equal(10);
       expect(proposal.tally.yes).to.equal(10);
       expect(proposal.tally.no).to.equal(0);
@@ -3822,7 +3822,7 @@ describe('TokenVoting', function () {
           const proposal = await plugin.getProposal(id);
           const tally = proposal.tally;
           const totalVotingPower = await plugin.totalVotingPower(
-            proposal.parameters.snapshotBlock
+            proposal.parameters.snapshotTimepoint
           );
           expect(
             totalVotingPower.sub(tally.yes).sub(tally.abstain) // this is the number of worst case no votes
@@ -3878,7 +3878,7 @@ describe('TokenVoting', function () {
           const proposal = await plugin.getProposal(id);
           const tally = proposal.tally;
           const totalVotingPower = await plugin.totalVotingPower(
-            proposal.parameters.snapshotBlock
+            proposal.parameters.snapshotTimepoint
           );
           expect(
             totalVotingPower.sub(tally.yes).sub(tally.no).sub(tally.abstain)
@@ -3983,7 +3983,7 @@ describe('TokenVoting', function () {
           const proposal = await plugin.getProposal(id);
           const tally = proposal.tally;
           const totalVotingPower = await plugin.totalVotingPower(
-            proposal.parameters.snapshotBlock
+            proposal.parameters.snapshotTimepoint
           );
           expect(
             totalVotingPower.sub(tally.yes).sub(tally.abstain) // this is the number of worst case no votes
@@ -4030,7 +4030,7 @@ describe('TokenVoting', function () {
           const proposal = await plugin.getProposal(id);
           const tally = proposal.tally;
           const totalVotingPower = await plugin.totalVotingPower(
-            proposal.parameters.snapshotBlock
+            proposal.parameters.snapshotTimepoint
           );
           expect(
             totalVotingPower.sub(tally.yes).sub(tally.no).sub(tally.abstain)
@@ -4096,9 +4096,11 @@ describe('TokenVoting', function () {
           );
 
           // Check that Alice and Bob's balances add up to the total voting power.
-          const snapshotBlock = (await plugin.getProposal(id)).parameters
-            .snapshotBlock;
-          const totalVotingPower = await plugin.totalVotingPower(snapshotBlock);
+          const snapshotTimepoint = (await plugin.getProposal(id)).parameters
+            .snapshotTimepoint;
+          const totalVotingPower = await plugin.totalVotingPower(
+            snapshotTimepoint
+          );
           expect(totalVotingPower).to.eq(balanceAlice.add(balanceBob));
 
           // Vote `Yes` with Alice.

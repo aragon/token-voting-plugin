@@ -21,14 +21,17 @@ import {DAO} from "@aragon/osx/core/dao/DAO.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // Regression Testing
-import {TokenVoting as TokenVoting_v1_0_0} from "@aragon/osx-v1.0.0/plugins/governance/majority-voting/token/TokenVoting.sol";
-import {TokenVoting as TokenVoting_v1_3_0} from "@aragon/osx-v1.3.0/plugins/governance/majority-voting/token/TokenVoting.sol";
+import {TokenVoting as TokenVoting_r1_b1} from "@aragon/osx-v1.0.0/plugins/governance/majority-voting/token/TokenVoting.sol";
+import {TokenVoting as TokenVoting_r1_b2} from "@aragon/osx-v1.3.0/plugins/governance/majority-voting/token/TokenVoting.sol";
+import {TokenVoting as TokenVoting_r1_b3} from "@aragon/token-voting-plugin-r1-b3/src/TokenVoting.sol";
 
-import {GovernanceERC20 as GovernanceERC20_v1_0_0} from "@aragon/osx-v1.0.0/token/ERC20/governance/GovernanceERC20.sol";
-import {GovernanceERC20 as GovernanceERC20_v1_3_0} from "@aragon/osx-v1.3.0/token/ERC20/governance/GovernanceERC20.sol";
+import {GovernanceERC20 as GovernanceERC20_r1_b1} from "@aragon/osx-v1.0.0/token/ERC20/governance/GovernanceERC20.sol";
+import {GovernanceERC20 as GovernanceERC20_r1_b2} from "@aragon/osx-v1.3.0/token/ERC20/governance/GovernanceERC20.sol";
+import {GovernanceERC20 as GovernanceERC20_r1_b3} from "@aragon/token-voting-plugin-r1-b3/src/ERC20/governance/GovernanceERC20.sol";
 
-import {GovernanceWrappedERC20 as GovernanceWrappedERC20_v1_0_0} from "@aragon/osx-v1.0.0/token/ERC20/governance/GovernanceWrappedERC20.sol";
-import {GovernanceWrappedERC20 as GovernanceWrappedERC20_v1_3_0} from "@aragon/osx-v1.3.0/token/ERC20/governance/GovernanceWrappedERC20.sol";
+import {GovernanceWrappedERC20 as GovernanceWrappedERC20_r1_b1} from "@aragon/osx-v1.0.0/token/ERC20/governance/GovernanceWrappedERC20.sol";
+import {GovernanceWrappedERC20 as GovernanceWrappedERC20_r1_b2} from "@aragon/osx-v1.3.0/token/ERC20/governance/GovernanceWrappedERC20.sol";
+import {GovernanceWrappedERC20 as GovernanceWrappedERC20_r1_b3} from "@aragon/token-voting-plugin-r1-b3/src/ERC20/governance/GovernanceWrappedERC20.sol";
 
 import {ProxyFactory} from "@aragon/osx-commons-contracts/src/utils/deployment/ProxyFactory.sol";
 

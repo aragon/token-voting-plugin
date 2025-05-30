@@ -120,6 +120,12 @@
           "type": "bytes",
           "internalType": "bytes",
           "description": "The metadata that contains the information about the token voting plugin."
+        },
+        {
+          "name": "excludedAccounts",
+          "type": "address[]",
+          "internalType": "address[]",
+          "description": "The list of addresses whose voting power will be excluded from voting."
         }
       ]
     },
@@ -168,6 +174,10 @@
             "description": "The metadata that contains the information about the token voting plugin."
           }
         ]
+      },
+      "4": {
+        "description": "The information required for the update.",
+        "inputs": []
       }
     },
     "prepareUninstallation": {

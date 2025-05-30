@@ -1,5 +1,11 @@
 import {METADATA, VERSION} from '../../plugin-settings';
-import {GovernanceERC20, TokenVoting__factory} from '../../typechain';
+import {
+  GovernanceERC20,
+  PluginUpgradeableSetup__factory,
+  TokenVoting__factory,
+} from '../../typechain';
+import {PromiseOrValue} from '../../typechain/common';
+import {PluginUUPSUpgradeable__factory} from '../../typechain/factories/@aragon/osx-v1.3.0/core/plugin';
 import {MajorityVotingBase} from '../../typechain/src/MajorityVotingBase';
 import {getProductionNetworkName, findPluginRepo} from '../../utils/helpers';
 import {skipTestSuiteIfNetworkIsZkSync} from '../test-utils/skip-functions';
@@ -7,6 +13,7 @@ import {
   Operation,
   TargetConfig,
   latestInitializerVersion,
+  latestPluginBuild,
 } from '../test-utils/token-voting-constants';
 import {
   GovernanceERC20__factory,
@@ -19,6 +26,7 @@ import {
   installPLugin,
   uninstallPLugin,
   updateFromBuildTest,
+  updatePlugin,
 } from './test-helpers';
 import {
   getLatestNetworkDeployment,
@@ -27,6 +35,7 @@ import {
 import {
   DAO_PERMISSIONS,
   PLUGIN_SETUP_PROCESSOR_PERMISSIONS,
+  PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS,
   TIME,
   UnsupportedNetworkError,
   getNamedTypesFromMetadata,
@@ -39,13 +48,15 @@ import {
   PluginSetupProcessor__factory,
   DAO,
 } from '@aragon/osx-ethers';
-import {BigNumber} from '@ethersproject/bignumber';
+import {BigNumber, BigNumberish} from '@ethersproject/bignumber';
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
-import env, {deployments, ethers} from 'hardhat';
+import hre, {deployments, ethers} from 'hardhat';
 
-const productionNetworkName = getProductionNetworkName(env);
+const OZ_INITIALIZED_SLOT_POSITION = 0;
+
+const productionNetworkName = getProductionNetworkName(hre);
 
 type FixtureResult = {
   deployer: SignerWithAddress;
@@ -65,10 +76,27 @@ type FixtureResult = {
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
   defaultMinApproval: BigNumber;
   defaultMetadata: string;
+  defaultExcludedAccounts: string[];
   defaultTargetConfig: TargetConfig;
   prepareInstallationInputs: string;
-  prepareInstallData: any;
-  prepareUpdateData: any;
+  prepareInstallData: {
+    votingSettings: PromiseOrValue<BigNumberish>[];
+    tokenSettings: string[];
+    mintSettings: never[][];
+    targetConfig: (string | Operation)[];
+    defaultMinApproval: BigNumber;
+    defaultMetadata: string;
+    defaultExcludedAccounts: string[];
+  };
+  prepareUpdateData: readonly [
+    BigNumber,
+    {
+      target: string;
+      operation: Operation;
+    },
+    string,
+    string[]
+  ];
 };
 
 async function fixture(): Promise<FixtureResult> {
@@ -102,11 +130,12 @@ async function fixture(): Promise<FixtureResult> {
     {
       receivers: [deployer.address],
       amounts: ['100'],
-    }
+    },
+    []
   );
 
   // Get the deployed `PluginRepo`
-  const {pluginRepo, ensDomain} = await findPluginRepo(env);
+  const {pluginRepo, ensDomain} = await findPluginRepo(hre);
   if (pluginRepo === null) {
     throw `PluginRepo '${ensDomain}' does not exist yet.`;
   }
@@ -154,6 +183,7 @@ async function fixture(): Promise<FixtureResult> {
   };
 
   const defaultMetadata: string = '0x11';
+  const defaultExcludedAccounts: string[] = [];
 
   // Provide uninstallation inputs
   const prepareInstallationInputs = ethers.utils.defaultAbiCoder.encode(
@@ -167,6 +197,7 @@ async function fixture(): Promise<FixtureResult> {
       Object.values(defaultTargetConfig),
       defaultMinApproval,
       defaultMetadata,
+      defaultExcludedAccounts,
     ]
   );
 
@@ -177,13 +208,16 @@ async function fixture(): Promise<FixtureResult> {
     targetConfig: Object.values(defaultTargetConfig),
     defaultMinApproval,
     defaultMetadata,
+    defaultExcludedAccounts,
   };
 
   const prepareUpdateData = [
     defaultMinApproval,
     defaultTargetConfig,
     defaultMetadata,
-  ];
+    defaultExcludedAccounts,
+  ] as const;
+
   // Provide update inputs
   // const prepareUpdateBuild3Data = [defaultMinApproval];
   return {
@@ -200,6 +234,7 @@ async function fixture(): Promise<FixtureResult> {
     defaultMintSettings,
     defaultMinApproval,
     defaultMetadata,
+    defaultExcludedAccounts,
     defaultTargetConfig,
     prepareInstallationInputs,
     prepareInstallData,
@@ -288,6 +323,7 @@ skipTestSuiteIfNetworkIsZkSync(
         pluginSetupRefLatestBuild,
         defaultMinApproval,
         defaultMetadata,
+        defaultExcludedAccounts,
         defaultTargetConfig,
       } = await loadFixture(fixture);
 
@@ -317,6 +353,7 @@ skipTestSuiteIfNetworkIsZkSync(
         defaultTargetConfig,
         defaultMinApproval,
         defaultMetadata,
+        defaultExcludedAccounts,
       };
 
       const prepareInstallInputType = getNamedTypesFromMetadata(

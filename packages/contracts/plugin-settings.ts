@@ -18,8 +18,8 @@ export const VOTING_POWER_CONDITION_CONTRACT_NAME = 'VotingPowerCondition';
 
 export const VERSION: VersionTag = {
   release: 1, // Increment this number ONLY if breaking/incompatible changes were made. Updates between releases are NOT possible.
-  build: 3, // Increment this number if non-breaking/compatible changes were made. Updates to newer builds are possible.
-};
+  build: 4, // Increment this number if non-breaking/compatible changes were made. Updates to newer builds are possible.
+} as const;
 
 // The metadata associated with the plugin version you are currently working on.
 // For more details, visit https://devs.aragon.org/docs/osx/how-to-guides/plugin-development/publication/metadata.
@@ -27,7 +27,7 @@ export const VERSION: VersionTag = {
 export const METADATA = {
   build: buildMetadata,
   release: releaseMetadata,
-};
+} as const;
 
 const zeroDaoAddress = ethers.constants.AddressZero;
 const zeroTokenAddress = ethers.constants.AddressZero;
@@ -39,15 +39,19 @@ export const emptyMintSettings: GovernanceERC20.MintSettingsStruct = {
   amounts: [],
 };
 
+export const emptyExcludedAccounts: string[] = [];
+
 export const GOVERNANCE_ERC20_DEPLOY_ARGS = [
   zeroDaoAddress,
   emptyName,
   emptySymbol,
   emptyMintSettings,
+  emptyExcludedAccounts,
 ];
 
 export const GOVERNANCE_WRAPPED_ERC20_DEPLOY_ARGS = [
   zeroTokenAddress,
   emptyName,
   emptySymbol,
+  emptyExcludedAccounts,
 ];

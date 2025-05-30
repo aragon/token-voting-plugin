@@ -192,14 +192,14 @@ abstract contract MajorityVotingBase is
     ///     The value has to be in the interval [0, 10^6] defined by `RATIO_BASE = 10**6`.
     /// @param startDate The start date of the proposal vote.
     /// @param endDate The end date of the proposal vote.
-    /// @param snapshotBlock The number of the block prior to the proposal creation.
+    /// @param snapshotTimepoint The block number or timestamp prior to the proposal creation.
     /// @param minVotingPower The minimum voting power needed for a proposal to reach minimum participation.
     struct ProposalParameters {
         VotingMode votingMode;
         uint32 supportThreshold;
         uint64 startDate;
         uint64 endDate;
-        uint64 snapshotBlock;
+        uint64 snapshotTimepoint;
         uint256 minVotingPower;
     }
 
@@ -453,7 +453,7 @@ abstract contract MajorityVotingBase is
     ) public view virtual returns (bool) {
         Proposal storage proposal_ = proposals[_proposalId];
 
-        uint256 noVotesWorstCase = totalVotingPower(proposal_.parameters.snapshotBlock) -
+        uint256 noVotesWorstCase = totalVotingPower(proposal_.parameters.snapshotTimepoint) -
             proposal_.tally.yes -
             proposal_.tally.abstain;
 
@@ -752,7 +752,7 @@ abstract contract MajorityVotingBase is
     /// @param _proposalId The ID of the proposal.
     /// @return Returns `true` if proposal exists, otherwise false.
     function _proposalExists(uint256 _proposalId) private view returns (bool) {
-        return proposals[_proposalId].parameters.snapshotBlock != 0;
+        return proposals[_proposalId].parameters.snapshotTimepoint != 0;
     }
 
     /// @notice Internal function to update minimal approval value.
