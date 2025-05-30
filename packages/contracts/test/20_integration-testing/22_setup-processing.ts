@@ -43,9 +43,9 @@ import {BigNumber} from '@ethersproject/bignumber';
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {expect} from 'chai';
-import env, {deployments, ethers} from 'hardhat';
+import hre, {deployments, ethers} from 'hardhat';
 
-const productionNetworkName = getProductionNetworkName(env);
+const productionNetworkName = getProductionNetworkName(hre);
 
 type FixtureResult = {
   deployer: SignerWithAddress;
@@ -65,6 +65,7 @@ type FixtureResult = {
   defaultMintSettings: GovernanceERC20.MintSettingsStruct;
   defaultMinApproval: BigNumber;
   defaultMetadata: string;
+  defaultExcludedAccounts: string[];
   defaultTargetConfig: TargetConfig;
   prepareInstallationInputs: string;
   prepareInstallData: any;
@@ -107,7 +108,7 @@ async function fixture(): Promise<FixtureResult> {
   );
 
   // Get the deployed `PluginRepo`
-  const {pluginRepo, ensDomain} = await findPluginRepo(env);
+  const {pluginRepo, ensDomain} = await findPluginRepo(hre);
   if (pluginRepo === null) {
     throw `PluginRepo '${ensDomain}' does not exist yet.`;
   }
@@ -155,6 +156,7 @@ async function fixture(): Promise<FixtureResult> {
   };
 
   const defaultMetadata: string = '0x11';
+  const defaultExcludedAccounts: string[] = [];
 
   // Provide uninstallation inputs
   const prepareInstallationInputs = ethers.utils.defaultAbiCoder.encode(
@@ -168,6 +170,7 @@ async function fixture(): Promise<FixtureResult> {
       Object.values(defaultTargetConfig),
       defaultMinApproval,
       defaultMetadata,
+      defaultExcludedAccounts,
     ]
   );
 
@@ -178,6 +181,7 @@ async function fixture(): Promise<FixtureResult> {
     targetConfig: Object.values(defaultTargetConfig),
     defaultMinApproval,
     defaultMetadata,
+    defaultExcludedAccounts,
   };
 
   const prepareUpdateData = [
@@ -201,6 +205,7 @@ async function fixture(): Promise<FixtureResult> {
     defaultMintSettings,
     defaultMinApproval,
     defaultMetadata,
+    defaultExcludedAccounts,
     defaultTargetConfig,
     prepareInstallationInputs,
     prepareInstallData,
@@ -289,6 +294,7 @@ skipTestSuiteIfNetworkIsZkSync(
         pluginSetupRefLatestBuild,
         defaultMinApproval,
         defaultMetadata,
+        defaultExcludedAccounts,
         defaultTargetConfig,
       } = await loadFixture(fixture);
 
@@ -318,6 +324,7 @@ skipTestSuiteIfNetworkIsZkSync(
         defaultTargetConfig,
         defaultMinApproval,
         defaultMetadata,
+        defaultExcludedAccounts,
       };
 
       const prepareInstallInputType = getNamedTypesFromMetadata(

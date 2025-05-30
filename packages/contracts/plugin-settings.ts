@@ -18,7 +18,7 @@ export const VOTING_POWER_CONDITION_CONTRACT_NAME = 'VotingPowerCondition';
 
 export const VERSION: VersionTag = {
   release: 1, // Increment this number ONLY if breaking/incompatible changes were made. Updates between releases are NOT possible.
-  build: 3, // Increment this number if non-breaking/compatible changes were made. Updates to newer builds are possible.
+  build: 4, // Increment this number if non-breaking/compatible changes were made. Updates to newer builds are possible.
 };
 
 // The metadata associated with the plugin version you are currently working on.
