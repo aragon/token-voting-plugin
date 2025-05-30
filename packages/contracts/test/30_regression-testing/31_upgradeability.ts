@@ -12,8 +12,8 @@ import {
   TargetConfig,
 } from '../test-utils/token-voting-constants';
 import {
-  TokenVoting_V1_0_0__factory,
-  TokenVoting_V1_3_0__factory,
+  TokenVoting_r1_b1__factory,
+  TokenVoting_r1_b2__factory,
   TokenVoting__factory,
 } from '../test-utils/typechain-versions';
 import {
@@ -69,7 +69,7 @@ describe('Upgrades', () => {
     const {deployer, dao, defaultInitData, encodeDataForUpgrade} =
       await loadFixtureCustom(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
-    const legacyContractFactory = new TokenVoting_V1_0_0__factory(deployer);
+    const legacyContractFactory = new TokenVoting_r1_b1__factory(deployer);
 
     const data = [
       0,
@@ -91,7 +91,7 @@ describe('Upgrades', () => {
           defaultInitData.metadata,
         ],
       },
-      ARTIFACT_SOURCES.TokenVoting_V1_0_0,
+      ARTIFACT_SOURCES.TokenVoting_r1_b1,
       ARTIFACT_SOURCES.TokenVoting,
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
       dao,
@@ -172,7 +172,7 @@ describe('Upgrades', () => {
     const {deployer, dao, defaultInitData, encodeDataForUpgrade} =
       await loadFixtureCustom(fixture);
     const currentContractFactory = new TokenVoting__factory(deployer);
-    const legacyContractFactory = new TokenVoting_V1_3_0__factory(deployer);
+    const legacyContractFactory = new TokenVoting_r1_b2__factory(deployer);
 
     const data = [
       0,
@@ -194,7 +194,7 @@ describe('Upgrades', () => {
           defaultInitData.metadata,
         ],
       },
-      ARTIFACT_SOURCES.TokenVoting_V1_3_0,
+      ARTIFACT_SOURCES.TokenVoting_r1_b2,
       ARTIFACT_SOURCES.TokenVoting,
       PLUGIN_UUPS_UPGRADEABLE_PERMISSIONS.UPGRADE_PLUGIN_PERMISSION_ID,
       dao,

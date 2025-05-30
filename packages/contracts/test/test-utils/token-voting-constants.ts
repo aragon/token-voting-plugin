@@ -60,5 +60,5 @@ export type TargetConfig = {
   operation: number;
 };
 
-export const latestInitializerVersion = 2;
+export const latestInitializerVersion = 3;
 export const latestPluginBuild = VERSION.build;
