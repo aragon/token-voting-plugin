@@ -14,7 +14,8 @@ import {PluginUUPSUpgradeable} from "@aragon/osx-commons-contracts/src/plugin/Pl
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {IProposal} from "@aragon/osx-commons-contracts/src/plugin/extensions/proposal/IProposal.sol";
 import {Action} from "@aragon/osx-commons-contracts/src/executors/IExecutor.sol";
-import {MetadataExtensionUpgradeable} from "@aragon/osx-commons-contracts/src/utils/metadata/MetadataExtensionUpgradeable.sol";
+import {MetadataExtensionUpgradeable} from
+    "@aragon/osx-commons-contracts/src/utils/metadata/MetadataExtensionUpgradeable.sol";
 
 import {IMajorityVoting} from "./IMajorityVoting.sol";
 
@@ -192,14 +193,14 @@ abstract contract MajorityVotingBase is
     ///     The value has to be in the interval [0, 10^6] defined by `RATIO_BASE = 10**6`.
     /// @param startDate The start date of the proposal vote.
     /// @param endDate The end date of the proposal vote.
-    /// @param snapshotBlock The number of the block prior to the proposal creation.
+    /// @param snapshotTimepoint The block number or timestamp prior to the proposal creation.
     /// @param minVotingPower The minimum voting power needed for a proposal to reach minimum participation.
     struct ProposalParameters {
         VotingMode votingMode;
         uint32 supportThreshold;
         uint64 startDate;
         uint64 endDate;
-        uint64 snapshotBlock;
+        uint64 snapshotTimepoint;
         uint256 minVotingPower;
     }
 
@@ -214,30 +215,19 @@ abstract contract MajorityVotingBase is
     }
 
     /// @notice The [ERC-165](https://eips.ethereum.org/EIPS/eip-165) interface ID of the contract.
-    bytes4 internal constant MAJORITY_VOTING_BASE_INTERFACE_ID =
-        this.minDuration.selector ^
-            this.minProposerVotingPower.selector ^
-            this.votingMode.selector ^
-            this.totalVotingPower.selector ^
-            this.getProposal.selector ^
-            this.updateVotingSettings.selector ^
-            this.updateMinApprovals.selector ^
-            bytes4(
-                keccak256(
-                    "createProposal(bytes,(address,uint256,bytes)[],uint256,uint64,uint64,uint8,bool)"
-                )
-            );
+    bytes4 internal constant MAJORITY_VOTING_BASE_INTERFACE_ID = this.minDuration.selector
+        ^ this.minProposerVotingPower.selector ^ this.votingMode.selector ^ this.totalVotingPower.selector
+        ^ this.getProposal.selector ^ this.updateVotingSettings.selector ^ this.updateMinApprovals.selector
+        ^ bytes4(keccak256("createProposal(bytes,(address,uint256,bytes)[],uint256,uint64,uint64,uint8,bool)"));
 
     /// @notice The ID of the permission required to call the `updateVotingSettings` function.
-    bytes32 public constant UPDATE_VOTING_SETTINGS_PERMISSION_ID =
-        keccak256("UPDATE_VOTING_SETTINGS_PERMISSION");
+    bytes32 public constant UPDATE_VOTING_SETTINGS_PERMISSION_ID = keccak256("UPDATE_VOTING_SETTINGS_PERMISSION");
 
     /// @notice The ID of the permission required to call the `createProposal` functions.
     bytes32 public constant CREATE_PROPOSAL_PERMISSION_ID = keccak256("CREATE_PROPOSAL_PERMISSION");
 
     /// @notice The ID of the permission required to call the `execute` function.
-    bytes32 public constant EXECUTE_PROPOSAL_PERMISSION_ID =
-        keccak256("EXECUTE_PROPOSAL_PERMISSION");
+    bytes32 public constant EXECUTE_PROPOSAL_PERMISSION_ID = keccak256("EXECUTE_PROPOSAL_PERMISSION");
 
     /// @notice A mapping between proposal IDs and proposal information.
     // solhint-disable-next-line named-parameters-mapping
@@ -332,57 +322,42 @@ abstract contract MajorityVotingBase is
     /// @notice Checks if this or the parent contract supports an interface by its ID.
     /// @param _interfaceId The ID of the interface.
     /// @return Returns `true` if the interface is supported.
-    function supportsInterface(
-        bytes4 _interfaceId
-    )
+    function supportsInterface(bytes4 _interfaceId)
         public
         view
         virtual
-        override(
-            ERC165Upgradeable,
-            MetadataExtensionUpgradeable,
-            PluginUUPSUpgradeable,
-            ProposalUpgradeable
-        )
+        override(ERC165Upgradeable, MetadataExtensionUpgradeable, PluginUUPSUpgradeable, ProposalUpgradeable)
         returns (bool)
     {
         // In addition to the current IMajorityVoting interface, also support previous version
         // that did not include the `isMinApprovalReached` and `minApproval` functions, same
         // happens with MAJORITY_VOTING_BASE_INTERFACE which did not include `updateMinApprovals`.
-        return
-            _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ||
-            _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ^ this.updateMinApprovals.selector ||
-            _interfaceId == type(IMajorityVoting).interfaceId ||
-            _interfaceId ==
-            type(IMajorityVoting).interfaceId ^
-                this.isMinApprovalReached.selector ^
-                this.minApproval.selector ||
-            super.supportsInterface(_interfaceId);
+        return _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID
+            || _interfaceId == MAJORITY_VOTING_BASE_INTERFACE_ID ^ this.updateMinApprovals.selector
+            || _interfaceId == type(IMajorityVoting).interfaceId
+            || _interfaceId
+                == type(IMajorityVoting).interfaceId ^ this.isMinApprovalReached.selector ^ this.minApproval.selector
+            || super.supportsInterface(_interfaceId);
     }
 
     /// @inheritdoc IMajorityVoting
-    function vote(
-        uint256 _proposalId,
-        VoteOption _voteOption,
-        bool _tryEarlyExecution
-    ) public virtual {
+    function vote(uint256 _proposalId, VoteOption _voteOption, bool _tryEarlyExecution) public virtual {
         address account = _msgSender();
 
         if (!_canVote(_proposalId, account, _voteOption)) {
-            revert VoteCastForbidden({
-                proposalId: _proposalId,
-                account: account,
-                voteOption: _voteOption
-            });
+            revert VoteCastForbidden({proposalId: _proposalId, account: account, voteOption: _voteOption});
         }
         _vote(_proposalId, _voteOption, account, _tryEarlyExecution);
     }
 
     /// @inheritdoc IProposal
     /// @dev Requires the `EXECUTE_PROPOSAL_PERMISSION_ID` permission.
-    function execute(
-        uint256 _proposalId
-    ) public virtual override(IMajorityVoting, IProposal) auth(EXECUTE_PROPOSAL_PERMISSION_ID) {
+    function execute(uint256 _proposalId)
+        public
+        virtual
+        override(IMajorityVoting, IProposal)
+        auth(EXECUTE_PROPOSAL_PERMISSION_ID)
+    {
         if (!_canExecute(_proposalId)) {
             revert ProposalExecutionForbidden(_proposalId);
         }
@@ -390,20 +365,18 @@ abstract contract MajorityVotingBase is
     }
 
     /// @inheritdoc IMajorityVoting
-    function getVoteOption(
-        uint256 _proposalId,
-        address _voter
-    ) public view virtual returns (VoteOption) {
+    function getVoteOption(uint256 _proposalId, address _voter) public view virtual returns (VoteOption) {
         return proposals[_proposalId].voters[_voter];
     }
 
     /// @inheritdoc IMajorityVoting
     /// @dev Reverts if the proposal with the given `_proposalId` does not exist.
-    function canVote(
-        uint256 _proposalId,
-        address _account,
-        VoteOption _voteOption
-    ) public view virtual returns (bool) {
+    function canVote(uint256 _proposalId, address _account, VoteOption _voteOption)
+        public
+        view
+        virtual
+        returns (bool)
+    {
         if (!_proposalExists(_proposalId)) {
             revert NonexistentProposal(_proposalId);
         }
@@ -413,9 +386,7 @@ abstract contract MajorityVotingBase is
 
     /// @inheritdoc IMajorityVoting
     /// @dev Reverts if the proposal with the given `_proposalId` does not exist.
-    function canExecute(
-        uint256 _proposalId
-    ) public view virtual override(IMajorityVoting, IProposal) returns (bool) {
+    function canExecute(uint256 _proposalId) public view virtual override(IMajorityVoting, IProposal) returns (bool) {
         if (!_proposalExists(_proposalId)) {
             revert NonexistentProposal(_proposalId);
         }
@@ -442,27 +413,22 @@ abstract contract MajorityVotingBase is
 
         // The code below implements the formula of the support criterion explained in the top of this file.
         // `(1 - supportThreshold) * N_yes > supportThreshold *  N_no`
-        return
-            (RATIO_BASE - proposal_.parameters.supportThreshold) * proposal_.tally.yes >
-            proposal_.parameters.supportThreshold * proposal_.tally.no;
+        return (RATIO_BASE - proposal_.parameters.supportThreshold) * proposal_.tally.yes
+            > proposal_.parameters.supportThreshold * proposal_.tally.no;
     }
 
     /// @inheritdoc IMajorityVoting
-    function isSupportThresholdReachedEarly(
-        uint256 _proposalId
-    ) public view virtual returns (bool) {
+    function isSupportThresholdReachedEarly(uint256 _proposalId) public view virtual returns (bool) {
         Proposal storage proposal_ = proposals[_proposalId];
 
-        uint256 noVotesWorstCase = totalVotingPower(proposal_.parameters.snapshotBlock) -
-            proposal_.tally.yes -
-            proposal_.tally.abstain;
+        uint256 noVotesWorstCase =
+            totalVotingPower(proposal_.parameters.snapshotTimepoint) - proposal_.tally.yes - proposal_.tally.abstain;
 
         // The code below implements the formula of the
         // early execution support criterion explained in the top of this file.
         // `(1 - supportThreshold) * N_yes > supportThreshold *  N_no,worst-case`
-        return
-            (RATIO_BASE - proposal_.parameters.supportThreshold) * proposal_.tally.yes >
-            proposal_.parameters.supportThreshold * noVotesWorstCase;
+        return (RATIO_BASE - proposal_.parameters.supportThreshold) * proposal_.tally.yes
+            > proposal_.parameters.supportThreshold * noVotesWorstCase;
     }
 
     /// @inheritdoc IMajorityVoting
@@ -472,9 +438,7 @@ abstract contract MajorityVotingBase is
         // The code below implements the formula of the
         // participation criterion explained in the top of this file.
         // `N_yes + N_no + N_abstain >= minVotingPower = minParticipation * N_total`
-        return
-            proposal_.tally.yes + proposal_.tally.no + proposal_.tally.abstain >=
-            proposal_.parameters.minVotingPower;
+        return proposal_.tally.yes + proposal_.tally.no + proposal_.tally.abstain >= proposal_.parameters.minVotingPower;
     }
 
     /// @inheritdoc IMajorityVoting
@@ -529,9 +493,7 @@ abstract contract MajorityVotingBase is
     /// @return actions The actions to be executed to the `target` contract address.
     /// @return allowFailureMap The bit map representations of which actions are allowed to revert so tx still succeeds.
     /// @return targetConfig Execution configuration, applied to the proposal when it was created. Added in build 3.
-    function getProposal(
-        uint256 _proposalId
-    )
+    function getProposal(uint256 _proposalId)
         public
         view
         virtual
@@ -559,18 +521,18 @@ abstract contract MajorityVotingBase is
     /// @notice Updates the voting settings.
     /// @dev Requires the `UPDATE_VOTING_SETTINGS_PERMISSION_ID` permission.
     /// @param _votingSettings The new voting settings.
-    function updateVotingSettings(
-        VotingSettings calldata _votingSettings
-    ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
+    function updateVotingSettings(VotingSettings calldata _votingSettings)
+        external
+        virtual
+        auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID)
+    {
         _updateVotingSettings(_votingSettings);
     }
 
     /// @notice Updates the minimal approval value.
     /// @dev Requires the `UPDATE_VOTING_SETTINGS_PERMISSION_ID` permission.
     /// @param _minApprovals The new minimal approval value.
-    function updateMinApprovals(
-        uint256 _minApprovals
-    ) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
+    function updateMinApprovals(uint256 _minApprovals) external virtual auth(UPDATE_VOTING_SETTINGS_PERMISSION_ID) {
         _updateMinApprovals(_minApprovals);
     }
 
@@ -605,12 +567,9 @@ abstract contract MajorityVotingBase is
     /// @param _voter The address of the account that is voting on the `_proposalId`.
     /// @param _tryEarlyExecution If `true`,  early execution is tried after the vote cast.
     ///     The call does not revert if early execution is not possible.
-    function _vote(
-        uint256 _proposalId,
-        VoteOption _voteOption,
-        address _voter,
-        bool _tryEarlyExecution
-    ) internal virtual;
+    function _vote(uint256 _proposalId, VoteOption _voteOption, address _voter, bool _tryEarlyExecution)
+        internal
+        virtual;
 
     /// @notice Internal function to execute a proposal. It assumes the queried proposal exists.
     /// @param _proposalId The ID of the proposal.
@@ -635,11 +594,11 @@ abstract contract MajorityVotingBase is
     /// @param _account The address of the voter to check.
     /// @param _voteOption Whether the voter abstains, supports or opposes the proposal.
     /// @return Returns `true` if the given voter can vote on a certain proposal and `false` otherwise.
-    function _canVote(
-        uint256 _proposalId,
-        address _account,
-        VoteOption _voteOption
-    ) internal view virtual returns (bool);
+    function _canVote(uint256 _proposalId, address _account, VoteOption _voteOption)
+        internal
+        view
+        virtual
+        returns (bool);
 
     /// @notice An internal function that checks if the proposal succeeded or not.
     /// @param _proposalId The ID of the proposal.
@@ -705,10 +664,8 @@ abstract contract MajorityVotingBase is
     function _isProposalOpen(Proposal storage proposal_) internal view virtual returns (bool) {
         uint64 currentTime = block.timestamp.toUint64();
 
-        return
-            proposal_.parameters.startDate <= currentTime &&
-            currentTime < proposal_.parameters.endDate &&
-            !proposal_.executed;
+        return proposal_.parameters.startDate <= currentTime && currentTime < proposal_.parameters.endDate
+            && !proposal_.executed;
     }
 
     /// @notice Internal function to update the plugin-wide proposal settings.
@@ -717,10 +674,7 @@ abstract contract MajorityVotingBase is
         // Require the support threshold value to be in the interval [0, 10^6-1],
         // because `>` comparison is used in the support criterion and >100% could never be reached.
         if (_votingSettings.supportThreshold > RATIO_BASE - 1) {
-            revert RatioOutOfBounds({
-                limit: RATIO_BASE - 1,
-                actual: _votingSettings.supportThreshold
-            });
+            revert RatioOutOfBounds({limit: RATIO_BASE - 1, actual: _votingSettings.supportThreshold});
         }
 
         // Require the minimum participation value to be in the interval [0, 10^6],
@@ -752,7 +706,7 @@ abstract contract MajorityVotingBase is
     /// @param _proposalId The ID of the proposal.
     /// @return Returns `true` if proposal exists, otherwise false.
     function _proposalExists(uint256 _proposalId) private view returns (bool) {
-        return proposals[_proposalId].parameters.snapshotBlock != 0;
+        return proposals[_proposalId].parameters.snapshotTimepoint != 0;
     }
 
     /// @notice Internal function to update minimal approval value.
@@ -774,10 +728,12 @@ abstract contract MajorityVotingBase is
     /// @param _end The end date of the proposal. If 0, `_start + minDuration` is used.
     /// @return startDate The validated start date of the proposal.
     /// @return endDate The validated end date of the proposal.
-    function _validateProposalDates(
-        uint64 _start,
-        uint64 _end
-    ) internal view virtual returns (uint64 startDate, uint64 endDate) {
+    function _validateProposalDates(uint64 _start, uint64 _end)
+        internal
+        view
+        virtual
+        returns (uint64 startDate, uint64 endDate)
+    {
         uint64 currentTimestamp = block.timestamp.toUint64();
 
         if (_start == 0) {

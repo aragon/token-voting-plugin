@@ -32,21 +32,20 @@ contract VotingPowerCondition is PermissionCondition {
     /// @inheritdoc IPermissionCondition
     /// @dev The function checks both the voting power and token balance to ensure `_who` meets the minimum voting
     ///      threshold defined in the `TokenVoting` plugin. Returns `false` if the minimum requirement is unmet.
-    function isGranted(
-        address _where,
-        address _who,
-        bytes32 _permissionId,
-        bytes calldata _data
-    ) public view override returns (bool) {
+    function isGranted(address _where, address _who, bytes32 _permissionId, bytes calldata _data)
+        public
+        view
+        override
+        returns (bool)
+    {
         (_where, _data, _permissionId);
 
         uint256 minProposerVotingPower_ = TOKEN_VOTING.minProposerVotingPower();
 
         if (minProposerVotingPower_ != 0) {
             if (
-                VOTING_TOKEN.getVotes(_who) < minProposerVotingPower_ &&
-                IERC20Upgradeable(address(VOTING_TOKEN)).balanceOf(_who) <
-                minProposerVotingPower_
+                VOTING_TOKEN.getVotes(_who) < minProposerVotingPower_
+                    && IERC20Upgradeable(address(VOTING_TOKEN)).balanceOf(_who) < minProposerVotingPower_
             ) {
                 return false;
             }

@@ -25,12 +25,7 @@ interface IMajorityVoting {
     /// @param voter The voter casting the vote.
     /// @param voteOption The casted vote option.
     /// @param votingPower The voting power behind this vote.
-    event VoteCast(
-        uint256 indexed proposalId,
-        address indexed voter,
-        VoteOption voteOption,
-        uint256 votingPower
-    );
+    event VoteCast(uint256 indexed proposalId, address indexed voter, VoteOption voteOption, uint256 votingPower);
 
     /// @notice Returns the support threshold parameter stored in the voting settings.
     /// @return The support threshold parameter.
@@ -82,11 +77,7 @@ interface IMajorityVoting {
     /// @param _account The account address to be checked.
     /// @param _voteOption Whether the voter abstains, supports or opposes the proposal.
     /// @return Returns true if the account is allowed to vote.
-    function canVote(
-        uint256 _proposalId,
-        address _account,
-        VoteOption _voteOption
-    ) external view returns (bool);
+    function canVote(uint256 _proposalId, address _account, VoteOption _voteOption) external view returns (bool);
 
     /// @notice Checks if a proposal can be executed.
     /// @param _proposalId The ID of the proposal to be checked.
@@ -111,8 +102,5 @@ interface IMajorityVoting {
     /// @param _proposalId The ID of the proposal.
     /// @param _account The account address to be checked.
     /// @return The vote option cast by a voter for a certain proposal.
-    function getVoteOption(
-        uint256 _proposalId,
-        address _account
-    ) external view returns (VoteOption);
+    function getVoteOption(uint256 _proposalId, address _account) external view returns (VoteOption);
 }

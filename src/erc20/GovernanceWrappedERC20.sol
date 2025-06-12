@@ -4,12 +4,16 @@ pragma solidity ^0.8.8;
 
 /* solhint-disable max-line-length */
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import {ERC20WrapperUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20WrapperUpgradeable.sol";
+import {ERC20WrapperUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20WrapperUpgradeable.sol";
 import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
-import {IERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20PermitUpgradeable.sol";
+import {IERC20PermitUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20PermitUpgradeable.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
-import {ERC20VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {IERC20MetadataUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
+import {ERC20VotesUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {IGovernanceWrappedERC20} from "./IGovernanceWrappedERC20.sol";
@@ -40,75 +44,123 @@ contract GovernanceWrappedERC20 is
     ERC20VotesUpgradeable,
     ERC20WrapperUpgradeable
 {
+    /// @notice The list of addresses excluded from voting
+    address[] public excludedAccounts;
+
+    /// @notice Thrown when an excluded account attempts to engage in voting activity.
+    error AccountIsExcluded();
+
     /// @notice Calls the initialize function.
     /// @param _token The underlying [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token.
     /// @param _name The name of the wrapped token.
     /// @param _symbol The symbol of the wrapped token.
-    constructor(IERC20Upgradeable _token, string memory _name, string memory _symbol) {
-        initialize(_token, _name, _symbol);
+    /// @param _excludedAccounts The list of accounts to exclude from voting
+    constructor(
+        IERC20Upgradeable _token,
+        string memory _name,
+        string memory _symbol,
+        address[] memory _excludedAccounts
+    ) {
+        initialize(_token, _name, _symbol, _excludedAccounts);
     }
 
     /// @notice Initializes the contract.
     /// @param _token The underlying [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token.
     /// @param _name The name of the wrapped token.
     /// @param _symbol The symbol of the wrapped token.
+    /// @param _excludedAccounts The list of accounts to exclude from voting
     function initialize(
         IERC20Upgradeable _token,
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        address[] memory _excludedAccounts
     ) public initializer {
         __ERC20_init(_name, _symbol);
         __ERC20Permit_init(_name);
         __ERC20Wrapper_init(_token);
+
+        for (uint256 i; i < _excludedAccounts.length;) {
+            excludedAccounts.push(_excludedAccounts[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
     /// @param _interfaceId The ID of the interface.
     /// @return Returns `true` if the interface is supported.
     function supportsInterface(bytes4 _interfaceId) public view virtual override returns (bool) {
-        return
-            _interfaceId == type(IGovernanceWrappedERC20).interfaceId ||
-            _interfaceId == type(IERC20Upgradeable).interfaceId ||
-            _interfaceId == type(IERC20PermitUpgradeable).interfaceId ||
-            _interfaceId == type(IERC20MetadataUpgradeable).interfaceId ||
-            _interfaceId == type(IVotesUpgradeable).interfaceId ||
-            super.supportsInterface(_interfaceId);
+        return _interfaceId == type(IGovernanceWrappedERC20).interfaceId
+            || _interfaceId == type(IERC20Upgradeable).interfaceId
+            || _interfaceId == type(IERC20PermitUpgradeable).interfaceId
+            || _interfaceId == type(IERC20MetadataUpgradeable).interfaceId
+            || _interfaceId == type(IVotesUpgradeable).interfaceId || super.supportsInterface(_interfaceId);
     }
 
     /// @inheritdoc ERC20WrapperUpgradeable
     /// @dev Uses the `decimals` of the underlying [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token.
-    function decimals()
-        public
-        view
-        override(ERC20Upgradeable, ERC20WrapperUpgradeable)
-        returns (uint8)
-    {
+    function decimals() public view override(ERC20Upgradeable, ERC20WrapperUpgradeable) returns (uint8) {
         return ERC20WrapperUpgradeable.decimals();
     }
 
+    function delegate(address _account) public override {
+        for (uint256 i; i < excludedAccounts.length; i++) {
+            if (msg.sender != excludedAccounts[i]) continue;
+
+            revert AccountIsExcluded();
+        }
+        super.delegate(_account);
+    }
+
+    /// @inheritdoc ERC20VotesUpgradeable
+    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
+    function getPastVotes(address _account, uint256 _timepoint) public view override returns (uint256) {
+        for (uint256 i; i < excludedAccounts.length; ++i) {
+            if (_account == excludedAccounts[i]) {
+                return 0;
+            }
+        }
+        return super.getPastVotes(_account, _timepoint);
+    }
+
+    /// @inheritdoc ERC20VotesUpgradeable
+    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
+    function getPastTotalSupply(uint256 _timepoint) public view override returns (uint256) {
+        uint256 _excludedSupply = super.getPastVotes(address(0), _timepoint);
+        for (uint256 i; i < excludedAccounts.length; ++i) {
+            /// @dev Using getPastVotes() even though these addresses cannot self delegate.
+            /// @dev Another account could transfer a delegated balance to them.
+            _excludedSupply += super.getPastVotes(excludedAccounts[i], _timepoint);
+        }
+        return super.getPastTotalSupply(_timepoint) - _excludedSupply;
+    }
+
     /// @inheritdoc IGovernanceWrappedERC20
-    function depositFor(
-        address account,
-        uint256 amount
-    ) public override(IGovernanceWrappedERC20, ERC20WrapperUpgradeable) returns (bool) {
+    function depositFor(address account, uint256 amount)
+        public
+        override(IGovernanceWrappedERC20, ERC20WrapperUpgradeable)
+        returns (bool)
+    {
         return ERC20WrapperUpgradeable.depositFor(account, amount);
     }
 
     /// @inheritdoc IGovernanceWrappedERC20
-    function withdrawTo(
-        address account,
-        uint256 amount
-    ) public override(IGovernanceWrappedERC20, ERC20WrapperUpgradeable) returns (bool) {
+    function withdrawTo(address account, uint256 amount)
+        public
+        override(IGovernanceWrappedERC20, ERC20WrapperUpgradeable)
+        returns (bool)
+    {
         return ERC20WrapperUpgradeable.withdrawTo(account, amount);
     }
 
     // https://forum.openzeppelin.com/t/self-delegation-in-erc20votes/17501/12?u=novaknole
     /// @inheritdoc ERC20VotesUpgradeable
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override(ERC20VotesUpgradeable, ERC20Upgradeable) {
+    function _afterTokenTransfer(address from, address to, uint256 amount)
+        internal
+        override(ERC20VotesUpgradeable, ERC20Upgradeable)
+    {
         super._afterTokenTransfer(from, to, amount);
 
         // Automatically turn on delegation on mint/transfer but only for the first time.
@@ -118,18 +170,12 @@ contract GovernanceWrappedERC20 is
     }
 
     /// @inheritdoc ERC20VotesUpgradeable
-    function _mint(
-        address to,
-        uint256 amount
-    ) internal override(ERC20VotesUpgradeable, ERC20Upgradeable) {
+    function _mint(address to, uint256 amount) internal override(ERC20VotesUpgradeable, ERC20Upgradeable) {
         super._mint(to, amount);
     }
 
     /// @inheritdoc ERC20VotesUpgradeable
-    function _burn(
-        address account,
-        uint256 amount
-    ) internal override(ERC20VotesUpgradeable, ERC20Upgradeable) {
+    function _burn(address account, uint256 amount) internal override(ERC20VotesUpgradeable, ERC20Upgradeable) {
         super._burn(account, amount);
     }
 }
