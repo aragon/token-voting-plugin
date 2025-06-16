@@ -17,6 +17,7 @@ import {ERC20VotesUpgradeable} from
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {IGovernanceWrappedERC20} from "./IGovernanceWrappedERC20.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /* solhint-enable max-line-length */
 
@@ -44,8 +45,10 @@ contract GovernanceWrappedERC20 is
     ERC20VotesUpgradeable,
     ERC20WrapperUpgradeable
 {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     /// @notice The list of addresses excluded from voting
-    address[] public excludedAccounts;
+    EnumerableSet.AddressSet internal excludedAccounts;
 
     /// @notice Thrown when an excluded account attempts to engage in voting activity.
     error AccountIsExcluded();
@@ -80,7 +83,7 @@ contract GovernanceWrappedERC20 is
         __ERC20Wrapper_init(_token);
 
         for (uint256 i; i < _excludedAccounts.length;) {
-            excludedAccounts.push(_excludedAccounts[i]);
+            excludedAccounts.add(_excludedAccounts[i]);
 
             unchecked {
                 ++i;
@@ -106,9 +109,7 @@ contract GovernanceWrappedERC20 is
     }
 
     function delegate(address _account) public override {
-        for (uint256 i; i < excludedAccounts.length; i++) {
-            if (msg.sender != excludedAccounts[i]) continue;
-
+        if (excludedAccounts.contains(_account)) {
             revert AccountIsExcluded();
         }
         super.delegate(_account);
@@ -117,10 +118,8 @@ contract GovernanceWrappedERC20 is
     /// @inheritdoc ERC20VotesUpgradeable
     /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
     function getPastVotes(address _account, uint256 _timepoint) public view override returns (uint256) {
-        for (uint256 i; i < excludedAccounts.length; ++i) {
-            if (_account == excludedAccounts[i]) {
-                return 0;
-            }
+        if (excludedAccounts.contains(_account)) {
+            return 0;
         }
         return super.getPastVotes(_account, _timepoint);
     }
@@ -129,10 +128,14 @@ contract GovernanceWrappedERC20 is
     /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
     function getPastTotalSupply(uint256 _timepoint) public view override returns (uint256) {
         uint256 _excludedSupply = super.getPastVotes(address(0), _timepoint);
-        for (uint256 i; i < excludedAccounts.length; ++i) {
+        for (uint256 i; i < excludedAccounts.length();) {
             /// @dev Using getPastVotes() even though these addresses cannot self delegate.
             /// @dev Another account could transfer a delegated balance to them.
-            _excludedSupply += super.getPastVotes(excludedAccounts[i], _timepoint);
+            _excludedSupply += super.getPastVotes(excludedAccounts.at(i), _timepoint);
+
+            unchecked {
+                ++i;
+            }
         }
         return super.getPastTotalSupply(_timepoint) - _excludedSupply;
     }
