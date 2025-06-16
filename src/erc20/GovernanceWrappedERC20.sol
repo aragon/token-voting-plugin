@@ -44,22 +44,48 @@ contract GovernanceWrappedERC20 is
     ERC20VotesUpgradeable,
     ERC20WrapperUpgradeable
 {
+    /// @notice The list of addresses excluded from voting
+    address[] public excludedAccounts;
+
+    /// @notice Thrown when an excluded account attempts to engage in voting activity.
+    error AccountIsExcluded();
+
     /// @notice Calls the initialize function.
     /// @param _token The underlying [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token.
     /// @param _name The name of the wrapped token.
     /// @param _symbol The symbol of the wrapped token.
-    constructor(IERC20Upgradeable _token, string memory _name, string memory _symbol) {
-        initialize(_token, _name, _symbol);
+    /// @param _excludedAccounts The list of accounts to exclude from voting
+    constructor(
+        IERC20Upgradeable _token,
+        string memory _name,
+        string memory _symbol,
+        address[] memory _excludedAccounts
+    ) {
+        initialize(_token, _name, _symbol, _excludedAccounts);
     }
 
     /// @notice Initializes the contract.
     /// @param _token The underlying [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token.
     /// @param _name The name of the wrapped token.
     /// @param _symbol The symbol of the wrapped token.
-    function initialize(IERC20Upgradeable _token, string memory _name, string memory _symbol) public initializer {
+    /// @param _excludedAccounts The list of accounts to exclude from voting
+    function initialize(
+        IERC20Upgradeable _token,
+        string memory _name,
+        string memory _symbol,
+        address[] memory _excludedAccounts
+    ) public initializer {
         __ERC20_init(_name, _symbol);
         __ERC20Permit_init(_name);
         __ERC20Wrapper_init(_token);
+
+        for (uint256 i; i < _excludedAccounts.length;) {
+            excludedAccounts.push(_excludedAccounts[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -77,6 +103,38 @@ contract GovernanceWrappedERC20 is
     /// @dev Uses the `decimals` of the underlying [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token.
     function decimals() public view override(ERC20Upgradeable, ERC20WrapperUpgradeable) returns (uint8) {
         return ERC20WrapperUpgradeable.decimals();
+    }
+
+    function delegate(address _account) public override {
+        for (uint256 i; i < excludedAccounts.length; i++) {
+            if (msg.sender != excludedAccounts[i]) continue;
+
+            revert AccountIsExcluded();
+        }
+        super.delegate(_account);
+    }
+
+    /// @inheritdoc ERC20VotesUpgradeable
+    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
+    function getPastVotes(address _account, uint256 _timepoint) public view override returns (uint256) {
+        for (uint256 i; i < excludedAccounts.length; ++i) {
+            if (_account == excludedAccounts[i]) {
+                return 0;
+            }
+        }
+        return super.getPastVotes(_account, _timepoint);
+    }
+
+    /// @inheritdoc ERC20VotesUpgradeable
+    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
+    function getPastTotalSupply(uint256 _timepoint) public view override returns (uint256) {
+        uint256 _excludedSupply = super.getPastVotes(address(0), _timepoint);
+        for (uint256 i; i < excludedAccounts.length; ++i) {
+            /// @dev Using getPastVotes() even though these addresses cannot self delegate.
+            /// @dev Another account could transfer a delegated balance to them.
+            _excludedSupply += super.getPastVotes(excludedAccounts[i], _timepoint);
+        }
+        return super.getPastTotalSupply(_timepoint) - _excludedSupply;
     }
 
     /// @inheritdoc IGovernanceWrappedERC20

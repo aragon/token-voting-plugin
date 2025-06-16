@@ -7,12 +7,12 @@ import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {GovernanceERC20} from "../../src/erc20/GovernanceERC20.sol";
 
 /// @title TestGovernanceERC20
-/// @author Aragon X - 2022-2023
+/// @author Aragon X - 2022-2025
 /// @notice A test GovernanceERC20 that can be minted and burned by everyone.
 /// @dev DO NOT USE IN PRODUCTION!
 contract TestGovernanceERC20 is GovernanceERC20 {
     constructor(IDAO _dao, string memory _name, string memory _symbol, MintSettings memory _mintSettings)
-        GovernanceERC20(_dao, _name, _symbol, _mintSettings)
+        GovernanceERC20(_dao, _name, _symbol, _mintSettings, new address[](0))
     {}
 
     // sets the balance of the address
