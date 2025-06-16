@@ -117,11 +117,36 @@ contract GovernanceWrappedERC20 is
 
     /// @inheritdoc ERC20VotesUpgradeable
     /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
+    function getVotes(address _account) public view override returns (uint256) {
+        if (excludedAccounts.contains(_account)) {
+            return 0;
+        }
+        return super.getVotes(_account);
+    }
+
+    /// @inheritdoc ERC20VotesUpgradeable
+    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
     function getPastVotes(address _account, uint256 _timepoint) public view override returns (uint256) {
         if (excludedAccounts.contains(_account)) {
             return 0;
         }
         return super.getPastVotes(_account, _timepoint);
+    }
+
+    /// @inheritdoc IERC20Upgradeable
+    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
+    function totalSupply() public view override returns (uint256) {
+        uint256 _excludedSupply = super.getVotes(address(0));
+        for (uint256 i; i < excludedAccounts.length();) {
+            /// @dev Using getVotes() even though these addresses cannot self delegate.
+            /// @dev Another account could transfer a delegated balance to them.
+            _excludedSupply += super.getVotes(excludedAccounts.at(i));
+
+            unchecked {
+                ++i;
+            }
+        }
+        return super.totalSupply() - _excludedSupply;
     }
 
     /// @inheritdoc ERC20VotesUpgradeable
