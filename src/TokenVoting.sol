@@ -122,9 +122,11 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         return votingToken;
     }
 
-    /// @inheritdoc MajorityVotingBase
-    function totalVotingPower(uint256 _blockNumber) public view override returns (uint256) {
-        return votingToken.getPastTotalSupply(_blockNumber);
+    /// @notice Returns the total voting power checkpointed for a specific timestamp or block number.
+    /// @param _timePoint The block number.
+    /// @return The total voting power.
+    function totalVotingPower(uint256 _timePoint) public view override returns (uint256) {
+        return votingToken.getPastTotalSupply(_timePoint);
     }
 
     /// @inheritdoc MajorityVotingBase
