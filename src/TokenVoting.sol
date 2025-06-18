@@ -67,7 +67,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
         // Check if the given token indexes past voting power by blocks or by timestamp
         try IERC6372Upgradeable(address(_token)).CLOCK_MODE() returns (string memory ms) {
-            if (keccak256(bytes(ms)) == keccak256(bytes("mode=timestamp&version=1"))) {
+            if (keccak256(bytes(ms)) == keccak256(bytes("mode=timestamp"))) {
                 tokenIndexedByTimestamp = true;
             }
         } catch {
