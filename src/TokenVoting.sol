@@ -46,7 +46,10 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
     /// @param _dao The IDAO interface of the associated DAO.
     /// @param _votingSettings The voting settings.
-    /// @param _token The [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used for voting.
+    /// @param _token The [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token to use for voting.
+    ///     If the given token implements https://eips.ethereum.org/EIPS/eip-6372,
+    ///     then `CLOCK_MODE()` or `clock()` will determine the clock type used by the plugin.
+    ///     The token will be assumed to use a block number based clock otherwise.
     /// @param _targetConfig Configuration for the execution target, specifying the target address and operation type
     ///     (either `Call` or `DelegateCall`). Defined by `TargetConfig` in the `IPlugin` interface,
     ///     part of the `osx-commons-contracts` package, added in build 3.
@@ -66,8 +69,8 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         votingToken = _token;
 
         // Check if the given token indexes past voting power by blocks or by timestamp
-        try IERC6372Upgradeable(address(_token)).CLOCK_MODE() returns (string memory ms) {
-            if (keccak256(bytes(ms)) == keccak256(bytes("mode=timestamp"))) {
+        try IERC6372Upgradeable(address(_token)).CLOCK_MODE() returns (string memory clockMode) {
+            if (keccak256(bytes(clockMode)) == keccak256(bytes("mode=timestamp"))) {
                 tokenIndexedByTimestamp = true;
             }
         } catch {
