@@ -42,6 +42,9 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @notice Thrown if the voting power is zero
     error NoVotingPower();
 
+    /// @notice Thrown if the token reports an inconsistent clock mode and clock value
+    error TokenClockMismatch();
+
     /// @notice Initializes the component.
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
     /// @param _dao The IDAO interface of the associated DAO.
@@ -68,22 +71,7 @@ contract TokenVoting is IMembership, MajorityVotingBase {
 
         votingToken = _token;
 
-        // Check if the given token indexes past voting power by blocks or by timestamp
-        try IERC6372Upgradeable(address(_token)).CLOCK_MODE() returns (string memory clockMode) {
-            if (keccak256(bytes(clockMode)) == keccak256(bytes("mode=timestamp"))) {
-                tokenIndexedByTimestamp = true;
-            }
-        } catch {
-            // CLOCK_MODE() not found, reverted, or other issue.
-            try IERC6372Upgradeable(address(_token)).clock() returns (uint48 cv) {
-                if (cv == block.timestamp) {
-                    tokenIndexedByTimestamp = true;
-                }
-            } catch {
-                // clock() not found, reverted, or other issue.
-                // Assuming that the token indexes by block number
-            }
-        }
+        _detectTokenClock();
 
         emit MembershipContractAnnounced({definingContract: address(_token)});
     }
@@ -106,6 +94,9 @@ contract TokenVoting is IMembership, MajorityVotingBase {
             _setTargetConfig(targetConfig);
 
             _setMetadata(pluginMetadata);
+        }
+        if (_fromBuild < 4) {
+            _detectTokenClock();
         }
     }
 
@@ -323,6 +314,27 @@ contract TokenVoting is IMembership, MajorityVotingBase {
         uint64 _endDate
     ) private {
         emit ProposalCreated(proposalId, _msgSender(), _startDate, _endDate, _metadata, _actions, _allowFailureMap);
+    }
+
+    /// @dev Helper function to identify the clock mode used by the given voting token.
+    function _detectTokenClock() private {
+        bool clockModeTimestamp;
+        bool clockTimestamp;
+
+        try IERC6372Upgradeable(address(votingToken)).CLOCK_MODE() returns (string memory clockMode) {
+            clockModeTimestamp = keccak256(bytes(clockMode)) == keccak256(bytes("mode=timestamp"));
+        } catch {}
+        try IERC6372Upgradeable(address(votingToken)).clock() returns (uint48 timePoint) {
+            clockTimestamp = (timePoint == block.timestamp);
+        } catch {}
+
+        if (clockModeTimestamp != clockTimestamp) {
+            revert TokenClockMismatch();
+        } else if (clockModeTimestamp) {
+            tokenIndexedByTimestamp = true;
+        } else {
+            // Assuming that the token indexes by block number
+        }
     }
 
     /// @dev This empty reserved space is put in place to allow future versions to add new
