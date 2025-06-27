@@ -34,7 +34,7 @@ contract GovernanceWrappedERC20Test is TestBase {
     function setUp() public virtual {
         underlyingToken = new ERC20Mock(UNDERLYING_TOKEN_NAME, UNDERLYING_TOKEN_SYMBOL);
         governanceToken = new GovernanceWrappedERC20(
-            IERC20Upgradeable(address(underlyingToken)), WRAPPED_TOKEN_NAME, WRAPPED_TOKEN_SYMBOL, new address[](0)
+            IERC20Upgradeable(address(underlyingToken)), WRAPPED_TOKEN_NAME, WRAPPED_TOKEN_SYMBOL
         );
 
         // Assign actors for exhaustive tests
@@ -50,9 +50,7 @@ contract GovernanceWrappedERC20Test is TestBase {
     function test_WhenCallingInitializeAgain() external givenTheContractIsAlreadyInitialized {
         // It reverts if trying to re-initialize
         vm.expectRevert("Initializable: contract is already initialized");
-        governanceToken.initialize(
-            IERC20Upgradeable(address(underlyingToken)), "another name", "another symbol", new address[](0)
-        );
+        governanceToken.initialize(IERC20Upgradeable(address(underlyingToken)), "another name", "another symbol");
     }
 
     function test_WhenCheckingTheContractsNameAndSymbol() external view givenTheContractIsAlreadyInitialized {

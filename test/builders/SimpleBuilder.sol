@@ -34,6 +34,7 @@ contract SimpleBuilder is TestBase {
     IPlugin.Operation targetOperation;
     uint256 minApprovals;
     bytes pluginMetadata;
+    address[] excludedAccounts;
 
     constructor() {
         // Set the caller as the initial daoOwner
@@ -106,6 +107,11 @@ contract SimpleBuilder is TestBase {
         return this;
     }
 
+    function withExcludedAccount(address account) public returns (SimpleBuilder) {
+        excludedAccounts.push(account);
+        return this;
+    }
+
     function withTargetConfig(address _target, IPlugin.Operation _operation) public returns (SimpleBuilder) {
         targetAddress = _target;
         targetOperation = _operation;
@@ -143,7 +149,7 @@ contract SimpleBuilder is TestBase {
             }
 
             token_ = new GovernanceERC20(
-                dao, "MyToken", "SYM", GovernanceERC20.MintSettings(newTokenHolders, newTokenBalances), new address[](0)
+                dao, "MyToken", "SYM", GovernanceERC20.MintSettings(newTokenHolders, newTokenBalances)
             );
         } else {
             token_ = token;
@@ -168,7 +174,8 @@ contract SimpleBuilder is TestBase {
             ProxyLib.deployUUPSProxy(
                 address(TOKEN_VOTING_PLUGIN_BASE),
                 abi.encodeCall(
-                    TokenVoting.initialize, (dao, votingSettings, token_, targetConfig, minApprovals, pluginMetadata)
+                    TokenVoting.initialize,
+                    (dao, votingSettings, token_, targetConfig, minApprovals, pluginMetadata, excludedAccounts)
                 )
             )
         );

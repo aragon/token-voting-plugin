@@ -48,14 +48,9 @@ contract TokenVotingSetupTest is TestBase {
 
         // Deploy base contracts
         governanceERC20Base = new GovernanceERC20(
-            IDAO(address(0)),
-            "G",
-            "G",
-            GovernanceERC20.MintSettings(new address[](0), new uint256[](0)),
-            new address[](0)
+            IDAO(address(0)), "G", "G", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
         );
-        governanceWrappedERC20Base =
-            new GovernanceWrappedERC20(IERC20Upgradeable(address(0x1)), "WG", "WG", new address[](0));
+        governanceWrappedERC20Base = new GovernanceWrappedERC20(IERC20Upgradeable(address(0x1)), "WG", "WG");
 
         // Deploy PluginSetup
         pluginSetup = new PluginSetupContract(governanceERC20Base, governanceWrappedERC20Base);
@@ -264,8 +259,7 @@ contract TokenVotingSetupTest is TestBase {
         givenTheContextIsPrepareInstallation
     {
         // It correctly returns plugin, helpers and permissions, when a governance token address is supplied
-        GovernanceERC20 govToken =
-            new GovernanceERC20(IDAO(address(dao)), "Test", "TST", defaultMintSettings, new address[](0));
+        GovernanceERC20 govToken = new GovernanceERC20(IDAO(address(dao)), "Test", "TST", defaultMintSettings);
         defaultTokenSettings.addr = address(govToken);
         bytes memory data = _getInstallationData();
 
@@ -499,7 +493,7 @@ contract TokenVotingSetupTest is TestBase {
         address pluginAddr = makeAddr("plugin");
         address conditionAddr = makeAddr("condition");
         GovernanceWrappedERC20 wrappedToken =
-            new GovernanceWrappedERC20(IERC20Upgradeable(makeAddr("underlying")), "W", "W", new address[](0));
+            new GovernanceWrappedERC20(IERC20Upgradeable(makeAddr("underlying")), "W", "W");
 
         address[] memory helpers = new address[](2);
         helpers[0] = conditionAddr;
@@ -569,8 +563,7 @@ contract TokenVotingSetupTest is TestBase {
         // It correctly returns permissions, when the required number of helpers is supplied
         address pluginAddr = makeAddr("plugin");
         address conditionAddr = makeAddr("condition");
-        GovernanceERC20 govToken =
-            new GovernanceERC20(IDAO(address(dao)), "G", "G", defaultMintSettings, new address[](0));
+        GovernanceERC20 govToken = new GovernanceERC20(IDAO(address(dao)), "G", "G", defaultMintSettings);
 
         address[] memory helpers = new address[](2);
         helpers[0] = conditionAddr;

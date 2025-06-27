@@ -12,7 +12,7 @@ import {GovernanceERC20} from "../../src/erc20/GovernanceERC20.sol";
 /// @dev DO NOT USE IN PRODUCTION!
 contract TestGovernanceERC20 is GovernanceERC20 {
     constructor(IDAO _dao, string memory _name, string memory _symbol, MintSettings memory _mintSettings)
-        GovernanceERC20(_dao, _name, _symbol, _mintSettings, new address[](0))
+        GovernanceERC20(_dao, _name, _symbol, _mintSettings)
     {}
 
     // sets the balance of the address

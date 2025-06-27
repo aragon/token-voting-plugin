@@ -13,7 +13,6 @@ import {ERC20VotesUpgradeable} from
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {DaoAuthorizableUpgradeable} from
     "@aragon/osx-commons-contracts/src/permission/auth/DaoAuthorizableUpgradeable.sol";
@@ -34,13 +33,8 @@ contract GovernanceERC20 is
     ERC20VotesUpgradeable,
     DaoAuthorizableUpgradeable
 {
-    using EnumerableSet for EnumerableSet.AddressSet;
-
     /// @notice The permission identifier to mint new tokens
     bytes32 public constant MINT_PERMISSION_ID = keccak256("MINT_PERMISSION");
-
-    /// @notice The list of addresses excluded from voting
-    EnumerableSet.AddressSet internal excludedAccounts;
 
     /// @notice Wether mint() has been permanently disabled
     bool public mintingFrozen;
@@ -65,23 +59,13 @@ contract GovernanceERC20 is
     /// @notice Thrown when attempting to mint when minting is permanently disabled
     error MintingIsFrozen();
 
-    /// @notice Thrown when an excluded account attempts to engage in voting activity.
-    error AccountIsExcluded();
-
     /// @notice Calls the initialize function.
     /// @param _dao The managing DAO.
     /// @param _name The name of the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) governance token.
     /// @param _symbol The symbol of the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) governance token.
     /// @param _mintSettings The token mint settings struct containing the `receivers` and `amounts`.
-    /// @param _excludedAccounts The list of accounts excluded from voting.
-    constructor(
-        IDAO _dao,
-        string memory _name,
-        string memory _symbol,
-        MintSettings memory _mintSettings,
-        address[] memory _excludedAccounts
-    ) {
-        initialize(_dao, _name, _symbol, _mintSettings, _excludedAccounts);
+    constructor(IDAO _dao, string memory _name, string memory _symbol, MintSettings memory _mintSettings) {
+        initialize(_dao, _name, _symbol, _mintSettings);
     }
 
     /// @notice Initializes the contract and mints tokens to a list of receivers.
@@ -89,14 +73,10 @@ contract GovernanceERC20 is
     /// @param _name The name of the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) governance token.
     /// @param _symbol The symbol of the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) governance token.
     /// @param _mintSettings The token mint settings struct containing the `receivers` and `amounts`.
-    /// @param _excludedAccounts The list of accounts excluded from voting.
-    function initialize(
-        IDAO _dao,
-        string memory _name,
-        string memory _symbol,
-        MintSettings memory _mintSettings,
-        address[] memory _excludedAccounts
-    ) public initializer {
+    function initialize(IDAO _dao, string memory _name, string memory _symbol, MintSettings memory _mintSettings)
+        public
+        initializer
+    {
         // Check mint settings
         if (_mintSettings.receivers.length != _mintSettings.amounts.length) {
             revert MintSettingsArrayLengthMismatch({
@@ -116,13 +96,6 @@ contract GovernanceERC20 is
                 ++i;
             }
         }
-        for (uint256 i; i < _excludedAccounts.length;) {
-            excludedAccounts.add(_excludedAccounts[i]);
-
-            unchecked {
-                ++i;
-            }
-        }
     }
 
     /// @notice Checks if this or the parent contract supports an interface by its ID.
@@ -134,63 +107,6 @@ contract GovernanceERC20 is
             || _interfaceId == type(IERC20MetadataUpgradeable).interfaceId
             || _interfaceId == type(IVotesUpgradeable).interfaceId
             || _interfaceId == type(IERC20MintableUpgradeable).interfaceId || super.supportsInterface(_interfaceId);
-    }
-
-    function delegate(address _account) public override {
-        if (excludedAccounts.contains(_account)) {
-            revert AccountIsExcluded();
-        }
-        super.delegate(_account);
-    }
-
-    /// @inheritdoc ERC20VotesUpgradeable
-    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
-    function getVotes(address _account) public view override returns (uint256) {
-        if (excludedAccounts.contains(_account)) {
-            return 0;
-        }
-        return super.getVotes(_account);
-    }
-
-    /// @inheritdoc ERC20VotesUpgradeable
-    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
-    function getPastVotes(address _account, uint256 _timepoint) public view override returns (uint256) {
-        if (excludedAccounts.contains(_account)) {
-            return 0;
-        }
-        return super.getPastVotes(_account, _timepoint);
-    }
-
-    /// @inheritdoc IERC20Upgradeable
-    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
-    function totalSupply() public view override returns (uint256) {
-        uint256 _excludedSupply = super.getVotes(address(0));
-        for (uint256 i; i < excludedAccounts.length();) {
-            /// @dev Using getVotes() even though these addresses cannot self delegate.
-            /// @dev Another account could transfer a delegated balance to them.
-            _excludedSupply += super.getVotes(excludedAccounts.at(i));
-
-            unchecked {
-                ++i;
-            }
-        }
-        return super.totalSupply() - _excludedSupply;
-    }
-
-    /// @inheritdoc ERC20VotesUpgradeable
-    /// @dev This override extends the original implementation, ensuring that excluded addresses cannot use their voting power.
-    function getPastTotalSupply(uint256 _timepoint) public view override returns (uint256) {
-        uint256 _excludedSupply = super.getPastVotes(address(0), _timepoint);
-        for (uint256 i; i < excludedAccounts.length();) {
-            /// @dev Using getPastVotes() even though these addresses cannot self delegate.
-            /// @dev Another account could transfer a delegated balance to them.
-            _excludedSupply += super.getPastVotes(excludedAccounts.at(i), _timepoint);
-
-            unchecked {
-                ++i;
-            }
-        }
-        return super.getPastTotalSupply(_timepoint) - _excludedSupply;
     }
 
     /// @notice Mints tokens to an address.

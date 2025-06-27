@@ -64,7 +64,8 @@ contract MajorityVotingBaseTest is TestBase {
             token,
             IPlugin.TargetConfig(address(dao), IPlugin.Operation.Call),
             0,
-            ""
+            "",
+            new address[](0)
         );
     }
 

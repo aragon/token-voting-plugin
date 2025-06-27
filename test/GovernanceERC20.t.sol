@@ -54,7 +54,7 @@ contract GovernanceERC20Test is TestBase {
         amounts[2] = 300 ether;
 
         GovernanceERC20.MintSettings memory mintSettings = GovernanceERC20.MintSettings(receivers, amounts);
-        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, mintSettings, new address[](0));
+        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, mintSettings);
     }
 
     modifier givenTheContractIsDeployedWithDefaultMintSettings() {
@@ -65,7 +65,7 @@ contract GovernanceERC20Test is TestBase {
         // It reverts if trying to re-initialize
         GovernanceERC20.MintSettings memory emptyMintSettings;
         vm.expectRevert("Initializable: contract is already initialized");
-        token.initialize(dao, TOKEN_NAME, TOKEN_SYMBOL, emptyMintSettings, new address[](0));
+        token.initialize(dao, TOKEN_NAME, TOKEN_SYMBOL, emptyMintSettings);
     }
 
     function test_WhenCheckingTheTokenNameAndSymbol() external view givenTheContractIsDeployedWithDefaultMintSettings {
@@ -96,12 +96,12 @@ contract GovernanceERC20Test is TestBase {
                 GovernanceERC20.MintSettingsArrayLengthMismatch.selector, receivers.length, amounts.length
             )
         );
-        new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, mintSettings, new address[](0));
+        new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, mintSettings);
     }
 
     modifier givenTheContractIsDeployed() {
         GovernanceERC20.MintSettings memory emptyMintSettings;
-        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, emptyMintSettings, new address[](0));
+        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, emptyMintSettings);
         _;
     }
 
@@ -131,7 +131,7 @@ contract GovernanceERC20Test is TestBase {
         // Same as givenTheContractIsDeployed, used for logical separation
 
         GovernanceERC20.MintSettings memory emptyMintSettings;
-        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, emptyMintSettings, new address[](0));
+        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, emptyMintSettings);
         _;
     }
 
@@ -180,7 +180,7 @@ contract GovernanceERC20Test is TestBase {
         amounts[2] = 300 ether;
 
         GovernanceERC20.MintSettings memory mintSettings = GovernanceERC20.MintSettings(receivers, amounts);
-        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, mintSettings, new address[](0));
+        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, mintSettings);
         _;
     }
 
@@ -235,7 +235,7 @@ contract GovernanceERC20Test is TestBase {
 
     modifier givenATokenIsDeployedAndTheMainSignerCanMint() {
         GovernanceERC20.MintSettings memory emptyMintSettings;
-        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, emptyMintSettings, new address[](0));
+        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, emptyMintSettings);
         // Grant mint permission to the test contract
         dao.grant(address(token), address(this), token.MINT_PERMISSION_ID());
         _;
@@ -406,7 +406,7 @@ contract GovernanceERC20Test is TestBase {
         other = carol;
 
         GovernanceERC20.MintSettings memory emptyMintSettings;
-        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, emptyMintSettings, new address[](0));
+        token = new GovernanceERC20(dao, TOKEN_NAME, TOKEN_SYMBOL, emptyMintSettings);
         dao.grant(address(token), address(this), token.MINT_PERMISSION_ID());
         _;
     }

@@ -76,7 +76,7 @@ contract PluginSetupForkTest is ForkTestBase {
             uint256[] memory amounts = new uint256[](1);
             amounts[0] = 100 ether;
             GovernanceERC20.MintSettings memory initialMint = GovernanceERC20.MintSettings(receivers, amounts);
-            existingToken = new GovernanceERC20(dao, "Existing Token", "EXIST", initialMint, new address[](0));
+            existingToken = new GovernanceERC20(dao, "Existing Token", "EXIST", initialMint);
         }
 
         // PERMISSIONS: Grant the necessary permissions to the PluginSetupProcessor

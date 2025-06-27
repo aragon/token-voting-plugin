@@ -125,26 +125,27 @@ contract TokenVotingSetupZkSync is PluginUpgradeableSetup {
                 if (!supportsIVotesInterface(token)) {
                     token = address(
                         new GovernanceWrappedERC20(
-                            IERC20Upgradeable(tokenSettings.addr),
-                            tokenSettings.name,
-                            tokenSettings.symbol,
-                            excludedAccounts
+                            IERC20Upgradeable(tokenSettings.addr), tokenSettings.name, tokenSettings.symbol
                         )
                     );
                 }
             } else {
-                token = address(
-                    new GovernanceERC20(
-                        IDAO(_dao), tokenSettings.name, tokenSettings.symbol, mintSettings, excludedAccounts
-                    )
-                );
+                token = address(new GovernanceERC20(IDAO(_dao), tokenSettings.name, tokenSettings.symbol, mintSettings));
             }
 
             // Prepare and deploy plugin proxy.
             plugin = address(tokenVotingBase).deployUUPSProxy(
                 abi.encodeCall(
                     TokenVoting.initialize,
-                    (IDAO(_dao), votingSettings, IVotesUpgradeable(token), targetConfig, minApprovals, pluginMetadata)
+                    (
+                        IDAO(_dao),
+                        votingSettings,
+                        IVotesUpgradeable(token),
+                        targetConfig,
+                        minApprovals,
+                        pluginMetadata,
+                        excludedAccounts
+                    )
                 )
             );
 

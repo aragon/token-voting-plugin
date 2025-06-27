@@ -30,7 +30,7 @@ contract TokenVotingTest is TestBase {
     uint64 constant ONE_HOUR = 3600;
     uint64 constant ONE_DAY = 24 * ONE_HOUR;
     uint32 constant RATIO_BASE = 1_000_000;
-    uint256 constant PID_1 = 24442852706930026813960589198787161940723350201292828222811205541589223307271;
+    uint256 constant PID_1 = 39687166011226163736142959723276339618578320575274405595170535908768147234362;
     bytes32 public constant SET_TARGET_CONFIG_PERMISSION_ID = keccak256("SET_TARGET_CONFIG_PERMISSION");
 
     DAO dao;
@@ -63,7 +63,8 @@ contract TokenVotingTest is TestBase {
             token,
             IPlugin.TargetConfig(address(dao), IPlugin.Operation.Call),
             0,
-            ""
+            "",
+            new address[](0)
         );
     }
 
@@ -91,7 +92,13 @@ contract TokenVotingTest is TestBase {
         emit IMembership.MembershipContractAnnounced(address(token));
 
         plugin.initialize(
-            dao, settings, token, IPlugin.TargetConfig(address(dao), IPlugin.Operation.Call), minApprovals, metadata
+            dao,
+            settings,
+            token,
+            IPlugin.TargetConfig(address(dao), IPlugin.Operation.Call),
+            minApprovals,
+            metadata,
+            new address[](0)
         );
 
         // THEN it sets the voting settings, token, minimal approval and metadata

@@ -145,25 +145,28 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
                     // GovernanceWrappedERC20 in order to make the token
                     // include governance functionality.
                     GovernanceWrappedERC20(token).initialize(
-                        IERC20Upgradeable(tokenSettings.addr),
-                        tokenSettings.name,
-                        tokenSettings.symbol,
-                        excludedAccounts
+                        IERC20Upgradeable(tokenSettings.addr), tokenSettings.name, tokenSettings.symbol
                     );
                 }
             } else {
                 // Create a new token: Clone a `GovernanceERC20`.
                 token = governanceERC20Base.clone();
-                GovernanceERC20(token).initialize(
-                    IDAO(_dao), tokenSettings.name, tokenSettings.symbol, mintSettings, excludedAccounts
-                );
+                GovernanceERC20(token).initialize(IDAO(_dao), tokenSettings.name, tokenSettings.symbol, mintSettings);
             }
 
             // Prepare and deploy plugin proxy.
             plugin = address(tokenVotingBase).deployUUPSProxy(
                 abi.encodeCall(
                     TokenVoting.initialize,
-                    (IDAO(_dao), votingSettings, IVotesUpgradeable(token), targetConfig, minApprovals, pluginMetadata)
+                    (
+                        IDAO(_dao),
+                        votingSettings,
+                        IVotesUpgradeable(token),
+                        targetConfig,
+                        minApprovals,
+                        pluginMetadata,
+                        excludedAccounts
+                    )
                 )
             );
 
