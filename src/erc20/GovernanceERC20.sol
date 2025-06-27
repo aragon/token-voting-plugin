@@ -127,15 +127,4 @@ contract GovernanceERC20 is
         mintingFrozen = true;
         emit MintingFrozen();
     }
-
-    // https://forum.openzeppelin.com/t/self-delegation-in-erc20votes/17501/12?u=novaknole
-    /// @inheritdoc ERC20VotesUpgradeable
-    function _afterTokenTransfer(address from, address to, uint256 amount) internal override {
-        super._afterTokenTransfer(from, to, amount);
-
-        // Automatically turn on delegation on mint/transfer but only for the first time.
-        if (to != address(0) && numCheckpoints(to) == 0 && delegates(to) == address(0)) {
-            _delegate(to, to);
-        }
-    }
 }
