@@ -21,7 +21,10 @@ contract ForkTestBase is TestBase {
         vm.envOr("PLUGIN_SETUP_PROCESSOR_ADDRESS", address(0xC24188a73dc09aA7C721f96Ad8857B469C01dC9f))
     );
 
-    function setUp() public virtual {
+    constructor() {
+        vm.roll(10);
+        vm.warp(100_000);
+
         if (address(daoFactory) == address(0)) {
             revert("Please, set DAO_FACTORY_ADDRESS on your .env file");
         } else if (address(pluginRepoFactory) == address(0)) {
