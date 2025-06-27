@@ -84,7 +84,7 @@ contract DeployPluginRepoScript is Script {
     function deployPluginRepo() public {
         // Dependency implementations
         GovernanceERC20 governanceERC20 = new GovernanceERC20(
-            IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
+            IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0)), new address[](0)
         );
         GovernanceWrappedERC20 governanceWrappedERC20 =
             new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "");

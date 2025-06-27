@@ -151,7 +151,9 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             } else {
                 // Create a new token: Clone a `GovernanceERC20`.
                 token = governanceERC20Base.clone();
-                GovernanceERC20(token).initialize(IDAO(_dao), tokenSettings.name, tokenSettings.symbol, mintSettings);
+                GovernanceERC20(token).initialize(
+                    IDAO(_dao), tokenSettings.name, tokenSettings.symbol, mintSettings, excludedAccounts
+                );
             }
 
             // Prepare and deploy plugin proxy.
