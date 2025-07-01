@@ -104,11 +104,6 @@ contract GovernanceWrappedERC20 is
         override(ERC20VotesUpgradeable, ERC20Upgradeable)
     {
         super._afterTokenTransfer(from, to, amount);
-
-        // Automatically turn on delegation on mint/transfer but only for the first time.
-        if (to != address(0) && numCheckpoints(to) == 0 && delegates(to) == address(0)) {
-            _delegate(to, to);
-        }
     }
 
     /// @inheritdoc ERC20VotesUpgradeable
