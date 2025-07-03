@@ -408,18 +408,18 @@ contract TokenVotingSetupZkSyncTest is TestBase {
         // It Should prepare initialization data for the new GovernanceERC20 token that includes the excluded accounts for self-delegation
         // It Should prepare initialization data for the TokenVoting plugin that includes the same list of excluded accounts
 
-        address[] memory allAccounts = new address[](4);
-        allAccounts[0] = alice;
-        allAccounts[1] = bob;
-        allAccounts[2] = carol;
-        allAccounts[3] = david;
+        address[] memory holders = new address[](4);
+        holders[0] = alice;
+        holders[1] = bob;
+        holders[2] = carol;
+        holders[3] = david;
         uint256[] memory amounts = new uint256[](4);
         amounts[0] = 1 ether;
         amounts[1] = 1 ether;
         amounts[2] = 1 ether;
         amounts[3] = 1 ether;
 
-        defaultMintSettings = GovernanceERC20.MintSettings({receivers: allAccounts, amounts: amounts});
+        defaultMintSettings = GovernanceERC20.MintSettings({receivers: holders, amounts: amounts});
         defaultExcludedAccounts = new address[](2);
         defaultExcludedAccounts[0] = alice;
         defaultExcludedAccounts[1] = bob;
@@ -438,9 +438,14 @@ contract TokenVotingSetupZkSyncTest is TestBase {
             )
         );
 
+        GovernanceERC20 token = GovernanceERC20(prepared.helpers[1]);
+        for (uint256 i = 0; i < holders.length; i++) {
+            vm.prank(holders[i]);
+            token.delegate(holders[i]);
+        }
+
         vm.roll(block.number + 10);
 
-        GovernanceERC20 token = GovernanceERC20(prepared.helpers[1]);
         assertEq(token.getVotes(alice), 1 ether);
         assertEq(token.delegates(alice), alice);
         assertEq(token.getVotes(bob), 1 ether);
@@ -462,18 +467,18 @@ contract TokenVotingSetupZkSyncTest is TestBase {
     {
         // It Should prepare initialization data for both the token and plugin with an empty list of excluded accounts
 
-        address[] memory allAccounts = new address[](4);
-        allAccounts[0] = alice;
-        allAccounts[1] = bob;
-        allAccounts[2] = carol;
-        allAccounts[3] = david;
+        address[] memory holders = new address[](4);
+        holders[0] = alice;
+        holders[1] = bob;
+        holders[2] = carol;
+        holders[3] = david;
         uint256[] memory amounts = new uint256[](4);
         amounts[0] = 1 ether;
         amounts[1] = 1 ether;
         amounts[2] = 1 ether;
         amounts[3] = 1 ether;
 
-        defaultMintSettings = GovernanceERC20.MintSettings({receivers: allAccounts, amounts: amounts});
+        defaultMintSettings = GovernanceERC20.MintSettings({receivers: holders, amounts: amounts});
         defaultExcludedAccounts = new address[](0);
 
         defaultTokenSettings.addr = address(0);
@@ -493,6 +498,13 @@ contract TokenVotingSetupZkSyncTest is TestBase {
         vm.roll(block.number + 10);
 
         GovernanceERC20 token = GovernanceERC20(prepared.helpers[1]);
+        for (uint256 i = 0; i < holders.length; i++) {
+            vm.prank(holders[i]);
+            token.delegate(holders[i]);
+        }
+
+        vm.roll(block.number + 10);
+
         assertEq(token.getVotes(alice), 1 ether);
         assertEq(token.delegates(alice), alice);
         assertEq(token.getVotes(bob), 1 ether);
@@ -519,7 +531,8 @@ contract TokenVotingSetupZkSyncTest is TestBase {
         holders[1] = bob;
         holders[2] = carol;
         holders[3] = david;
-        (,, IVotesUpgradeable token,) = new SimpleBuilder().withNewToken(holders, 1 ether).build();
+        (,, IVotesUpgradeable token,) =
+            new SimpleBuilder().withNewToken(holders, 1 ether).withSelfDelegatedHolders().build();
         defaultTokenSettings.addr = address(token);
 
         defaultExcludedAccounts = new address[](2);
@@ -542,6 +555,13 @@ contract TokenVotingSetupZkSyncTest is TestBase {
         vm.roll(block.number + 10);
 
         GovernanceERC20 tok = GovernanceERC20(prepared.helpers[1]);
+        for (uint256 i = 0; i < holders.length; i++) {
+            vm.prank(holders[i]);
+            tok.delegate(holders[i]);
+        }
+
+        vm.roll(block.number + 10);
+
         assertEq(tok.getVotes(alice), 1 ether);
         assertEq(tok.delegates(alice), alice);
         assertEq(tok.getVotes(bob), 1 ether);

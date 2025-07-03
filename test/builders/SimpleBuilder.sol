@@ -35,6 +35,7 @@ contract SimpleBuilder is TestBase {
     uint256 minApprovals;
     bytes pluginMetadata;
     address[] excludedAccounts;
+    bool selfDelegatedHolders;
 
     constructor() {
         // Set the caller as the initial daoOwner
@@ -123,6 +124,11 @@ contract SimpleBuilder is TestBase {
         return this;
     }
 
+    function withSelfDelegatedHolders() public returns (SimpleBuilder) {
+        selfDelegatedHolders = true;
+        return this;
+    }
+
     /// @dev Creates a DAO with the given orchestration settings.
     function build()
         public
@@ -150,6 +156,12 @@ contract SimpleBuilder is TestBase {
             token_ = new GovernanceERC20(
                 dao, "MyToken", "SYM", GovernanceERC20.MintSettings(newTokenHolders, newTokenBalances)
             );
+            if (selfDelegatedHolders) {
+                for (uint256 i = 0; i < newTokenHolders.length; i++) {
+                    vm.prank(newTokenHolders[i]);
+                    token_.delegate(newTokenHolders[i]);
+                }
+            }
         } else {
             token_ = token;
         }
