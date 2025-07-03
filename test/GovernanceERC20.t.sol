@@ -190,6 +190,20 @@ contract GovernanceERC20Test is TestBase {
         _;
     }
 
+    function test_WhenDeployingWithInitialBalances_InitialDelegationIsZero()
+        external
+        givenTheContractIsDeployedWithInitialBalances
+    {
+        // It confirms users with balances have no votes until they delegate
+        assertEq(token.balanceOf(alice), 100 ether, "Alice should have a balance");
+        assertEq(token.delegates(alice), address(0), "Alice should have no delegate");
+        assertEq(token.getVotes(alice), 0, "Alice should have no votes");
+
+        assertEq(token.balanceOf(bob), 200 ether, "Bob should have a balance");
+        assertEq(token.delegates(bob), address(0), "Bob should have no delegate");
+        assertEq(token.getVotes(bob), 0, "Bob should have no votes");
+    }
+
     function test_WhenDelegatingVotingPowerToAnotherAccount() external givenTheContractIsDeployedWithInitialBalances {
         // It delegates voting power to another account
         uint256 aliceBalance = token.balanceOf(alice);
@@ -203,8 +217,13 @@ contract GovernanceERC20Test is TestBase {
 
         // Users must self-delegate to activate their voting power
         vm.prank(alice);
+        vm.expectEmit(true, true, true, true);
+        emit DelegateChanged(alice, address(0), alice);
         token.delegate(alice);
+
         vm.prank(bob);
+        vm.expectEmit(true, true, true, true);
+        emit DelegateChanged(bob, address(0), bob);
         token.delegate(bob);
 
         // After self-delegation, they have voting power
@@ -213,6 +232,8 @@ contract GovernanceERC20Test is TestBase {
 
         // Alice delegates to Bob
         vm.prank(alice);
+        vm.expectEmit(true, true, true, true);
+        emit DelegateChanged(alice, alice, bob);
         token.delegate(bob);
 
         assertEq(token.delegates(alice), bob);
@@ -244,6 +265,8 @@ contract GovernanceERC20Test is TestBase {
 
         // Alice changes her delegation from Bob to Carol
         vm.prank(alice);
+        vm.expectEmit(true, true, true, true);
+        emit DelegateChanged(alice, bob, carol);
         token.delegate(carol);
 
         // Check current votes
@@ -263,6 +286,18 @@ contract GovernanceERC20Test is TestBase {
         // Grant mint permission to the test contract
         dao.grant(address(token), address(this), token.MINT_PERMISSION_ID());
         _;
+    }
+
+    function test_WhenCheckingPastVotes_BeforeFirstDelegation() external givenATokenIsDeployedAndTheMainSignerCanMint {
+        // It returns 0 for past votes if the user never delegated
+        token.mint(alice, 100 ether);
+        uint256 block1 = block.number;
+        vm.roll(block.number + 5);
+        uint256 block2 = block.number;
+
+        assertEq(token.getPastVotes(alice, block1 - 1), 0, "Past votes at block1 should be 0");
+        assertEq(token.getPastVotes(alice, block2 - 1), 0, "Past votes at block2 should be 0");
+        assertEq(token.getVotes(alice), 0, "Current votes should be 0");
     }
 
     function test_WhenMintingTokensToAnAddressForTheFirstTime() external givenATokenIsDeployedAndTheMainSignerCanMint {
@@ -347,8 +382,11 @@ contract GovernanceERC20Test is TestBase {
         vm.prank(alice);
         token.transfer(bob, 50 ether);
 
+        // Bob delegates and then immediately undelegates
         vm.prank(bob);
-        token.delegate(address(0)); // Bob manually turns off delegation
+        token.delegate(bob);
+        vm.prank(bob);
+        token.delegate(address(0));
         _;
     }
 
@@ -357,7 +395,7 @@ contract GovernanceERC20Test is TestBase {
         givenATokenIsDeployedAndTheMainSignerCanMint
         givenTheReceiverHasManuallyTurnedOffDelegation
     {
-        // It should not turn on delegation on `transfer` if `to` manually turned it off
+        // It should not change delegation on `transfer` if `to` manually turned it off
         vm.prank(alice);
         token.transfer(bob, 10 ether);
         assertEq(token.delegates(bob), address(0));
@@ -369,7 +407,7 @@ contract GovernanceERC20Test is TestBase {
         givenATokenIsDeployedAndTheMainSignerCanMint
         givenTheReceiverHasManuallyTurnedOffDelegation
     {
-        // It should not turn on delegation on `mint` if `to` manually turned it off
+        // It should not change delegation on `mint` if `to` manually turned it off
         token.mint(bob, 10 ether);
         assertEq(token.delegates(bob), address(0));
         assertEq(token.getVotes(bob), 0);
@@ -377,8 +415,13 @@ contract GovernanceERC20Test is TestBase {
 
     modifier givenAUserHasPredelegatedBeforeReceivingTokens() {
         // Bob (with 0 balance) pre-delegates to Carol
+        assertEq(token.balanceOf(bob), 0, "Bob should have zero balance initially");
+        assertEq(token.getVotes(carol), 0, "Carol should have zero votes initially");
         vm.prank(bob);
         token.delegate(carol);
+        // Assert that pre-delegating with zero balance has no effect on votes
+        assertEq(token.delegates(bob), carol, "Bob's delegate should be Carol");
+        assertEq(token.getVotes(carol), 0, "Carol's votes should still be zero");
         _;
     }
 
@@ -391,9 +434,9 @@ contract GovernanceERC20Test is TestBase {
         token.mint(alice, 100 ether);
         vm.prank(alice);
         token.transfer(bob, 50 ether);
-        assertEq(token.delegates(bob), carol);
-        assertEq(token.getVotes(bob), 0);
-        assertEq(token.getVotes(carol), 50 ether);
+        assertEq(token.delegates(bob), carol, "Bob's delegate should remain on Carol");
+        assertEq(token.getVotes(bob), 0, "Bob should have no direct votes");
+        assertEq(token.getVotes(carol), 50 ether, "Carol should receive the delegated votes");
     }
 
     function test_WhenMintingTokensToTheUser()
@@ -403,9 +446,9 @@ contract GovernanceERC20Test is TestBase {
     {
         // It should not rewrite delegation setting for `mint` if user set it on before receiving tokens
         token.mint(bob, 50 ether);
-        assertEq(token.delegates(bob), carol);
-        assertEq(token.getVotes(bob), 0);
-        assertEq(token.getVotes(carol), 50 ether);
+        assertEq(token.delegates(bob), carol, "Bob's delegate should remain on Carol");
+        assertEq(token.getVotes(bob), 0, "Bob should have no direct votes");
+        assertEq(token.getVotes(carol), 50 ether, "Carol should receive the delegated votes");
     }
 
     modifier givenDelegationWasTurnedOnInThePast() {
@@ -465,9 +508,9 @@ contract GovernanceERC20Test is TestBase {
         vm.prank(alice);
         token.delegate(alice); // Alice delegates to have her votes moved correctly
 
-        token.mint(bob, 0);
+        // Bob must pre-delegate to have his votes updated on receipt
         vm.prank(bob);
-        token.delegate(bob); // Bob must pre-delegate to have his votes updated on receipt
+        token.delegate(bob);
         assertEq(token.getVotes(bob), 0);
 
         vm.prank(alice);
