@@ -384,6 +384,7 @@ TokenVotingTest
 │   │       └── It Should assume a block number indexing
 │   ├── When Calling initialize with a list of excluded accounts
 │   │   ├── It Should correctly add all provided addresses to the excludedAccounts set
+│   │   ├── It Should emit an event
 │   │   └── It Should allow an empty list of excluded accounts
 │   └── When Calling initialize with duplicate addresses in the excluded accounts list
 │       └── It Should store each address only once in the excludedAccounts set

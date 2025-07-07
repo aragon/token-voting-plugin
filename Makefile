@@ -9,7 +9,8 @@ SHELL:=/bin/bash
 # CONSTANTS
 
 # NOTE: Choose the appropriate deployment script
-DEPLOYMENT_SCRIPT := DeployPluginRepo
+DEPLOYMENT_SCRIPT := DeployNewVersion
+# DEPLOYMENT_SCRIPT := DeployNewPluginRepo
 
 SOLC_VERSION := $(shell cat foundry.toml | grep solc | cut -d= -f2 | xargs echo || echo "0.8.28")
 SUPPORTED_VERIFIERS := etherscan blockscout sourcify routescan-mainnet routescan-testnet
