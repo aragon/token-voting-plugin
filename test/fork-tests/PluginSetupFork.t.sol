@@ -5,6 +5,7 @@ import {ForkTestBase} from "../lib/ForkTestBase.sol";
 
 import {ForkBuilder} from "../builders/ForkBuilder.sol";
 import {DAO} from "@aragon/osx/core/dao/DAO.sol";
+import {IDAO} from "@aragon/osx/core/dao/DAO.sol";
 import {DaoUnauthorized} from "@aragon/osx-commons-contracts/src/permission/auth/auth.sol";
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
 
@@ -31,16 +32,19 @@ import {PermissionLib} from "@aragon/osx-commons-contracts/src/permission/Permis
 // Plugin Contracts
 import {MajorityVotingBase} from "../../src/base/MajorityVotingBase.sol";
 import {GovernanceERC20} from "../../src/erc20/GovernanceERC20.sol";
+import {GovernanceWrappedERC20} from "../../src/erc20/GovernanceWrappedERC20.sol";
 
 // OZ Contracts
 import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 contract PluginSetupForkTest is ForkTestBase {
     // An address of the official TokenVoting plugin repository on Sepolia
-    address private constant TOKEN_VOTING_REPO_ADDRESS = 0x424F4cA6FA9c24C03f2396DF0E96057eD11CF7dF;
+    address private constant TOKEN_VOTING_PLUGIN_REPO_ADDRESS = 0x424F4cA6FA9c24C03f2396DF0E96057eD11CF7dF;
+    address private constant MANAGEMENT_DAO_ADDRESS = 0xCa834B3F404c97273f34e108029eEd776144d324;
 
     DAO internal dao;
-    PluginRepo internal repo = PluginRepo(TOKEN_VOTING_REPO_ADDRESS);
+    PluginRepo internal repo = PluginRepo(TOKEN_VOTING_PLUGIN_REPO_ADDRESS);
 
     function setUp() public virtual {
         dao = new ForkBuilder().build();
@@ -286,7 +290,7 @@ contract PluginSetupForkTest is ForkTestBase {
         dao = new ForkBuilder().build();
 
         // PERMISSIONS: Grant installation and update permissions
-        PluginRepo liveRepo = PluginRepo(TOKEN_VOTING_REPO_ADDRESS);
+        PluginRepo liveRepo = PluginRepo(TOKEN_VOTING_PLUGIN_REPO_ADDRESS);
 
         dao.grant(address(pluginSetupProcessor), address(this), pluginSetupProcessor.APPLY_INSTALLATION_PERMISSION_ID());
         dao.grant(address(pluginSetupProcessor), address(this), pluginSetupProcessor.APPLY_UPDATE_PERMISSION_ID());
@@ -388,5 +392,27 @@ contract PluginSetupForkTest is ForkTestBase {
                 "Target operation not updated"
             );
         }
+    }
+
+    function test_createVersion() public {
+        PluginRepo pluginRepo = PluginRepo(vm.envAddress("TOKEN_VOTING_PLUGIN_REPO_ADDRESS"));
+        vm.label(address(pluginRepo), "PluginRepo");
+        address mgmtDaoMultisig = vm.envAddress("MANAGEMENT_DAO_MULTISIG_ADDRESS");
+        vm.label(address(mgmtDaoMultisig), "MgmtMultisig");
+
+        bytes memory releaseMetadataUri = vm.envOr("RELEASE_METADATA_URI", bytes(" "));
+        bytes memory buildMetadataUri = vm.envOr("BUILD_METADATA_URI", bytes(" "));
+
+        // Plugin setup
+        GovernanceERC20 governanceERC20 = new GovernanceERC20(
+            IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0), false)
+        );
+        GovernanceWrappedERC20 governanceWrappedERC20 =
+            new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "");
+        TokenVotingSetup pluginSetup = new TokenVotingSetup(governanceERC20, governanceWrappedERC20);
+
+        // DAO
+        vm.prank(MANAGEMENT_DAO_ADDRESS);
+        pluginRepo.createVersion(1, address(pluginSetup), buildMetadataUri, releaseMetadataUri);
     }
 }
