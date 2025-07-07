@@ -101,13 +101,14 @@ contract DeployNewVersionScript is Script {
         bytes memory data =
             abi.encodeCall(IPluginRepo.createVersion, (1, address(pluginSetup), buildMetadataUri, releaseMetadataUri));
 
-        console2.log("New version proposal:");
-        console2.log("- Target plugin (multisig):       ", address(mgmtDaoMultisig));
-        console2.log("- Action:");
-        console2.log("  - To (pluginRepo):              ", address(pluginRepo));
-        console2.log("  - Data (createVersion):         ", vm.toString(data));
+        console2.log("Version proposal:");
+        console2.log("- Proposal created on:       ", address(mgmtDaoMultisig), " (Multisig)");
+        console2.log("- Action to:                 ", address(pluginRepo), " (TokenVoting repo)");
         console2.log("");
-        console2.log("Foundry command:");
+        console2.log("Action signature:");
+        console2.log("- createVersion(uint8 release, address pluginSetup, bytes buildMetadata, bytes releaseMetadata)");
+        console2.log("");
+        console2.log("Command:");
         console2.log(
             "$ cast send [--trezor] [--ledger] --from <your-address>",
             vm.toString(address(mgmtDaoMultisig)),
