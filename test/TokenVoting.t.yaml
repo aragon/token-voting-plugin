@@ -198,6 +198,10 @@ TokenVotingTest:
       - when: Trying to execute a proposal that is not yet decided
         then:
           - it: reverts if vote is not decided yet
+      - when: The proposal passed but didn't finish yet
+        then:
+          - it: hasSucceeded returns false
+          - it: can not execute
       - when: The caller does not have EXECUTE_PROPOSAL_PERMISSION_ID
         then:
           - it: can not execute even if participation and support are met when caller does not have permission

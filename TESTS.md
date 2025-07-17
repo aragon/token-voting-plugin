@@ -384,6 +384,7 @@ TokenVotingTest
 │   │       └── It Should assume a block number indexing
 │   ├── When Calling initialize with a list of excluded accounts
 │   │   ├── It Should correctly add all provided addresses to the excludedAccounts set
+│   │   ├── It Should emit an event
 │   │   └── It Should allow an empty list of excluded accounts
 │   └── When Calling initialize with duplicate addresses in the excluded accounts list
 │       └── It Should store each address only once in the excludedAccounts set
@@ -495,6 +496,9 @@ TokenVotingTest
 │   │   └── It does not execute early when voting with the `tryEarlyExecution` option
 │   ├── When Trying to execute a proposal that is not yet decided
 │   │   └── It reverts if vote is not decided yet
+│   ├── When The proposal passed but didnt finish yet
+│   │   ├── It hasSucceeded returns false
+│   │   └── It can not execute
 │   └── When The caller does not have EXECUTEPROPOSALPERMISSIONID
 │       └── It can not execute even if participation and support are met when caller does not have permission
 ├── Given In the Early Execution Voting Mode

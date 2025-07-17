@@ -1045,6 +1045,30 @@ contract TokenVotingTest is TestBase {
         plugin.execute(proposalId);
     }
 
+    function test_WhenTheProposalPassedButDidntFinishYet() external givenInTheStandardVotingMode {
+        // It hasSucceeded returns false
+        // It can not execute
+
+        uint256 proposalId = _createDummyProposal(vm.addr(100));
+        vm.prank(vm.addr(101));
+        plugin.vote(proposalId, IMajorityVoting.VoteOption.Yes, false);
+        vm.prank(vm.addr(102));
+        plugin.vote(proposalId, IMajorityVoting.VoteOption.Yes, false);
+        vm.prank(vm.addr(103));
+        plugin.vote(proposalId, IMajorityVoting.VoteOption.Yes, false);
+
+        (,, MajorityVotingBase.ProposalParameters memory params,,,,) = plugin.getProposal(proposalId);
+        vm.warp(params.endDate - 1);
+
+        assertFalse(plugin.hasSucceeded(proposalId));
+
+        dao.grant(address(plugin), bob, plugin.EXECUTE_PROPOSAL_PERMISSION_ID());
+
+        vm.expectRevert(abi.encodeWithSelector(MajorityVotingBase.ProposalExecutionForbidden.selector, proposalId));
+        vm.prank(bob); // Bob has no permission
+        plugin.execute(proposalId);
+    }
+
     function test_WhenTheCallerDoesNotHaveEXECUTEPROPOSALPERMISSIONID() external givenInTheStandardVotingMode {
         // It can not execute even if participation and support are met when caller does not have permission
         uint256 proposalId = _createDummyProposal(vm.addr(100));
@@ -1057,8 +1081,6 @@ contract TokenVotingTest is TestBase {
 
         (,, MajorityVotingBase.ProposalParameters memory params,,,,) = plugin.getProposal(proposalId);
         vm.warp(params.endDate);
-
-        dao.revoke(address(dao), address(plugin), dao.EXECUTE_PERMISSION_ID());
 
         vm.expectRevert(
             abi.encodeWithSelector(

@@ -604,15 +604,13 @@ abstract contract MajorityVotingBase is
         Proposal storage proposal_ = proposals[_proposalId];
 
         if (_isOpen) {
-            // If the proposal is still open and the voting mode is VoteReplacement,
-            // success cannot be determined until the voting period ends.
-            if (proposal_.parameters.votingMode == VotingMode.VoteReplacement) {
+            // If the proposal is still open and the voting mode is not EarlyExecution,
+            // success cannot be determined.
+            if (proposal_.parameters.votingMode != VotingMode.EarlyExecution) {
                 return false;
             }
-
-            // For Standard and EarlyExecution modes, check if the support threshold
-            // has been reached early to determine success while proposal is still open.
-            if (!isSupportThresholdReachedEarly(_proposalId)) {
+            // For EarlyExecution, check if the support threshold has been reached early.
+            else if (!isSupportThresholdReachedEarly(_proposalId)) {
                 return false;
             }
         } else {
