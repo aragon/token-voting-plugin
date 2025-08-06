@@ -9,7 +9,7 @@ SHELL:=/bin/bash
 # CONSTANTS
 
 # NOTE: Choose the appropriate deployment script
-DEPLOYMENT_SCRIPT := DeployNewVersion
+DEPLOYMENT_SCRIPT := DeployNewPluginVersion
 # DEPLOYMENT_SCRIPT := DeployNewPluginRepo
 
 SOLC_VERSION := $(shell cat foundry.toml | grep solc | cut -d= -f2 | xargs echo || echo "0.8.28")
@@ -43,7 +43,7 @@ endif
 # Conditional assignments
 
 ifeq ($(VERIFIER), etherscan)
-	# VERIFIER_URL := https://api.etherscan.io/api
+	VERIFIER_URL := https://api.etherscan.io/api
 	VERIFIER_API_KEY := $(ETHERSCAN_API_KEY)
 	VERIFIER_PARAMS := --verifier $(VERIFIER) --etherscan-api-key $(ETHERSCAN_API_KEY)
 endif

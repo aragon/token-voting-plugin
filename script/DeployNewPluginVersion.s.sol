@@ -18,7 +18,7 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
  * - Deploys the plugin setup
  * - Encodes the calldata of the proposal to publish it as a new version
  */
-contract DeployNewVersionScript is Script {
+contract DeployNewPluginVersionScript is Script {
     using stdJson for string;
 
     address deployer;
@@ -96,7 +96,8 @@ contract DeployNewVersionScript is Script {
     function printVersionPublishProposal() public view {
         // Pick the .env contract addresses from:
         // https://github.com/aragon/osx/blob/main/packages/artifacts/src/addresses.json
-        // https://github.com/aragon/token-voting-plugin/blob/main/packages/artifacts/src/addresses.json
+        // https://github.com/aragon/token-voting-plugin/blob/main/artifacts/
+        // https://github.com/aragon/token-voting-plugin-hardhat/blob/main/packages/artifacts/src/addresses.json
 
         bytes memory data =
             abi.encodeCall(IPluginRepo.createVersion, (1, address(pluginSetup), buildMetadataUri, releaseMetadataUri));
