@@ -21,13 +21,15 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
  * The full plugin deployment should be made from the Protocol Factory.
  * This script is provided for separate ad-hoc deployments.
  */
-contract DeployPluginRepoScript is Script {
+contract DeployNewPluginRepoScript is Script {
     using stdJson for string;
 
     address deployer;
-    PluginRepoFactory pluginRepoFactory;
     string pluginEnsSubdomain;
     address pluginRepoMaintainerAddress;
+    PluginRepoFactory pluginRepoFactory;
+    bytes releaseMetadataUri;
+    bytes buildMetadataUri;
 
     // Artifacts
     PluginRepo myPluginRepo;
@@ -66,6 +68,9 @@ contract DeployPluginRepoScript is Script {
 
         pluginRepoMaintainerAddress = vm.envAddress("PLUGIN_REPO_MAINTAINER_ADDRESS");
         vm.label(pluginRepoMaintainerAddress, "Maintainer");
+
+        releaseMetadataUri = vm.envOr("RELEASE_METADATA_URI", bytes(" "));
+        buildMetadataUri = vm.envOr("BUILD_METADATA_URI", bytes(" "));
     }
 
     function run() public broadcast {
@@ -95,7 +100,7 @@ contract DeployPluginRepoScript is Script {
         // The new plugin repository
         // Publish the plugin in a new repo as release 1, build 1
         myPluginRepo = pluginRepoFactory.createPluginRepoWithFirstVersion(
-            pluginEnsSubdomain, address(pluginSetup), pluginRepoMaintainerAddress, " ", " "
+            pluginEnsSubdomain, address(pluginSetup), pluginRepoMaintainerAddress, releaseMetadataUri, buildMetadataUri
         );
     }
 

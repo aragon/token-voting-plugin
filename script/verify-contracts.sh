@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script is a fallback for cases where multiple block explorers need to be targeted.
-# It reads and verifies all contracts from the latest 'DeployPluginRepo.s.sol' script run
+# It reads and verifies all contracts from the latest 'DeployNewVersion.s.sol' script run
 # on a single, specified block explorer.
 # It reads deployment details from the corresponding run-latest.json broadcast file.
 
@@ -19,7 +19,8 @@
 set -uo pipefail # Exit on unset variables and on pipeline errors
 
 # Constants
-DEPLOY_SCRIPT_FILENAME="DeployPluginRepo.s.sol"
+# DEPLOY_SCRIPT_FILENAME="DeployNewPluginVersion.s.sol"
+DEPLOY_SCRIPT_FILENAME="DeployNewPluginRepo.s.sol"
 
 # Functions
 
@@ -179,7 +180,7 @@ EXPLORER_API_KEY="${4:-}"
 
 # Validate explorer type
 case "$EXPLORER_TYPE" in
-  etherscan|blockscout|sourcify)
+  etherscan|blockscout|sourcify|custom)
     ;;
   *)
     echo "Error: Invalid explorer_type '$EXPLORER_TYPE'."
