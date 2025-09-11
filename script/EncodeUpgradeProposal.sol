@@ -34,12 +34,12 @@ contract DeployTokenVoting_1_4Script is Script {
         // https://github.com/aragon/osx/blob/main/packages/artifacts/src/addresses.json
 
         pluginSetup = TokenVotingSetup(vm.envAddress("PLUGIN_SETUP"));
-        pluginRepo = PluginRepo(vm.envAddress("TOKEN_VOTING_PLUGIN_REPO_ADDRESS"));
+        pluginRepo = PluginRepo(vm.envAddress("PLUGIN_REPO_ADDRESS"));
         mgmtDaoMultisig = vm.envAddress("MANAGEMENT_DAO_MULTISIG_ADDRESS");
 
         proposalMetadataUri = bytes(vm.envString("PROPOSAL_METADATA_URI"));
-        releaseMetadataUri = vm.envOr("RELEASE_METADATA_URI", bytes(" "));
-        buildMetadataUri = vm.envOr("BUILD_METADATA_URI", bytes(" "));
+        releaseMetadataUri = bytes(vm.envString("RELEASE_METADATA_URI"));
+        buildMetadataUri = bytes(vm.envString("BUILD_METADATA_URI"));
     }
 
     function run() public view {
@@ -55,7 +55,7 @@ contract DeployTokenVoting_1_4Script is Script {
         Action[] memory actions = new Action[](1);
         actions[0].to = address(pluginRepo);
         actions[0].data = actionData;
-        uint64 expirationDate = uint64(block.timestamp) + 3 weeks;
+        uint64 expirationDate = uint64(vm.envUint("TIMESTAMP")) + 3 weeks;
         bytes memory createProposalData = abi.encodeCall(
             IMultisigProposal.createProposal, (proposalMetadataUri, actions, 0, true, false, 0, expirationDate)
         );
@@ -77,12 +77,13 @@ contract DeployTokenVoting_1_4Script is Script {
         );
         console2.log("");
         console2.log("$ export FROM_ADDRESS=<your-address>");
+        console2.log("$ export RPC_URL='https://chain-name-here.drpc.org'");
         console2.log("");
         console2.log("$ export WALLET_TYPE=\"--trezor\"   (Set the appropriate value)");
         console2.log("$ export WALLET_TYPE=\"--ledger\"");
         console2.log("");
         console2.log(
-            "$ cast send $WALLET_TYPE --from $FROM_ADDRESS",
+            "$ cast send $WALLET_TYPE --from $FROM_ADDRESS --rpc-url $RPC_URL",
             vm.toString(address(mgmtDaoMultisig)),
             vm.toString(createProposalData)
         );

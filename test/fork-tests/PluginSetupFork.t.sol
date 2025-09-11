@@ -40,11 +40,11 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 
 contract PluginSetupForkTest is ForkTestBase {
     // An address of the official TokenVoting plugin repository on Sepolia
-    address private constant TOKEN_VOTING_PLUGIN_REPO_ADDRESS = 0x424F4cA6FA9c24C03f2396DF0E96057eD11CF7dF;
+    address private constant PLUGIN_REPO_ADDRESS = 0x424F4cA6FA9c24C03f2396DF0E96057eD11CF7dF;
     address private constant MANAGEMENT_DAO_ADDRESS = 0xCa834B3F404c97273f34e108029eEd776144d324;
 
     DAO internal dao;
-    PluginRepo internal repo = PluginRepo(TOKEN_VOTING_PLUGIN_REPO_ADDRESS);
+    PluginRepo internal repo = PluginRepo(PLUGIN_REPO_ADDRESS);
 
     function setUp() public virtual {
         dao = new ForkBuilder().build();
@@ -290,7 +290,7 @@ contract PluginSetupForkTest is ForkTestBase {
         dao = new ForkBuilder().build();
 
         // PERMISSIONS: Grant installation and update permissions
-        PluginRepo liveRepo = PluginRepo(TOKEN_VOTING_PLUGIN_REPO_ADDRESS);
+        PluginRepo liveRepo = PluginRepo(PLUGIN_REPO_ADDRESS);
 
         dao.grant(address(pluginSetupProcessor), address(this), pluginSetupProcessor.APPLY_INSTALLATION_PERMISSION_ID());
         dao.grant(address(pluginSetupProcessor), address(this), pluginSetupProcessor.APPLY_UPDATE_PERMISSION_ID());
@@ -395,7 +395,7 @@ contract PluginSetupForkTest is ForkTestBase {
     }
 
     function test_createVersion() public {
-        PluginRepo pluginRepo = PluginRepo(vm.envAddress("TOKEN_VOTING_PLUGIN_REPO_ADDRESS"));
+        PluginRepo pluginRepo = PluginRepo(vm.envAddress("PLUGIN_REPO_ADDRESS"));
         vm.label(address(pluginRepo), "PluginRepo");
         address mgmtDaoMultisig = vm.envAddress("MANAGEMENT_DAO_MULTISIG_ADDRESS");
         vm.label(address(mgmtDaoMultisig), "MgmtMultisig");
