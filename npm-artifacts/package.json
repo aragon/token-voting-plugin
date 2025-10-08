@@ -1,7 +1,7 @@
 {
   "name": "@aragon/token-voting-plugin-artifacts",
   "author": "Aragon X",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/aragon/token-voting-plugin",
