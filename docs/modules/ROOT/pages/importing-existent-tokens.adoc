@@ -1,0 +1,36 @@
+= Importing Existing Tokens
+
+For tokens to natively support onchain governance, they must prevent “double voting”—where a holder votes, then transfers tokens to another address, and votes again, effectively using the same tokens twice. To ensure voting power is accurately recorded and cannot be manipulated mid-vote, the recommended approach is to deploy a token using the `ERC20Votes` pattern from link:https://docs.openzeppelin.com/contracts/5.x/api/governance#Votes[OpenZeppelin]. This pattern enables snapshotting, allowing governance contracts to reference a token holder’s voting power at a specific point in time (e.g., when the proposal was created).
+
+*The TokenVoting plugin is only compatible with tokens that implement `ERC20Votes` or provide equivalent block-based snapshotting functionality (`IVotesUpgradeable`)*
+
+The plugin’s setup contract offers three options:
+
+1. *Mint a New `ERC20Votes` Token:*
++    
+The setup can deploy a new governance token contract already configured with `ERC20Votes`. 
++
+
+2. *Import an Existing `ERC20Votes`Compatible Token:*
++
+If you already have a token with built-in snapshotting capabilities, you can directly import it. The setup script will verify its compatibility before using it in the TokenVoting plugin.
++
+
+3. *Wrap an Incompatible ERC20 Token:*
++
+If your existing token does not support `ERC20Votes`, the setup can wrap it in a `GovernanceWrappedERC20` contract. This approach imposes additional complexity and friction for voters, as tokens must be locked into the wrapper to gain voting power.
++
+
+IMPORTANT: If you are currently planning to deploy a token for governance, consider choosing `ERC20Votes`. Introducing a wrapper later on can significantly impact token liquidity and increase governance overhead. If you have concerns or need guidance link:https://discord.com/invite/aragonorg[reach out to the Aragon team] for assistance.
+
+== Importing an Existing Token
+
+If you already have a token or plan to deploy one on your own, the plugin’s setup script will check your token’s compatibility prior to letting you use it in TokenVoting. To pass these checks, the token must implement the following functions (typically provided by `IVotesUpgradeable`):
+
+- `getPastVotes(address voter, uint256 blockNumber)`: Returns the voting power of a given address at a specific block.
+- `getVotes(address voter)`: Returns the current voting power of the given address.
+- `getPastTotalSupply(uint256 blockNumber)`: Returns the total voting power at a specific block.
+
+IMPORTANT: Snapshots can be determined by historic block number or by timestamp. TokenVoting currently only supports snapshots defined by block.
+
+These functions ensure reliable historical voting data, preventing double voting. If your token does not have these functions, the setup will wrap it with `GovernanceWrappedERC20` to add them. If your token was recently deployed, explore with your team or community if this wrapped governance experience is acceptable. Alternatively, issuing a new token with the necessary governance functionality built-in may be a better long-term solution.
