@@ -36,6 +36,10 @@ import {IGovernanceWrappedERC20} from "./IGovernanceWrappedERC20.sol";
 /// safely transfers the underlying tokens back to the owner.
 /// @dev This contract intentionally has no public mint functionality because this is the
 ///      responsibility of the underlying [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token contract.
+///      WARNING: rebasing, fee-on-transfer and other deflationary/inflationary tokens are not supported.
+///      `depositFor` mints wrapped tokens 1:1 against the requested `amount`, not the amount actually
+///      received, so wrapping such a token desynchronizes the wrapped supply from the real underlying
+///      balance backing it (and therefore the voting power derived from it). Only wrap standard ERC-20 tokens.
 /// @custom:security-contact sirt@aragon.org
 contract GovernanceWrappedERC20 is
     IGovernanceWrappedERC20,
@@ -80,6 +84,9 @@ contract GovernanceWrappedERC20 is
     }
 
     /// @inheritdoc IGovernanceWrappedERC20
+    /// @dev Mints `amount` wrapped tokens regardless of how much the underlying token actually transfers in.
+    ///      Not safe for rebasing or fee-on-transfer/deflationary underlying tokens: the wrapped supply can
+    ///      then exceed the real underlying balance backing it. See the contract-level note.
     function depositFor(address account, uint256 amount)
         public
         override(IGovernanceWrappedERC20, ERC20WrapperUpgradeable)
