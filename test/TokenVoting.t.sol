@@ -545,6 +545,44 @@ contract TokenVotingTest is TestBase {
         plugin.createProposal("meta", new Action[](0), 0, 0, "");
     }
 
+    function test_WhenAnExcludedAccountAttemptsToVote() external givenAccountExclusion {
+        // It Should reject the vote even though the excluded account holds voting power
+        // It Should still allow non-excluded accounts to vote and tally only their power
+
+        address[] memory holders = new address[](2);
+        holders[0] = alice;
+        holders[1] = bob;
+
+        (dao, plugin, token,) = new SimpleBuilder().withNewToken(holders, 10 ether).withExcludedAccount(alice).build();
+
+        vm.roll(block.number + 1);
+
+        // alice is excluded from the supply, yet still holds delegated voting power.
+        assertGt(token.getPastVotes(alice, block.number - 1), 0, "alice should hold voting power");
+        assertEq(plugin.totalVotingPower(block.number - 1), 10 ether, "only bob should count");
+
+        dao.grant(address(plugin), address(this), plugin.CREATE_PROPOSAL_PERMISSION_ID());
+        uint256 proposalId = plugin.createProposal("meta", new Action[](0), 0, 0, "");
+
+        // The excluded account cannot vote.
+        assertFalse(plugin.canVote(proposalId, alice, IMajorityVoting.VoteOption.Yes), "excluded account must not vote");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MajorityVotingBase.VoteCastForbidden.selector, proposalId, alice, IMajorityVoting.VoteOption.Yes
+            )
+        );
+        vm.prank(alice);
+        plugin.vote(proposalId, IMajorityVoting.VoteOption.Yes, false);
+
+        // A non-excluded holder can still vote, and only its power is tallied.
+        assertTrue(plugin.canVote(proposalId, bob, IMajorityVoting.VoteOption.Yes), "bob should be able to vote");
+        vm.prank(bob);
+        plugin.vote(proposalId, IMajorityVoting.VoteOption.Yes, false);
+
+        (,,, MajorityVotingBase.Tally memory tally,,,) = plugin.getProposal(proposalId);
+        assertEq(tally.yes, 10 ether, "only bob's power should be tallied");
+    }
+
     function test_WhenCallingTotalVotingPowerWithMultipleAccountsInTheExcludedList() external givenAccountExclusion {
         // It Should correctly subtract the past votes of all excluded accounts from the past total supply
 
