@@ -37,7 +37,11 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @notice Wether the token contract indexes past voting power by timestamp.
     bool public tokenIndexedByTimestamp; // Slot 0
 
-    /// @notice The list of addresses excluded from voting
+    /// @notice Addresses whose balance is excluded from the token supply used for voting-power totals.
+    /// @dev WARNING: two configuration invariants apply to excluded accounts (see the `_excludedAccounts` note
+    ///      on `initialize`), neither enforced on-chain: (1) they must delegate to themselves, or their voting
+    ///      power reads as zero and nothing is subtracted; (2) they must be unable to influence a vote, since
+    ///      their self-delegated balance is removed from the participation/approval denominator.
     EnumerableSet.AddressSet internal excludedAccounts; // Slot 1
 
     /// @notice Emitted when an account's balance is considered as non-circulating supply. Its balance will be excluded from the token supply computation.
@@ -64,6 +68,17 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @param _minApprovals The minimal amount of approvals the proposal needs to succeed.
     /// @param _pluginMetadata The plugin specific information encoded in bytes.
     ///     This can also be an ipfs cid encoded in bytes.
+    /// @param _excludedAccounts Addresses whose token balance is treated as non-circulating supply and
+    ///     subtracted from the total voting power (the participation and approval denominators). Intended for
+    ///     airdrop vaults or distribution contracts that hold supply not yet in the hands of real stakeholders.
+    ///     Two configuration invariants apply, neither enforced on-chain:
+    ///     1. Each excluded account MUST delegate its voting power to itself. The subtraction uses
+    ///        `getPastVotes(account)`, so without self-delegation the account's voting power reads as zero and
+    ///        nothing is subtracted (the balance stays in the denominator and the exclusion silently no-ops).
+    ///     2. Each excluded account MUST be unable to influence a vote. Because (1) gives it self-delegated
+    ///        voting power, any vote it (or a delegate holding its tokens) could cast would count against a
+    ///        reduced supply and could skew, or single-handedly decide, the outcome. Only exclude addresses
+    ///        that cannot vote (e.g. a distribution contract with no voting logic).
     function initialize(
         IDAO _dao,
         VotingSettings calldata _votingSettings,

@@ -54,6 +54,8 @@ Other features:
 - Granular permission management for proposal creation, proposal execution, token minting
 - Minimum balance requirements for proposers
 
+> **⚠️ Excluding accounts (for airdrop vaults / distribution contracts).** This feature targets contracts holding supply not yet in the hands of real stakeholders. Two rules apply, neither enforced on-chain: **(1)** an excluded account must **delegate to itself** — otherwise its voting power reads as zero and nothing is subtracted from the total (the exclusion silently does nothing); **(2)** it must be **unable to vote** — its self-delegated balance is removed from the participation/approval denominator, so any vote it (or a delegate holding its tokens) could cast would count against a reduced supply and could skew or single-handedly decide the outcome. Only exclude addresses that cannot vote, e.g. a distribution contract with no voting logic.
+
 ## Project structure
 
 ```

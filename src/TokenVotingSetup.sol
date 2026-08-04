@@ -374,6 +374,10 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     }
 
     /// @notice Encodes the given installation parameters into a byte array
+    /// @dev WARNING: each address in `excludedAccounts` must (1) self-delegate — otherwise its voting power
+    ///      reads as zero via `getPastVotes` and nothing is subtracted — and (2) be unable to influence a vote,
+    ///      since its self-delegated balance is removed from the participation/approval denominator. Intended
+    ///      for airdrop vaults / distribution contracts. Not enforced on-chain. See `TokenVoting.initialize`.
     function encodeInstallationParameters(
         MajorityVotingBase.VotingSettings memory votingSettings,
         TokenSettings memory tokenSettings,
