@@ -69,8 +69,9 @@ Other features:
 ├── script
 │   ├── DeployNewTokenVotingRepo.s.sol
 │   ├── DeployTokenVoting_1_4.s.sol
-│   ├── EncodeUpgradeProposal.sol
-│   └── verify-contracts.sh
+│   ├── EncodeUpgradeProposal.s.sol
+│   ├── PluginSettings.sol    # fallback release/build metadata URIs
+│   └── metadata              # release/build metadata JSON
 ├── src
 │   ├── TokenVoting.sol
 │   ├── TokenVotingSetup.sol
@@ -89,8 +90,8 @@ Other features:
 ```
 
 ## Prerequisites
-- [Foundry](https://getfoundry.sh/)
 - [just](https://github.com/casey/just)
+- [Foundry](https://getfoundry.sh/) (`just init` installs it if missing)
 
 Optional:
 
@@ -98,54 +99,36 @@ Optional:
 
 ## Getting Started
 
-Clone the repository with submodules and initialize it for a network:
+Clone the repository and initialize it for a network:
 
 ```bash
-git clone --recurse-submodules <repo-url>
+git clone <repo-url>
+cd token-voting-plugin
 just init          # defaults to mainnet, e.g. `just init sepolia`
 ```
 
-`just init` fetches submodules, creates `.env` from `.env.example`, and selects the network. Edit `.env` to add your secrets (`DEPLOYER_KEY`, `ETHERSCAN_API_KEY`, `PINATA_JWT`, …). Alternatively, resolve them with the [`vars`](https://github.com/vars-cli/vars) secret manager — the keys this project needs are declared in [`.vars.yaml`](./.vars.yaml), and just-foundry's recipes call `vars resolve` automatically when `vars` is installed.
+`just init` fetches the submodules (`lib/`, including the [`just-foundry`](https://github.com/aragon/just-foundry) recipes), creates `.env` from `.env.example`, installs Foundry if missing, and selects the network. Edit `.env` to add your secrets (`DEPLOYER_KEY`, `ETHERSCAN_API_KEY`, `PINATA_JWT`, …). Alternatively, resolve them with the [`vars`](https://github.com/vars-cli/vars) secret manager — the keys this project needs are declared in [`.vars.yaml`](./.vars.yaml), and just-foundry's recipes call `vars resolve` automatically when `vars` is installed.
 
 Network settings (RPC URL, chain id, verifier, and the Aragon OSx addresses) come from `lib/just-foundry/networks/<network>.env` — switch with `just switch <network>`, inspect the resolved values with `just env`, and create a local editable copy with `just switch <network> override`.
 
+The release and build metadata URIs used by the deploy scripts and `just upgrade-proposal` live in [`script/PluginSettings.sol`](./script/PluginSettings.sol). Setting `RELEASE_METADATA_URI` or `BUILD_METADATA_URI` in the env overrides them.
+
 ### Using just
 
-`just` is the task launcher for the project; the generic recipes are imported from [`lib/just-foundry`](https://github.com/aragon/just-foundry). Run `just` (or `just help`) to list them:
+`just` is the task launcher for the project. The generic recipes (network switching, deploy, test, verify, flatten, …) come from [`lib/just-foundry`](https://github.com/aragon/just-foundry) and are documented in its [README](./lib/just-foundry/README.md). Run `just` (or `just help`) to list everything available.
+
+This project adds:
 
 ```
-$ just
 [setup]
-init network="mainnet"       Fetch submodules, scaffold .env and select the network
-switch network override=""   Select the active network
-setup                        Install Foundry
+init network="mainnet"     Fetch dependencies, scaffold .env and select the active network
 
 [metadata]
-pin-metadata                 Pin the release & build metadata to IPFS
-upgrade-proposal             Encode & print the calldata to create the upgrade proposal
-
-[script]
-predeploy                    Dry-run the deploy script (no broadcast)
-deploy *args                 Run tests, then broadcast + verify
-
-[test]
-test *args                   Run unit tests (fork tests excluded)
-test-fork *args              Run fork tests (requires RPC_URL)
-test-coverage                Generate an HTML coverage report under ./report
-
-[verification]
-verify type="" script=""     Verify the latest broadcast (etherscan|blockscout|sourcify)
-
-[develop]
-clean                        Clean build artifacts and reports
-storage-info contract        Show a contract's storage layout
-check-upgrade from to        Check storage-layout upgrade compatibility
-
-[helpers]
-env                          Show the resolved environment (values + sources)
+pin-metadata               Pin the release & build metadata to IPFS (requires PINATA_JWT)
+upgrade-proposal           Encode & print the calldata to create the upgrade proposal
 ```
 
-There are also `balance`, `refund`, `gas-price`, `nonce` and `clean-nonce` deployer helpers (run `just <name>`).
+`just deploy` / `just predeploy` run the script set in `DEPLOY_SCRIPT` at the top of the [`justfile`](./justfile).
 
 ## Testing
 
@@ -178,22 +161,16 @@ When running a production deployment ceremony, you can use these steps as a refe
   - [ ] I have run `docker run --rm -it -v .:/deployment debian:bookworm-slim`
   - [ ] I have run `apt update && apt install -y curl git vim neovim bc`
   - [ ] I have installed `just` (`curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin`)
-  - On **standard EVM networks**:
-    - [ ] I have run `curl -L https://foundry.paradigm.xyz | bash`
-    - [ ] I have run `source /root/.bashrc`
-    - [ ] I have run `foundryup`
-  - On **ZkSync networks**:
-    - [ ] I have run `curl -L https://raw.githubusercontent.com/matter-labs/foundry-zksync/main/install-foundry-zksync | bash`
-    - [ ] I have run `source /root/.bashrc`
-    - [ ] I have run `foundryup-zksync`
   - [ ] I have run `cd /deployment`
-  - [ ] I have run `just init <network>`
+  - [ ] I have run `just init <network>` (fetches the submodules and installs Foundry)
+  - [ ] I have run `source /root/.bashrc`
+  - [ ] On **ZkSync networks**, I have also run `just setup-zksync`
 - [ ] I am opening an editor on the `/deployment` folder, within the Docker container
 - [ ] The `.env` file contains the correct parameters for the deployment
   - [ ] I have created a new burner wallet with `cast wallet new` and copied the private key to `DEPLOYER_KEY` within `.env`
   - [ ] I have selected the correct network with `just switch <network>` (this sets RPC_URL, CHAIN_ID and the verifier)
   - [ ] I have set `ETHERSCAN_API_KEY` or `BLOCKSCOUT_HOST_NAME` (when relevant to the target network)
-  - [ ] (TO DO: Add a step to check your own variables here)
+  - [ ] The `RELEASE_METADATA_URI` and `BUILD_METADATA_URI` in `script/PluginSettings.sol` (or their `.env` overrides) match the output of `just pin-metadata`
   - [ ] I have run `just env` and confirmed the resolved values
   - [ ] I am the only person of the ceremony that will operate the deployment wallet
 - [ ] All the tests run clean (`just test`)

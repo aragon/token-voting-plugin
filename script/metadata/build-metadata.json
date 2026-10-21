@@ -82,12 +82,18 @@
               "type": "uint256[]",
               "internalType": "uint256[]",
               "description": "The amounts of tokens to be minted for each receiver."
+            },
+            {
+              "name": "ensureDelegationOnMint",
+              "type": "bool",
+              "internalType": "bool",
+              "description": "Whether `mint()` calls should self-delegate the receiver's voting power if they have no delegate yet."
             }
           ],
           "name": "mintSettings",
           "type": "tuple",
           "internalType": "struct GovernanceERC20.MintSettings",
-          "description": "The token mint settings struct containing the `receivers` and `amounts`."
+          "description": "The token mint settings struct containing the `receivers`, `amounts` and `ensureDelegationOnMint`."
         },
         {
           "components": [

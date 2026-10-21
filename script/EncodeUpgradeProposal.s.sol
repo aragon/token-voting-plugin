@@ -2,24 +2,18 @@
 pragma solidity ^0.8.17;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {stdJson} from "forge-std/StdJson.sol";
 
-import {IDAO} from "@aragon/osx/core/dao/DAO.sol";
 import {Action} from "@aragon/osx-commons-contracts/src/executors/Executor.sol";
 import {TokenVotingSetup} from "../src/TokenVotingSetup.sol";
-import {GovernanceERC20} from "../src/erc20/GovernanceERC20.sol";
-import {GovernanceWrappedERC20} from "../src/erc20/GovernanceWrappedERC20.sol";
+import {PluginSettings} from "./PluginSettings.sol";
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
 import {IPluginRepo} from "@aragon/osx/framework/plugin/repo/IPluginRepo.sol";
-import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-// import {hashHelpers, PluginSetupRef} from "@aragon/osx/framework/plugin/setup/PluginSetupProcessorHelpers.sol";
 
 /**
  * This script performs the following tasks:
- * - Deploys the plugin setup
- * - Encodes the calldata of the proposal to publish it as a new version
+ * - Encodes the management DAO multisig proposal that publishes a deployed plugin setup as a new version
  */
-contract DeployTokenVoting_1_4Script is Script {
+contract EncodeUpgradeProposalScript is Script {
     uint8 constant RELEASE = 1;
 
     TokenVotingSetup pluginSetup;
@@ -38,8 +32,8 @@ contract DeployTokenVoting_1_4Script is Script {
         mgmtDaoMultisig = vm.envAddress("MANAGEMENT_DAO_MULTISIG_ADDRESS");
 
         proposalMetadataUri = bytes(vm.envString("PROPOSAL_METADATA_URI"));
-        releaseMetadataUri = bytes(vm.envString("RELEASE_METADATA_URI"));
-        buildMetadataUri = bytes(vm.envString("BUILD_METADATA_URI"));
+        releaseMetadataUri = PluginSettings.releaseMetadataUri();
+        buildMetadataUri = PluginSettings.buildMetadataUri();
     }
 
     function run() public view {
