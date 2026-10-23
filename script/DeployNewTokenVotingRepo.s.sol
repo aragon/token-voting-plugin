@@ -13,6 +13,7 @@ import {TokenVotingSetup} from "../src/TokenVotingSetup.sol";
 import {TokenVotingSetupZkSync} from "../src/TokenVotingSetupZkSync.sol";
 import {GovernanceERC20} from "../src/erc20/GovernanceERC20.sol";
 import {GovernanceWrappedERC20} from "../src/erc20/GovernanceWrappedERC20.sol";
+import {PluginSettings} from "./PluginSettings.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 /**
@@ -71,8 +72,8 @@ contract DeployNewTokenVotingRepoScript is Script {
         pluginRepoMaintainerAddress = vm.envAddress("PLUGIN_REPO_MAINTAINER_ADDRESS");
         vm.label(pluginRepoMaintainerAddress, "Maintainer");
 
-        releaseMetadataUri = vm.envOr("RELEASE_METADATA_URI", bytes(" "));
-        buildMetadataUri = vm.envOr("BUILD_METADATA_URI", bytes(" "));
+        releaseMetadataUri = PluginSettings.releaseMetadataUri();
+        buildMetadataUri = PluginSettings.buildMetadataUri();
     }
 
     function run() public broadcast {
