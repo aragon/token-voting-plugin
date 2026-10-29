@@ -1,7 +1,0 @@
-name: token-voting
-title: '@aragon/token-voting'
-version: 1.x
-prerelease: false
-nav:
-  - modules/ROOT/nav.adoc
-  - modules/api/nav.adoc
