@@ -21,7 +21,9 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 ///         [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
 ///         compatible governance token.
 /// @dev v1.4 (Release 1, Build 4). For each upgrade, if the reinitialization step is required,
-///      increment the version numbers in the modifier for both the initialize and initializeFrom functions.
+///      increment the version numbers in the modifier for both the initialize and initializeFrom functions,
+///      and the `_fromBuild < N` threshold in `prepareUpdate` of `TokenVotingSetup` and `TokenVotingSetupZkSync`
+///      that decides which updates call `initializeFrom`: it must move with them.
 /// @custom:security-contact sirt@aragon.org
 contract TokenVoting is IMembership, MajorityVotingBase {
     using SafeCastUpgradeable for uint256;
@@ -96,12 +98,19 @@ contract TokenVoting is IMembership, MajorityVotingBase {
     /// @notice Reinitializes the TokenVoting after an upgrade from a previous build version. For each
     ///         reinitialization step, use the `_fromBuild` version to decide which internal functions to
     ///         call for reinitialization.
-    /// @dev WARNING: The contract should only be upgradeable through PSP to ensure that _fromBuild is not
-    ///      incorrectly passed, and that the appropriate permissions for the upgrade are properly configured.
+    /// @dev The caller must have the `UPGRADE_PLUGIN_PERMISSION_ID` permission: reinitializing is part of
+    ///      upgrading, so the same permission gates both. The `PluginSetupProcessor` holds it during the
+    ///      update transaction and calls this function through `upgradeToAndCall`, with `_fromBuild` and
+    ///      `_initData` as the plugin setup prepared them. Only an account with this permission can call it:
+    ///      normally the `PluginSetupProcessor` during an update, or the DAO itself through a proposal.
     /// @param _fromBuild Build version number of previous implementation contract this upgrade is transitioning from.
     /// @param _initData The initialization data to be passed to via `upgradeToAndCall`
     ///     (see [ERC-1967](https://docs.openzeppelin.com/contracts/4.x/api/proxy#ERC1967Upgrade)).
-    function initializeFrom(uint16 _fromBuild, bytes calldata _initData) external reinitializer(3) {
+    function initializeFrom(uint16 _fromBuild, bytes calldata _initData)
+        external
+        auth(UPGRADE_PLUGIN_PERMISSION_ID)
+        reinitializer(3)
+    {
         if (_fromBuild < 3) {
             (uint256 minApprovals, TargetConfig memory targetConfig, bytes memory pluginMetadata) =
                 abi.decode(_initData, (uint256, TargetConfig, bytes));
