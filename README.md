@@ -7,6 +7,14 @@
 
 ## Audit
 
+### v1.5
+
+**Halborn**: [audit report](./audits/halborn-audit-1-5.pdf)
+
+- Commit ID: [2fce06e99f99554f32552c33908a48b957b79dd2](https://github.com/aragon/token-voting-plugin/commit/2fce06e99f99554f32552c33908a48b957b79dd2)
+- Started: November 5th, 2026
+- Finished: November 5th, 2026
+
 ### v1.4
 
 **Halborn**: [audit report](./audits/halborn-audit-1-4-remediated.pdf)
