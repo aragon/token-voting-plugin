@@ -1,6 +1,6 @@
 {
   "ui": {},
-  "change": "v1.4\n - Supporting tokens that index based on timestamp.\n- Allowing to freeze token minting.\n- Allowing to exclude addresses from the total supply.",
+  "change": "v1.5\n- Fixes a stability issue in the update path from v1.3.\n- DAOs still on v1.3, or that updated from v1.3 to v1.4, should update to v1.5 right away.",
   "pluginSetup": {
     "prepareInstallation": {
       "description": "The information required for the installation.",
@@ -137,86 +137,86 @@
     },
     "prepareUpdate": {
       "1": {
-        "description": "No input is required for the update.",
-        "inputs": []
+        "description": "The information required for the update.",
+        "inputs": [
+          {
+            "name": "minApprovals",
+            "type": "uint256",
+            "internalType": "uint256",
+            "description": "The minimum amount of yes votes needed for the proposal advance."
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "target",
+                "type": "address",
+                "description": "The target contract to which actions will be forwarded to for execution."
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8",
+                "description": "The operation type(either `call` or `delegatecall`) that will be used for execution forwarding."
+              }
+            ],
+            "internalType": "struct TokenVoting.TargetConfig",
+            "name": "TargetConfig",
+            "type": "tuple",
+            "description": "The initial target config"
+          },
+          {
+            "internalType": "bytes",
+            "name": "metadata",
+            "type": "bytes",
+            "description": "The metadata that contains the information about the token voting plugin."
+          }
+        ]
       },
       "2": {
+        "description": "The information required for the update.",
+        "inputs": [
+          {
+            "name": "minApprovals",
+            "type": "uint256",
+            "internalType": "uint256",
+            "description": "The minimum amount of yes votes needed for the proposal advance."
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "target",
+                "type": "address",
+                "description": "The target contract to which actions will be forwarded to for execution."
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8",
+                "description": "The operation type(either `call` or `delegatecall`) that will be used for execution forwarding."
+              }
+            ],
+            "internalType": "struct TokenVoting.TargetConfig",
+            "name": "TargetConfig",
+            "type": "tuple",
+            "description": "The initial target config"
+          },
+          {
+            "internalType": "bytes",
+            "name": "metadata",
+            "type": "bytes",
+            "description": "The metadata that contains the information about the token voting plugin."
+          }
+        ]
+      },
+      "3": {
         "description": "No input is required for the update.",
         "inputs": []
       },
-      "3": {
-        "description": "The information required for the update.",
-        "inputs": [
-          {
-            "name": "minApprovals",
-            "type": "uint256",
-            "internalType": "uint256",
-            "description": "The minimum amount of yes votes needed for the proposal advance."
-          },
-          {
-            "components": [
-              {
-                "internalType": "address",
-                "name": "target",
-                "type": "address",
-                "description": "The target contract to which actions will be forwarded to for execution."
-              },
-              {
-                "internalType": "uint8",
-                "name": "operation",
-                "type": "uint8",
-                "description": "The operation type(either `call` or `delegatecall`) that will be used for execution forwarding."
-              }
-            ],
-            "internalType": "struct TokenVoting.TargetConfig",
-            "name": "TargetConfig",
-            "type": "tuple",
-            "description": "The initial target config"
-          },
-          {
-            "internalType": "bytes",
-            "name": "metadata",
-            "type": "bytes",
-            "description": "The metadata that contains the information about the token voting plugin."
-          }
-        ]
-      },
       "4": {
-        "description": "The information required for the update.",
-        "inputs": [
-          {
-            "name": "minApprovals",
-            "type": "uint256",
-            "internalType": "uint256",
-            "description": "The minimum amount of yes votes needed for the proposal advance."
-          },
-          {
-            "components": [
-              {
-                "internalType": "address",
-                "name": "target",
-                "type": "address",
-                "description": "The target contract to which actions will be forwarded to for execution."
-              },
-              {
-                "internalType": "uint8",
-                "name": "operation",
-                "type": "uint8",
-                "description": "The operation type(either `call` or `delegatecall`) that will be used for execution forwarding."
-              }
-            ],
-            "internalType": "struct TokenVoting.TargetConfig",
-            "name": "TargetConfig",
-            "type": "tuple",
-            "description": "The initial target config"
-          },
-          {
-            "internalType": "bytes",
-            "name": "metadata",
-            "type": "bytes",
-            "description": "The metadata that contains the information about the token voting plugin."
-          }
-        ]
+        "description": "No input is required for the update.",
+        "inputs": []
       }
     },
     "prepareUninstallation": {

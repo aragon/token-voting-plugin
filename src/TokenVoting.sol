@@ -20,7 +20,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 /// @notice The majority voting implementation using an
 ///         [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes)
 ///         compatible governance token.
-/// @dev v1.4 (Release 1, Build 4). For each upgrade, if the reinitialization step is required,
+/// @dev v1.5 (Release 1, Build 5). For each upgrade, if the reinitialization step is required,
 ///      increment the version numbers in the modifier for both the initialize and initializeFrom functions,
 ///      and the `_fromBuild < N` threshold in `prepareUpdate` of `TokenVotingSetup` and `TokenVotingSetupZkSync`
 ///      that decides which updates call `initializeFrom`: it must move with them.

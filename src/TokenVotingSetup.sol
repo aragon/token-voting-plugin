@@ -27,7 +27,7 @@ import {VotingPowerCondition} from "./condition/VotingPowerCondition.sol";
 /// @title TokenVotingSetup
 /// @author Aragon X - 2022-2025
 /// @notice The setup contract of the `TokenVoting` plugin.
-/// @dev v1.4 (Release 1, Build 4)
+/// @dev v1.5 (Release 1, Build 5)
 /// @custom:security-contact sirt@aragon.org
 contract TokenVotingSetup is PluginUpgradeableSetup {
     using Address for address;
