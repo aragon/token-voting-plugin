@@ -9,8 +9,7 @@ library PluginSettings {
     VmSafe private constant vm = VmSafe(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     string internal constant RELEASE_METADATA_URI = "ipfs://QmWjZArvePnMPgbfKAMW3TidbqHEy68UV6SvRBhiaygGta";
-    // Empty until `just pin-metadata` gives this build's URI: a published build's metadata can't be changed.
-    string internal constant BUILD_METADATA_URI = "";
+    string internal constant BUILD_METADATA_URI = "ipfs://QmarxZFdwnmnt2B8vDKfdyK6G5RYZb84DTcTtciWnDWd6D";
 
     function releaseMetadataUri() internal view returns (bytes memory) {
         return resolve("RELEASE_METADATA_URI", RELEASE_METADATA_URI);
