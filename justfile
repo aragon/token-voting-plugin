@@ -4,7 +4,7 @@ default:
     @just help 2>/dev/null || echo "Run 'just init <network>' first"
 
 # The deploy script run by `just deploy` / `just predeploy`. Pick the flow you need:
-DEPLOY_SCRIPT := "script/DeployTokenVoting_1_4.s.sol:DeployTokenVoting_1_4Script"
+DEPLOY_SCRIPT := "script/DeployTokenVoting.s.sol:DeployTokenVotingScript"
 # DEPLOY_SCRIPT := "script/DeployNewTokenVotingRepo.s.sol:DeployNewTokenVotingRepoScript"
 
 # Fetch dependencies, scaffold .env and select the active network

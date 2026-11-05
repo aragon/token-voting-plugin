@@ -68,7 +68,7 @@ Other features:
 │       └── addresses.json
 ├── script
 │   ├── DeployNewTokenVotingRepo.s.sol
-│   ├── DeployTokenVoting_1_4.s.sol
+│   ├── DeployTokenVoting.s.sol
 │   ├── EncodeUpgradeProposal.s.sol
 │   ├── PluginSettings.sol    # fallback release/build metadata URIs
 │   └── metadata              # release/build metadata JSON
@@ -200,7 +200,7 @@ When running a production deployment ceremony, you can use these steps as a refe
 - [ ] I have uploaded the following files to a shared location:
   - `logs/<script>-<network>-<timestamp>.log` (the last one)
   - `artifacts/deployment-<network>-<timestamp>.json`  (the last one)
-  - `broadcast/DeployTokenVoting_*.s.sol/<chain-id>/run-<timestamp>.json` (the last one, or `run-latest.json`)
+  - `broadcast/DeployTokenVoting.s.sol/<chain-id>/run-<timestamp>.json` (the last one, or `run-latest.json`)
 - [ ] The rest of members confirm that the values are correct
 - [ ] I have transferred the remaining funds of the deployment wallet to the address that originally funded it
   - `just refund`
@@ -219,7 +219,7 @@ just verify blockscout
 just verify sourcify
 ```
 
-These use the last deployment data under `broadcast/DeployTokenVoting_*.s.sol/<chain-id>/run-latest.json`.
+These use the last deployment data under `broadcast/DeployTokenVoting.s.sol/<chain-id>/run-latest.json`.
 - Ensure that the required variables are set within the `.env` file (or the active network).
 
 This flow will attempt to verify all the contracts in one go, but you may still need to issue additional manual verifications, depending on the circumstances.

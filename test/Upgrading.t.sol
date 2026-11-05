@@ -411,7 +411,7 @@ contract UpgradingTest is Test {
                 DaoUnauthorized.selector, address(dao), address(plugin), outsider, UPGRADE_PLUGIN_PERMISSION_ID
             )
         );
-        TokenVoting(address(plugin)).initializeFrom(1, _takeoverInitData(outsider));
+        TokenVoting(address(plugin)).initializeFrom(1, _foreignInitData(outsider));
 
         // It leaves the plugin as it was
         assertEq(TokenVoting(address(plugin)).getTargetConfig().target, address(dao));
@@ -435,7 +435,7 @@ contract UpgradingTest is Test {
                 DaoUnauthorized.selector, address(dao), address(plugin), caller, UPGRADE_PLUGIN_PERMISSION_ID
             )
         );
-        TokenVoting(address(plugin)).initializeFrom(fromBuild, _takeoverInitData(caller));
+        TokenVoting(address(plugin)).initializeFrom(fromBuild, _foreignInitData(caller));
     }
 
     function test_WhenTheUpgradePermissionHolderCallsInitializeFromAfterABareUpgrade()
@@ -503,10 +503,10 @@ contract UpgradingTest is Test {
         plugin.upgradeToAndCall(newImpl, initData);
     }
 
-    /// What an attacker would pass to `initializeFrom` to run its own code with the plugin's permissions.
-    function _takeoverInitData(address attacker) internal pure returns (bytes memory) {
+    /// Init data for `initializeFrom` that points the plugin at another target, through a delegate call.
+    function _foreignInitData(address target) internal pure returns (bytes memory) {
         return abi.encode(
-            uint256(0), IPlugin.TargetConfig({target: attacker, operation: IPlugin.Operation.DelegateCall}), bytes("")
+            uint256(0), IPlugin.TargetConfig({target: target, operation: IPlugin.Operation.DelegateCall}), bytes("")
         );
     }
 }
