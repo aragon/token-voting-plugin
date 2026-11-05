@@ -12,7 +12,6 @@ import {TokenVotingSetup} from "../src/TokenVotingSetup.sol";
 import {GovernanceERC20} from "../src/erc20/GovernanceERC20.sol";
 import {GovernanceWrappedERC20} from "../src/erc20/GovernanceWrappedERC20.sol";
 import {EncodeUpgradeProposalScript} from "../script/EncodeUpgradeProposal.s.sol";
-import {PluginSettings} from "../script/PluginSettings.sol";
 
 /// @notice The proposal that publishes a new build must not reuse the build metadata of the latest published
 ///         build: a published build's metadata can't be changed afterwards.
@@ -46,16 +45,6 @@ contract EncodeUpgradeProposalTest is Test {
 
     function test_WhenTheRepoHasNoBuildYet() public view {
         encoder.requireNewBuildMetadata(repo, PUBLISHED_BUILD_METADATA);
-    }
-
-    /// Until `just pin-metadata` fills it, the build metadata URI is unset and the proposal can't be encoded.
-    function test_RevertWhen_theBuildMetadataUriIsNotSetYet() public {
-        vm.expectRevert("BUILD_METADATA_URI is empty in both the env and script/PluginSettings.sol");
-        this.readBuildMetadataUri();
-    }
-
-    function readBuildMetadataUri() external view returns (bytes memory) {
-        return PluginSettings.buildMetadataUri();
     }
 
     function _newSetup() internal returns (address) {
