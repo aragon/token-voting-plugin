@@ -56,3 +56,39 @@ upgrade-proposal:
     PROPOSAL_METADATA_URI="$PROPOSAL_METADATA_URI" \
     TIMESTAMP="$(date +%s)" \
         forge script script/EncodeUpgradeProposal.s.sol:EncodeUpgradeProposalScript --rpc-url "$RPC_URL" -vvv
+
+# Fail if a contract's storage layout differs from the one at a git ref (default: TokenVoting at build 4)
+[group('test')]
+storage-layout-diff ref="e726c28" contract="src/TokenVoting.sol:TokenVoting":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    command -v jq &>/dev/null || { echo "Error: jq is required"; exit 1; }
+    # The old sources are compiled against the current lib/, so both must pin the same dependencies
+    if [ -n "$(git diff --name-only {{ ref }} HEAD -- lib .gitmodules remappings.txt foundry.toml)" ]; then
+        echo "Error: lib/, remappings or foundry.toml differ from {{ ref }}: compare in a checkout of {{ ref }} instead." >&2
+        exit 1
+    fi
+    OLD=$(mktemp -d)
+    trap 'rm -rf "$OLD"' EXIT
+    git archive {{ ref }} src foundry.toml remappings.txt | tar -x -C "$OLD"
+    ln -s "$PWD/lib" "$OLD/lib"
+    # Slots, offsets and types of every variable and struct member; compiler AST ids are dropped
+    layout() {
+        (cd "$1" && forge inspect {{ contract }} storageLayout --json) | jq -S '
+            def t: gsub("(?<k>struct|contract|enum)\\((?<n>[^)]*)\\)[0-9]+"; "\(.k)(\(.n))");
+            def v: {label, slot, offset, type: (.type | t)};
+            {storage: [.storage[] | v],
+             types: (.types | with_entries(.key |= t | .value |= {label, numberOfBytes, encoding,
+                 members: ((.members // []) | map(v)),
+                 key: ((.key // "") | t), value: ((.value // "") | t), base: ((.base // "") | t)}))}'
+    }
+    layout "$OLD" > "$OLD/old.json"
+    layout "$PWD" > "$OLD/new.json"
+    [ "$(jq ".storage | length" "$OLD/old.json")" -gt 0 ] || { echo "Error: no storage layout read" >&2; exit 1; }
+    if diff "$OLD/old.json" "$OLD/new.json" > "$OLD/diff.txt"; then
+        echo "{{ contract }}: storage layout identical to {{ ref }}"
+    else
+        cat "$OLD/diff.txt"
+        echo "Error: {{ contract }} storage layout differs from {{ ref }}" >&2
+        exit 1
+    fi

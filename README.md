@@ -146,6 +146,7 @@ Run the suites with `just`:
 just test          # unit tests (fork tests excluded)
 just test-fork     # fork tests (requires a reachable RPC_URL for the active network)
 just test-coverage # HTML coverage report under ./report
+just storage-layout-diff [ref] # fails if TokenVoting's storage layout differs from `ref` (default: build 4, e726c28)
 ```
 
 `just test` checks the logic's accordance to the specs; `just test-fork` additionally requires `RPC_URL` (from the selected network or `.env`).
@@ -182,6 +183,7 @@ When running a production deployment ceremony, you can use these steps as a refe
   - [ ] I have run `just env` and confirmed the resolved values
   - [ ] I am the only person of the ceremony that will operate the deployment wallet
 - [ ] All the tests run clean (`just test`)
+- [ ] `just storage-layout-diff <previous build's commit>` reports an identical storage layout
 - My computer:
   - [ ] Is running in a safe location and using a trusted network
   - [ ] It exposes no services or ports

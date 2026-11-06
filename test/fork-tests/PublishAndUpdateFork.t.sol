@@ -13,6 +13,8 @@ pragma solidity 0.8.28;
 // `initializeFrom` reverts and that a proposal still executes.
 //
 // Build 4: a live DAO whose plugin came from build 3 and has since run `initializeFrom(3, "")` on-chain.
+// On that DAO, a proposal created and partly voted on before the update also takes its last votes and
+// executes after it.
 // Builds 3 and 2: a new DAO from the live DAOFactory, with the live build installed through the PSP.
 
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
@@ -101,6 +103,67 @@ contract PublishAndUpdateForkTest is ForkTestBase {
 
         _checkUpdated(LIVE_BUILD_4_DAO, LIVE_BUILD_4_PLUGIN);
         _checkAProposalExecutes(LIVE_BUILD_4_DAO, LIVE_BUILD_4_PLUGIN);
+    }
+
+    /// A proposal created and partly voted on at build 4 keeps its dates, votes and actions across the
+    /// update, takes the remaining votes at the new build and executes once it ends.
+    function test_proposalInFlightSurvivesTheUpdate_liveBuild4Dao() public {
+        TokenVoting tokenVoting = TokenVoting(LIVE_BUILD_4_PLUGIN);
+        address token = address(tokenVoting.getVotingToken());
+        bytes memory settingsBefore = _settingsOf(tokenVoting);
+
+        // Three voters well above the existing supply: first 1 part, then 1/100 of a part against, then 2 parts.
+        uint256 part = IERC20Upgradeable(token).totalSupply() * 10 + 1e24;
+        address first = makeAddr("first voter");
+        address against = makeAddr("voter against");
+        address last = makeAddr("last voter");
+        _giveVotingPower(LIVE_BUILD_4_DAO, token, first, part);
+        _giveVotingPower(LIVE_BUILD_4_DAO, token, against, part / 100);
+        _giveVotingPower(LIVE_BUILD_4_DAO, token, last, 2 * part);
+        vm.prank(LIVE_BUILD_4_DAO);
+        DAO(payable(LIVE_BUILD_4_DAO)).grant(LIVE_BUILD_4_PLUGIN, first, CREATE_PROPOSAL_PERMISSION_ID);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+
+        ForkSink sink = new ForkSink();
+        Action[] memory actions = new Action[](1);
+        actions[0] = Action({to: address(sink), value: 0, data: abi.encodeCall(ForkSink.ping, ())});
+        vm.prank(first);
+        uint256 proposalId =
+            tokenVoting.createProposal("in flight", actions, 0, 0, 0, IMajorityVoting.VoteOption.None, false);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+        vm.prank(first);
+        tokenVoting.vote(proposalId, IMajorityVoting.VoteOption.Yes, false);
+        vm.prank(against);
+        tokenVoting.vote(proposalId, IMajorityVoting.VoteOption.No, false);
+        bytes memory proposalBefore = _proposalOf(tokenVoting, proposalId);
+
+        _updateThroughPSP(LIVE_BUILD_4_DAO, LIVE_BUILD_4_PLUGIN, 4, new address[](0), "");
+        _checkUpdated(LIVE_BUILD_4_DAO, LIVE_BUILD_4_PLUGIN);
+
+        assertEq(_proposalOf(tokenVoting, proposalId), proposalBefore, "proposal unchanged by the update");
+        assertEq(_settingsOf(tokenVoting), settingsBefore, "settings unchanged by the update");
+        assertEq(address(tokenVoting.getVotingToken()), token, "same voting token");
+        assertEq(uint8(tokenVoting.getVoteOption(proposalId, first)), uint8(IMajorityVoting.VoteOption.Yes));
+        assertEq(uint8(tokenVoting.getVoteOption(proposalId, against)), uint8(IMajorityVoting.VoteOption.No));
+
+        // The remaining vote, at the new build.
+        vm.prank(last);
+        tokenVoting.vote(proposalId, IMajorityVoting.VoteOption.Yes, false);
+        (bool open,, MajorityVotingBase.ProposalParameters memory parameters, MajorityVotingBase.Tally memory tally,,,)
+        = tokenVoting.getProposal(proposalId);
+        assertTrue(open, "still open");
+        assertEq(tally.yes, 3 * part, "yes = first + last");
+        assertEq(tally.no, part / 100, "no = the vote against");
+        assertEq(tally.abstain, 0);
+
+        vm.warp(parameters.endDate);
+        vm.roll(block.number + 1);
+        tokenVoting.execute(proposalId);
+        (, bool executed,,,,,) = tokenVoting.getProposal(proposalId);
+        assertTrue(executed, "executed");
+        assertEq(sink.hits(), 1, "the approved action ran");
     }
 
     function test_updateFromBuild3_newDao() public {
@@ -253,27 +316,58 @@ contract PublishAndUpdateForkTest is ForkTestBase {
         assertEq(sink.hits(), 1, "the approved action ran");
     }
 
-    /// Mints to the voter when the DAO can (a GovernanceERC20), or wraps underlying tokens for it (a
-    /// GovernanceWrappedERC20), then self-delegates. Either way the voter ends with most of the supply.
+    /// Gives the voter most of the supply.
     function _giveMostVotingPower(address dao, address token) internal {
-        uint256 amount = IERC20Upgradeable(token).totalSupply() * 10 + 1e24;
+        _giveVotingPower(dao, token, voter, IERC20Upgradeable(token).totalSupply() * 10 + 1e24);
+    }
+
+    /// Mints to `account` when the DAO can (a GovernanceERC20), or wraps underlying tokens for it (a
+    /// GovernanceWrappedERC20), then self-delegates.
+    function _giveVotingPower(address dao, address token, address account, uint256 amount) internal {
         (bool wrapped, bytes memory result) = token.staticcall(abi.encodeWithSignature("underlying()"));
         if (wrapped && result.length == 32) {
             address underlying = abi.decode(result, (address));
-            deal(underlying, voter, amount);
-            vm.startPrank(voter);
+            deal(underlying, account, amount);
+            vm.startPrank(account);
             IERC20Upgradeable(underlying).approve(token, amount);
-            GovernanceWrappedERC20(token).depositFor(voter, amount);
+            GovernanceWrappedERC20(token).depositFor(account, amount);
             vm.stopPrank();
         } else {
             vm.prank(dao);
-            GovernanceERC20(token).mint(voter, amount);
+            GovernanceERC20(token).mint(account, amount);
         }
-        vm.prank(voter);
-        IVotesUpgradeable(token).delegate(voter);
+        vm.prank(account);
+        IVotesUpgradeable(token).delegate(account);
     }
 
     // --- Helpers ---
+
+    /// Every voting setting the plugin exposes, encoded for comparison.
+    function _settingsOf(TokenVoting tokenVoting) internal view returns (bytes memory) {
+        return abi.encode(
+            tokenVoting.votingMode(),
+            tokenVoting.supportThreshold(),
+            tokenVoting.minParticipation(),
+            tokenVoting.minApproval(),
+            tokenVoting.minDuration(),
+            tokenVoting.minProposerVotingPower(),
+            tokenVoting.getTargetConfig()
+        );
+    }
+
+    /// Everything `getProposal` returns, encoded for comparison.
+    function _proposalOf(TokenVoting tokenVoting, uint256 proposalId) internal view returns (bytes memory) {
+        (
+            bool open,
+            bool executed,
+            MajorityVotingBase.ProposalParameters memory parameters,
+            MajorityVotingBase.Tally memory tally,
+            Action[] memory actions,
+            uint256 allowFailureMap,
+            IPlugin.TargetConfig memory targetConfig
+        ) = tokenVoting.getProposal(proposalId);
+        return abi.encode(open, executed, parameters, tally, actions, allowFailureMap, targetConfig);
+    }
 
     function _votingSettings() internal pure returns (MajorityVotingBase.VotingSettings memory) {
         return MajorityVotingBase.VotingSettings({
