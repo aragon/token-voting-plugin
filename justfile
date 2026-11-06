@@ -55,4 +55,4 @@ upgrade-proposal:
     PLUGIN_SETUP="$PLUGIN_SETUP" \
     PROPOSAL_METADATA_URI="$PROPOSAL_METADATA_URI" \
     TIMESTAMP="$(date +%s)" \
-        forge script script/EncodeUpgradeProposal.s.sol:EncodeUpgradeProposalScript -vvv
+        forge script script/EncodeUpgradeProposal.s.sol:EncodeUpgradeProposalScript --rpc-url "$RPC_URL" -vvv
