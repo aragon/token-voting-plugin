@@ -5,5 +5,13 @@
 keys:
   - DEPLOYER_KEY
   - ETHERSCAN_API_KEY
+  - RPC_URL
   - PINATA_JWT
-  # - RPC_URL          # optional: override the network's default RPC with a private endpoint
+
+profiles:
+  sepolia:
+    DEPLOYER_KEY: dev/DEPLOYER_KEY
+  zksync-sepolia:
+    DEPLOYER_KEY: dev/DEPLOYER_KEY
+  default:
+    PINATA_JWT: ?=
