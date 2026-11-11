@@ -317,6 +317,13 @@ contract TokenVoting is IMembership, MajorityVotingBase {
             return false;
         }
 
+        // The voter is excluded from the supply, so it must not be able to vote either. Otherwise an
+        // excluded account, whose power is removed from the participation/approval denominator in
+        // `totalVotingPower`, could still cast votes into the tally and skew the outcome.
+        if (excludedAccounts.contains(_account)) {
+            return false;
+        }
+
         // The voter has no voting power.
         if (votingToken.getPastVotes(_account, proposal_.parameters.snapshotTimepoint) == 0) {
             return false;
