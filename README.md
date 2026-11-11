@@ -30,7 +30,7 @@ The HardHat codebase of version 1.3 and earlier can be found [in this repo](http
 
 ## ABI and artifacts
 
-Check out the [artifacts folder](./npm-artifacts/README.md) to get the deployed addresses and the contract ABI's.
+The deployed addresses and the contract ABIs live in [aragon/artifacts-hub](https://github.com/aragon/artifacts-hub).
 
 
 ## Features
@@ -62,10 +62,6 @@ Other features:
 ├── remappings.txt
 ├── lib
 │   └── just-foundry      # shared just recipes + network configs (submodule)
-├── npm-artifacts
-│   └── src
-│       ├── abi.ts
-│       └── addresses.json
 ├── script
 │   ├── DeployNewTokenVotingRepo.s.sol
 │   ├── DeployTokenVoting_1_4.s.sol
@@ -257,3 +253,7 @@ This project is licensed under AGPL-3.0-or-later.
 ## Support 💬
 
 For support, join our Discord server or open an issue in the repository.
+
+## Deprecated networks
+
+Addresses on networks that are no longer supported remain available in [`npm-artifacts/src/addresses.json` at `e726c280`](https://github.com/aragon/token-voting-plugin/blob/e726c28061486114d601c547e4da1180ed5ab6da/npm-artifacts/src/addresses.json).

@@ -1,2 +1,0 @@
-.API
-* xref:TokenVoting.adoc[Token Voting]
