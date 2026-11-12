@@ -34,19 +34,47 @@ contract EncodeUpgradeProposalScript is Script {
         proposalMetadataUri = bytes(vm.envString("PROPOSAL_METADATA_URI"));
         releaseMetadataUri = PluginSettings.releaseMetadataUri();
         buildMetadataUri = PluginSettings.buildMetadataUri();
+        requireNewBuildMetadata(pluginRepo, buildMetadataUri);
+    }
+
+    /// @notice Reverts when `_buildMetadataUri` is the build metadata of the latest published build. A build's
+    ///         metadata can't be changed once published, so a new build must never reuse the previous one's.
+    /// @param _pluginRepo The token-voting plugin repo.
+    /// @param _buildMetadataUri The build metadata URI the proposal would publish.
+    function requireNewBuildMetadata(PluginRepo _pluginRepo, bytes memory _buildMetadataUri) public view {
+        if (_pluginRepo.buildCount(RELEASE) == 0) return;
+        bytes memory latest = _pluginRepo.getLatestVersion(RELEASE).buildMetadata;
+        if (keccak256(_buildMetadataUri) == keccak256(latest)) {
+            revert(
+                "BUILD_METADATA_URI is the latest published build's: run `just pin-metadata` and set BUILD_METADATA_URI to the new build's URI"
+            );
+        }
+    }
+
+    /// @notice The actions of the management DAO proposal: publish `_pluginSetup` as the next build of release 1.
+    /// @param _pluginSetup The deployed plugin setup.
+    /// @param _pluginRepo The token-voting plugin repo.
+    /// @param _buildMetadataUri The build metadata URI.
+    /// @param _releaseMetadataUri The release metadata URI.
+    /// @return actions The single `createVersion` action.
+    function publishActions(
+        address _pluginSetup,
+        PluginRepo _pluginRepo,
+        bytes memory _buildMetadataUri,
+        bytes memory _releaseMetadataUri
+    ) public pure returns (Action[] memory actions) {
+        actions = new Action[](1);
+        actions[0].to = address(_pluginRepo);
+        actions[0].data =
+            abi.encodeCall(IPluginRepo.createVersion, (RELEASE, _pluginSetup, _buildMetadataUri, _releaseMetadataUri));
     }
 
     function run() public view {
         // Pick the .env contract addresses from:
         // https://github.com/aragon/artifacts-hub/tree/main/addresses
 
-        bytes memory actionData = abi.encodeCall(
-            IPluginRepo.createVersion, (RELEASE, address(pluginSetup), buildMetadataUri, releaseMetadataUri)
-        );
-
-        Action[] memory actions = new Action[](1);
-        actions[0].to = address(pluginRepo);
-        actions[0].data = actionData;
+        Action[] memory actions = publishActions(address(pluginSetup), pluginRepo, buildMetadataUri, releaseMetadataUri);
+        bytes memory actionData = actions[0].data;
         uint64 expirationDate = uint64(vm.envUint("TIMESTAMP")) + 3 weeks;
         bytes memory createProposalData = abi.encodeCall(
             IMultisigProposal.createProposal, (proposalMetadataUri, actions, 0, true, false, 0, expirationDate)

@@ -18,9 +18,10 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 /**
  * This script performs the following tasks:
  * - Deploys the plugin setup
- * - Encodes the calldata of the proposal to publish it as a new version
+ * It deploys the build in src/, so the next build needs no new script. Publishing the setup as a new
+ * version is the management DAO proposal printed by `just upgrade-proposal`.
  */
-contract DeployTokenVoting_1_4Script is Script {
+contract DeployTokenVotingScript is Script {
     using stdJson for string;
 
     address deployer;
@@ -66,7 +67,9 @@ contract DeployTokenVoting_1_4Script is Script {
         }
     }
 
-    function deployPluginSetup() public {
+    /// @notice Deploys the token bases and the plugin setup of this network (the zkSync setup on zkSync).
+    /// @return The plugin setup address.
+    function deployPluginSetup() public returns (address) {
         // Dependencies
         governanceERC20 = new GovernanceERC20(
             IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0), false)
@@ -80,6 +83,7 @@ contract DeployTokenVoting_1_4Script is Script {
             console2.log("Using TokenVotingSetupZkSync\n");
             pluginSetup = address(new TokenVotingSetupZkSync(new TokenVoting()));
         }
+        return pluginSetup;
     }
 
     function printDeployment() public view {

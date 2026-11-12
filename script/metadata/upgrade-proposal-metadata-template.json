@@ -1,7 +1,7 @@
 {
   "title": "Upgrading TokenVoting",
-  "summary": "Upgrading the Token Voting Plugin to 1.4",
-  "description": "# Plugin upgrade\n\n- Supporting timestamp based IVotes tokens\n- Allowing to freeze token minting\n- Allowing to exclude addresses from the total token supply\n\n# Publish New Plugin Version\n- Publishes the TokenVoting Plugin Setup deployed at `___PLUGIN_SETUP___` as **v1.4** in the `token-voting.plugin.dao.eth` plugin repository at `___PLUGIN_REPO___`, with release metadata `___RELEASE_METADATA___` and build metadata `___BUILD_METADATA___`. ",
+  "summary": "v1.5\n- Fixes a stability issue in the update path from v1.3.\n- DAOs still on v1.3, or that updated from v1.3 to v1.4, should update to v1.5 right away.",
+  "description": "# Plugin upgrade\n\nv1.5\n- Fixes a stability issue in the update path from v1.3.\n- DAOs still on v1.3, or that updated from v1.3 to v1.4, should update to v1.5 right away.\n\n# Publish New Plugin Version\n- Publishes the TokenVoting Plugin Setup deployed at `___PLUGIN_SETUP___` as **v1.5** in the `token-voting.plugin.dao.eth` plugin repository at `___PLUGIN_REPO___`, with release metadata `___RELEASE_METADATA___` and build metadata `___BUILD_METADATA___`. ",
   "resources": [
     {
       "name": "Audit report",
