@@ -255,7 +255,9 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
     }
 
     /// @inheritdoc IPluginSetup
-    /// @dev Revoke the upgrade plugin permission to the DAO for all builds prior the current one (3).
+    /// @dev Every update from a build below 4 returns `initData` calling `initializeFrom`, so the
+    ///      `PluginSetupProcessor` reinitializes the plugin in the same transaction as the upgrade.
+    ///      Updates from builds 1 and 2 also move the permissions to the layout introduced in build 3.
     function prepareUpdate(address _dao, uint16 _fromBuild, SetupPayload calldata _payload)
         external
         override
@@ -309,7 +311,9 @@ contract TokenVotingSetup is PluginUpgradeableSetup {
             preparedSetupData.permissions = permissions;
             preparedSetupData.helpers = new address[](1);
             preparedSetupData.helpers[0] = votingPowerCondition;
+        }
 
+        if (_fromBuild < 4) {
             initData = abi.encodeCall(TokenVoting.initializeFrom, (_fromBuild, _payload.data));
         }
     }

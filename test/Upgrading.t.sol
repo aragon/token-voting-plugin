@@ -25,13 +25,22 @@ import {TokenVoting as TokenVotingR1B3} from "plugin-version-1.3/TokenVoting.sol
 import {MajorityVotingBase as MajorityVotingBaseR1B3} from "plugin-version-1.3/MajorityVotingBase.sol";
 
 import {IPlugin} from "@aragon/osx-commons-contracts/src/plugin/IPlugin.sol";
+import {IPluginSetup} from "@aragon/osx-commons-contracts/src/plugin/setup/IPluginSetup.sol";
+import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {DaoUnauthorized} from "@aragon/osx-commons-contracts/src/permission/auth/auth.sol";
 import {DAO} from "@aragon/osx/core/dao/DAO.sol";
 import {SimpleBuilder} from "./builders/SimpleBuilder.sol";
 import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {ProxyLib} from "@aragon/osx-commons-contracts/src/utils/deployment/ProxyLib.sol";
+import {TokenVotingSetup} from "../src/TokenVotingSetup.sol";
+import {GovernanceERC20} from "../src/erc20/GovernanceERC20.sol";
+import {GovernanceWrappedERC20} from "../src/erc20/GovernanceWrappedERC20.sol";
 
 contract UpgradingTest is Test {
     error AlreadyInitialized();
+
+    bytes32 internal constant UPGRADE_PLUGIN_PERMISSION_ID = keccak256("UPGRADE_PLUGIN_PERMISSION");
 
     function test_WhenUpgradingToANewImplementation() external {
         // It upgrades to a new implementation
@@ -300,28 +309,7 @@ contract UpgradingTest is Test {
         ERC20ClockMock tok = new ERC20ClockMock(true);
 
         // Install as 1.3
-        TokenVotingR1B3 plugin = TokenVotingR1B3(
-            ProxyLib.deployUUPSProxy(
-                address(new TokenVotingR1B3()),
-                abi.encodeCall(
-                    TokenVotingR1B3.initialize,
-                    (
-                        dao,
-                        MajorityVotingBaseR1B3.VotingSettings({
-                            votingMode: MajorityVotingBaseR1B3.VotingMode.EarlyExecution,
-                            supportThreshold: 123_456,
-                            minParticipation: 234_567,
-                            minDuration: 60 * 60,
-                            minProposerVotingPower: 12341234
-                        }),
-                        tok,
-                        IPlugin.TargetConfig({target: address(dao), operation: IPlugin.Operation.Call}),
-                        556677, // minApprovals
-                        "more-meta"
-                    )
-                )
-            )
-        );
+        TokenVotingR1B3 plugin = _deployR1B3(dao, tok);
 
         // Create a proposal
         dao.grant(address(plugin), address(this), keccak256("CREATE_PROPOSAL_PERMISSION"));
@@ -355,10 +343,8 @@ contract UpgradingTest is Test {
             )
         );
 
-        address newImpl = address(new TokenVoting());
-
-        // It initializeFrom succeeds
-        plugin.upgradeToAndCall(newImpl, abi.encodeCall(TokenVoting.initializeFrom, (3, abi.encode())));
+        // It initializeFrom succeeds, with the initData the build 4 setup prepares for a 3 -> 4 update
+        address newImpl = _upgradeWithSetupInitData(dao, plugin, 3);
 
         address currentImpl = address(plugin.implementation());
         assertNotEq(originalImpl, currentImpl);
@@ -409,5 +395,118 @@ contract UpgradingTest is Test {
         proposalId = plugin.createProposal("proposal-meta-2", new Action[](0), 0, 0, "");
         (open, executed, parameters,,,,) = TokenVoting(address(plugin)).getProposal(proposalId);
         assertEq(parameters.snapshotTimepoint, block.timestamp - 1);
+    }
+
+    function test_WhenAnOutsiderCallsInitializeFromAfterABareUpgrade() external givenTheContractIsAtR1B3 {
+        // It reverts: `initializeFrom` needs the UPGRADE_PLUGIN_PERMISSION, which only the upgrade path holds
+        (DAO dao,,,) = new SimpleBuilder().build();
+        TokenVotingR1B3 plugin = _deployR1B3(dao, new ERC20ClockMock(true));
+        dao.grant(address(plugin), address(this), UPGRADE_PLUGIN_PERMISSION_ID);
+        plugin.upgradeTo(address(new TokenVoting())); // a bare upgrade leaves version 3 unconsumed
+
+        address outsider = makeAddr("outsider");
+        vm.prank(outsider);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DaoUnauthorized.selector, address(dao), address(plugin), outsider, UPGRADE_PLUGIN_PERMISSION_ID
+            )
+        );
+        TokenVoting(address(plugin)).initializeFrom(1, _takeoverInitData(outsider));
+
+        // It leaves the plugin as it was
+        assertEq(TokenVoting(address(plugin)).getTargetConfig().target, address(dao));
+        assertEq(TokenVoting(address(plugin)).minApproval(), 556677);
+    }
+
+    function testFuzz_WhenAnyCallerWithoutTheUpgradePermissionCallsInitializeFrom(address caller, uint16 fromBuild)
+        external
+        givenTheContractIsAtR1B3
+    {
+        // It reverts for every caller but the one holding the UPGRADE_PLUGIN_PERMISSION, whatever build it claims
+        (DAO dao,,,) = new SimpleBuilder().build();
+        TokenVotingR1B3 plugin = _deployR1B3(dao, new ERC20ClockMock(true));
+        dao.grant(address(plugin), address(this), UPGRADE_PLUGIN_PERMISSION_ID);
+        plugin.upgradeTo(address(new TokenVoting()));
+        vm.assume(caller != address(this));
+
+        vm.prank(caller);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DaoUnauthorized.selector, address(dao), address(plugin), caller, UPGRADE_PLUGIN_PERMISSION_ID
+            )
+        );
+        TokenVoting(address(plugin)).initializeFrom(fromBuild, _takeoverInitData(caller));
+    }
+
+    function test_WhenTheUpgradePermissionHolderCallsInitializeFromAfterABareUpgrade()
+        external
+        givenTheContractIsAtR1B3
+    {
+        // It runs the migration to build 4 once, and a second call finds the version consumed
+        (DAO dao,,,) = new SimpleBuilder().build();
+        TokenVotingR1B3 plugin = _deployR1B3(dao, new ERC20ClockMock(true));
+        dao.grant(address(plugin), address(this), UPGRADE_PLUGIN_PERMISSION_ID);
+        plugin.upgradeTo(address(new TokenVoting()));
+
+        TokenVoting(address(plugin)).initializeFrom(3, "");
+        assertTrue(TokenVoting(address(plugin)).tokenIndexedByTimestamp());
+
+        vm.expectRevert("Initializable: contract is already initialized");
+        TokenVoting(address(plugin)).initializeFrom(3, "");
+    }
+
+    /// Deploys a plugin proxy at R1 B3 with the settings the R1 B3 upgrade tests assert on.
+    function _deployR1B3(DAO dao, ERC20ClockMock tok) internal returns (TokenVotingR1B3) {
+        return TokenVotingR1B3(
+            ProxyLib.deployUUPSProxy(
+                address(new TokenVotingR1B3()),
+                abi.encodeCall(
+                    TokenVotingR1B3.initialize,
+                    (
+                        dao,
+                        MajorityVotingBaseR1B3.VotingSettings({
+                            votingMode: MajorityVotingBaseR1B3.VotingMode.EarlyExecution,
+                            supportThreshold: 123_456,
+                            minParticipation: 234_567,
+                            minDuration: 60 * 60,
+                            minProposerVotingPower: 12341234
+                        }),
+                        tok,
+                        IPlugin.TargetConfig({target: address(dao), operation: IPlugin.Operation.Call}),
+                        556677, // minApprovals
+                        "more-meta"
+                    )
+                )
+            )
+        );
+    }
+
+    /// Upgrades `plugin` to build 4 with the initData the build 4 setup prepares for an update from
+    /// `fromBuild`, as the PluginSetupProcessor would. The caller must hold the upgrade permission.
+    /// The setup gets throwaway token bases: only its `prepareUpdate` output is used here.
+    function _upgradeWithSetupInitData(DAO dao, TokenVotingR1B3 plugin, uint16 fromBuild)
+        internal
+        returns (address newImpl)
+    {
+        GovernanceERC20 govBase = new GovernanceERC20(
+            IDAO(address(0)), "G", "G", GovernanceERC20.MintSettings(new address[](0), new uint256[](0), false)
+        );
+        GovernanceWrappedERC20 wrappedBase = new GovernanceWrappedERC20(IERC20Upgradeable(address(0x1)), "WG", "WG");
+        TokenVotingSetup setup = new TokenVotingSetup(new TokenVoting(), govBase, wrappedBase);
+
+        (bytes memory initData,) = setup.prepareUpdate(
+            address(dao),
+            fromBuild,
+            IPluginSetup.SetupPayload({plugin: address(plugin), currentHelpers: new address[](0), data: ""})
+        );
+        newImpl = setup.implementation();
+        plugin.upgradeToAndCall(newImpl, initData);
+    }
+
+    /// What an attacker would pass to `initializeFrom` to run its own code with the plugin's permissions.
+    function _takeoverInitData(address attacker) internal pure returns (bytes memory) {
+        return abi.encode(
+            uint256(0), IPlugin.TargetConfig({target: attacker, operation: IPlugin.Operation.DelegateCall}), bytes("")
+        );
     }
 }

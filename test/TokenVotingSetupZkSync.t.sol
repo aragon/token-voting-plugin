@@ -848,7 +848,7 @@ contract TokenVotingSetupZkSyncTest is TestBase {
     }
 
     function test_WhenCallingPrepareUpdateForAnUpdateFromBuild3() external givenTheContextIsPrepareUpdate {
-        // It returns the permissions expected for the update from build 3 (empty list)
+        // It returns no permissions for the update from build 3, and initData calling `initializeFrom`
         address pluginAddr = makeAddr("plugin");
         bytes memory updateInnerData =
             abi.encode(uint256(0), IPlugin.TargetConfig(address(0), IPlugin.Operation.Call), "");
@@ -858,7 +858,7 @@ contract TokenVotingSetupZkSyncTest is TestBase {
         (bytes memory initData, IPluginSetup.PreparedSetupData memory prepared) =
             pluginSetup.prepareUpdate(address(dao), 3, updatePayload);
 
-        assertEq(initData.length, 0);
+        assertEq(initData, abi.encodeWithSelector(TokenVoting.initializeFrom.selector, 3, updateInnerData));
         assertEq(prepared.helpers.length, 0);
         assertEq(prepared.permissions.length, 0);
     }
@@ -1220,7 +1220,7 @@ contract TokenVotingSetupZkSyncTest is TestBase {
         (bytes memory initData, IPluginSetup.PreparedSetupData memory prepared) =
             pluginSetup.prepareUpdate(address(dao), 3, updatePayload);
 
-        assertEq(initData.length, 0);
+        assertEq(initData, abi.encodeWithSelector(TokenVoting.initializeFrom.selector, 3, updateInnerData));
         assertEq(prepared.helpers.length, 0);
         assertEq(prepared.permissions.length, 0);
     }
