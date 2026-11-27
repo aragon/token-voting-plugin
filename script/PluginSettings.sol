@@ -9,7 +9,7 @@ library PluginSettings {
     VmSafe private constant vm = VmSafe(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     string internal constant RELEASE_METADATA_URI = "ipfs://QmWjZArvePnMPgbfKAMW3TidbqHEy68UV6SvRBhiaygGta";
-    string internal constant BUILD_METADATA_URI = "ipfs://QmdLJo4VqwN8jPFf2svZpG5i5kVZX61s8w519qxUXM7X7g";
+    string internal constant BUILD_METADATA_URI = "ipfs://QmarxZFdwnmnt2B8vDKfdyK6G5RYZb84DTcTtciWnDWd6D";
 
     function releaseMetadataUri() internal view returns (bytes memory) {
         return resolve("RELEASE_METADATA_URI", RELEASE_METADATA_URI);

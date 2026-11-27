@@ -7,6 +7,14 @@
 
 ## Audit
 
+### v1.5
+
+**Halborn**: [audit report](./audits/halborn-audit-1-5.pdf)
+
+- Commit ID: [2fce06e99f99554f32552c33908a48b957b79dd2](https://github.com/aragon/token-voting-plugin/commit/2fce06e99f99554f32552c33908a48b957b79dd2)
+- Started: November 5th, 2026
+- Finished: November 5th, 2026
+
 ### v1.4
 
 **Halborn**: [audit report](./audits/halborn-audit-1-4-remediated.pdf)
@@ -64,7 +72,7 @@ Other features:
 │   └── just-foundry      # shared just recipes + network configs (submodule)
 ├── script
 │   ├── DeployNewTokenVotingRepo.s.sol
-│   ├── DeployTokenVoting_1_4.s.sol
+│   ├── DeployTokenVoting.s.sol
 │   ├── EncodeUpgradeProposal.s.sol
 │   ├── PluginSettings.sol    # fallback release/build metadata URIs
 │   └── metadata              # release/build metadata JSON
@@ -134,6 +142,7 @@ Run the suites with `just`:
 just test          # unit tests (fork tests excluded)
 just test-fork     # fork tests (requires a reachable RPC_URL for the active network)
 just test-coverage # HTML coverage report under ./report
+just storage-layout-diff [ref] # fails if TokenVoting's storage layout differs from `ref` (default: build 4, e726c28)
 ```
 
 `just test` checks the logic's accordance to the specs; `just test-fork` additionally requires `RPC_URL` (from the selected network or `.env`).
@@ -170,6 +179,7 @@ When running a production deployment ceremony, you can use these steps as a refe
   - [ ] I have run `just env` and confirmed the resolved values
   - [ ] I am the only person of the ceremony that will operate the deployment wallet
 - [ ] All the tests run clean (`just test`)
+- [ ] `just storage-layout-diff <previous build's commit>` reports an identical storage layout
 - My computer:
   - [ ] Is running in a safe location and using a trusted network
   - [ ] It exposes no services or ports
@@ -196,7 +206,7 @@ When running a production deployment ceremony, you can use these steps as a refe
 - [ ] I have uploaded the following files to a shared location:
   - `logs/<script>-<network>-<timestamp>.log` (the last one)
   - `artifacts/deployment-<network>-<timestamp>.json`  (the last one)
-  - `broadcast/DeployTokenVoting_*.s.sol/<chain-id>/run-<timestamp>.json` (the last one, or `run-latest.json`)
+  - `broadcast/DeployTokenVoting.s.sol/<chain-id>/run-<timestamp>.json` (the last one, or `run-latest.json`)
 - [ ] The rest of members confirm that the values are correct
 - [ ] I have transferred the remaining funds of the deployment wallet to the address that originally funded it
   - `just refund`
@@ -215,7 +225,7 @@ just verify blockscout
 just verify sourcify
 ```
 
-These use the last deployment data under `broadcast/DeployTokenVoting_*.s.sol/<chain-id>/run-latest.json`.
+These use the last deployment data under `broadcast/DeployTokenVoting.s.sol/<chain-id>/run-latest.json`.
 - Ensure that the required variables are set within the `.env` file (or the active network).
 
 This flow will attempt to verify all the contracts in one go, but you may still need to issue additional manual verifications, depending on the circumstances.
